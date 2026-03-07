@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Mi Control de Trabajo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    font-family: Arial;
+    background:#0C1219;
+    color:white;
+    text-align:center;
+    padding:20px;
+}
+
+input, button, textarea{
+    width:90%;
+    padding:10px;
+    margin:8px;
+    border-radius:8px;
+    border:none;
+}
+
+button{
+    background:#1E90FF;
+    color:white;
+    font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🚛 Control Diario</h2>
+
+<input id="camion" placeholder="Camión">
+<textarea id="ruta" placeholder="Ruta"></textarea>
+
+<input id="salida" type="time">
+<input id="llegada" type="time">
+
+<button onclick="guardar()">Guardar</button>
+
+<p id="mensaje"></p>
+
+<script>
+function guardar(){
+let datos = {
+camion: document.getElementById("camion").value,
+ruta: document.getElementById("ruta").value,
+salida: document.getElementById("salida").value,
+llegada: document.getElementById("llegada").value
+};
+
+localStorage.setItem("trabajo", JSON.stringify(datos));
+
+document.getElementById("mensaje").innerText="Guardado ✔";
+}
+</script>
+
+</body>
+</html>
