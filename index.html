@@ -25,17 +25,26 @@
         .stats { display: flex; justify-content: space-around; font-weight: bold; font-size: 14px; }
         .rango-txt { display: block; text-align: center; font-size: 11px; color: #666; margin-bottom: 5px; }
 
+        /* Estilo del puntito en el calendario */
+        .dot-obs {
+            height: 8px; width: 8px; background-color: #e30613; border-radius: 50%;
+            display: inline-block; position: absolute; top: 5px; right: 5px; border: 1px solid white;
+        }
+
         .mes-separador { 
             background: var(--accent); color: white; padding: 8px 15px; border-radius: 6px; 
-            margin: 20px 0 10px 0; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between;
+            margin: 20px 0 10px 0; font-size: 14px; font-weight: bold;
         }
         .card { background: white; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 5px solid var(--accent); }
         .card-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; font-size: 13px; }
 
         .form-contenedor { background: #fff; border: 2px solid var(--accent); border-radius: 12px; padding: 15px; margin-top: 10px; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
-        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
-        label { font-size: 10px; color: #666; font-weight: bold; text-transform: uppercase; }
+        input, select, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; font-family: inherit; }
+        textarea { resize: none; height: 60px; }
+        label { font-size: 10px; color: #666; font-weight: bold; text-transform: uppercase; margin-top: 5px; display: block; }
+
+        .obs-box { background: #fff9c4; border-left: 3px solid #fbc02d; padding: 8px; margin-top: 8px; font-size: 12px; border-radius: 4px; color: #5d4037; }
 
         .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
         .nav-btn { background: none; border: none; color: #999; font-size: 10px; font-weight: bold; }
@@ -59,7 +68,7 @@
 
     <div id="tab-cal" class="tab-content active">
         <div class="panel-dietas">
-            <span class="rango-txt" id="rango-f">Periodo: 26 al 25</span>
+            <span class="rango-txt" id="rango-f">Cargando...</span>
             <div class="stats">
                 <span>☀️ <span id="c-dia">0</span></span>
                 <span>🌙 <span id="c-noche">0</span></span>
@@ -77,32 +86,35 @@
                 <button id="b-fuera" class="btn-turno" style="background:var(--fuera-color)" onclick="selT('fuera')">FUERA</button>
                 <button class="btn-turno" style="background:#888; opacity:1" onclick="borrar()">BORRAR</button>
             </div>
+            
             <label>Ruta</label>
             <select id="sel-ruta"></select>
+            
             <div class="form-grid">
                 <div><label>T1</label><input type="text" id="t1"></div>
                 <div><label>T2</label><input type="text" id="t2"></div>
                 <div><label>R1</label><input type="text" id="r1"></div>
                 <div><label>R2</label><input type="text" id="r2"></div>
             </div>
+            
+            <label>Observaciones / Extras</label>
+            <textarea id="obs" placeholder="Incidencias, retrasos, avisos..."></textarea>
+            
             <button class="btn-confirmar" onclick="guardar()">GUARDAR DÍA</button>
         </div>
     </div>
 
     <div id="tab-list" class="tab-content">
-        <h3>Historial por Nóminas</h3>
+        <h3>Historial de Nóminas</h3>
         <div id="historial-lista"></div>
     </div>
 
     <div id="tab-conf" class="tab-content">
-        <h3>Seguridad de Datos</h3>
-        <button class="btn-backup" onclick="exportar()">💾 GUARDAR COPIA DE SEGURIDAD</button>
-        <p style="font-size: 11px; color: #666; margin-bottom: 20px;">Descarga un archivo con tus datos para no perderlos nunca.</p>
-        
-        <label>Recuperar datos de un archivo:</label>
-        <input type="file" id="importFile" onchange="importar(event)" style="margin-top:5px; font-size:12px;">
-        
-        <hr style="margin: 20px 0;">
+        <h3>Seguridad y Ajustes</h3>
+        <button class="btn-backup" onclick="exportar()">💾 HACER COPIA DE SEGURIDAD</button>
+        <input type="file" id="importFile" onchange="importar(event)" style="display:none">
+        <button class="btn-backup" style="background:#95a5a6" onclick="document.getElementById('importFile').click()">📂 CARGAR COPIA</button>
+        <hr>
         <h3>Mis Rutas</h3>
         <div style="display:flex; gap:5px;">
             <input type="text" id="nueva-ruta-input" placeholder="Ej: Barcelona-Madrid">
@@ -120,7 +132,7 @@
 
 <script>
     let cal, currF = null, currT = null;
-    let datos = JSON.parse(localStorage.getItem('furgotrayler_v_final_ok')) || [];
+    let datos = JSON.parse(localStorage.getItem('furgotrayler_v_final_obs')) || [];
     let misRutas = JSON.parse(localStorage.getItem('rutas_v_ok')) || ['Ruta Local', 'Base-Base'];
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -129,7 +141,17 @@
             headerToolbar: { left: 'prev,next', center: 'title', right: '' },
             events: datos,
             dateClick: (i) => { currF = i.dateStr; mostrarForm(i.dateStr); },
-            datesSet: actualizarTodo
+            datesSet: actualizarTodo,
+            // Función para dibujar el puntito rojo si hay observaciones
+            dayCellDidMount: (info) => {
+                const fStr = info.date.toISOString().split('T')[0];
+                const item = datos.find(d => d.start === fStr);
+                if (item && item.extendedProps && item.extendedProps.obs && item.extendedProps.obs.trim() !== "") {
+                    const dot = document.createElement('span');
+                    dot.className = 'dot-obs';
+                    info.el.querySelector('.fc-daygrid-day-top').appendChild(dot);
+                }
+            }
         });
         cal.render();
         pintarRutasConfig();
@@ -156,9 +178,10 @@
             document.getElementById('r1').value = ex.extendedProps.r1 || '';
             document.getElementById('r2').value = ex.extendedProps.r2 || '';
             document.getElementById('sel-ruta').value = ex.extendedProps.ruta || '';
+            document.getElementById('obs').value = ex.extendedProps.obs || '';
         } else {
             selT(null);
-            document.querySelectorAll('#form-dia input').forEach(i => i.value = '');
+            document.querySelectorAll('#form-dia input, #form-dia textarea').forEach(i => i.value = '');
             document.getElementById('sel-ruta').value = '';
         }
         window.scrollTo(0, document.body.scrollHeight);
@@ -175,81 +198,30 @@
         datos = datos.filter(e => e.start !== currF);
         const col = {dia:'var(--dia-color)', noche:'var(--noche-color)', fuera:'var(--fuera-color)'};
         const txt = {dia:'☀️ DÍA', noche:'🌙 NOCHE', fuera:'🏨 FUERA'};
+        
         datos.push({
             title: txt[currT], start: currF, backgroundColor: col[currT], borderColor: 'black',
             extendedProps: {
                 tipo: currT, ruta: document.getElementById('sel-ruta').value,
                 t1: document.getElementById('t1').value.toUpperCase(), t2: document.getElementById('t2').value.toUpperCase(),
-                r1: document.getElementById('r1').value.toUpperCase(), r2: document.getElementById('r2').value.toUpperCase()
+                r1: document.getElementById('r1').value.toUpperCase(), r2: document.getElementById('r2').value.toUpperCase(),
+                obs: document.getElementById('obs').value
             }
         });
-        localStorage.setItem('furgotrayler_v_final_ok', JSON.stringify(datos));
+        localStorage.setItem('furgotrayler_v_final_obs', JSON.stringify(datos));
         cal.removeAllEvents(); cal.addEventSource(datos);
         document.getElementById('form-dia').style.display = 'none';
+        cal.render(); // Refrescar para que aparezca el punto rojo
         actualizarTodo();
     }
 
     function borrar() {
         datos = datos.filter(e => e.start !== currF);
-        localStorage.setItem('furgotrayler_v_final_ok', JSON.stringify(datos));
+        localStorage.setItem('furgotrayler_v_final_obs', JSON.stringify(datos));
         cal.removeAllEvents(); cal.addEventSource(datos);
         document.getElementById('form-dia').style.display = 'none';
+        cal.render();
         actualizarTodo();
-    }
-
-    // --- COPIA DE SEGURIDAD ---
-    function exportar() {
-        const dataStr = JSON.stringify({datos, misRutas});
-        const blob = new Blob([dataStr], {type: "application/json"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Copia_Cuadrante_${new Date().toLocaleDateString()}.json`;
-        a.click();
-    }
-
-    function importar(event) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const json = JSON.parse(e.target.result);
-            if(json.datos) {
-                datos = json.datos;
-                misRutas = json.misRutas || misRutas;
-                localStorage.setItem('furgotrayler_v_final_ok', JSON.stringify(datos));
-                localStorage.setItem('rutas_v_ok', JSON.stringify(misRutas));
-                location.reload();
-            }
-        };
-        reader.readAsText(event.target.files[0]);
-    }
-
-    // --- RUTAS ---
-    function addRutaLista() {
-        const val = document.getElementById('nueva-ruta-input').value;
-        if(!val) return;
-        misRutas.push(val);
-        localStorage.setItem('rutas_v_ok', JSON.stringify(misRutas));
-        document.getElementById('nueva-ruta-input').value = '';
-        pintarRutasConfig(); actualizarSelectRutas();
-    }
-
-    function pintarRutasConfig() {
-        document.getElementById('lista-rutas-config').innerHTML = misRutas.map((r, i) => `
-            <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
-                <span>${r}</span><button onclick="eliminarRuta(${i})" style="color:red; border:none; background:none;">ELIMINAR</button>
-            </div>
-        `).join('');
-    }
-
-    function eliminarRuta(idx) {
-        misRutas.splice(idx, 1);
-        localStorage.setItem('rutas_v_ok', JSON.stringify(misRutas));
-        pintarRutasConfig(); actualizarSelectRutas();
-    }
-
-    function actualizarSelectRutas() {
-        document.getElementById('sel-ruta').innerHTML = '<option value="">-- Elige --</option>' + 
-            misRutas.map(r => `<option value="${r}">${r}</option>`).join('');
     }
 
     function pintarHistorialPorMeses() {
@@ -260,31 +232,60 @@
         let ultimoMesNomina = "";
         datosOrdenados.forEach(e => {
             const fecha = new Date(e.start);
-            let mesNominaNum = (fecha.getDate() > 25) ? fecha.getMonth() + 1 : fecha.getMonth();
-            let añoNomina = fecha.getFullYear();
-            if(mesNominaNum > 11) { mesNominaNum = 0; añoNomina++; }
-            const nombreMes = new Intl.DateTimeFormat('es', { month: 'long' }).format(new Date(añoNomina, mesNominaNum));
-            const idMes = `${nombreMes} ${añoNomina}`;
-            if(idMes !== ultimoMesNomina) {
-                ultimoMesNomina = idMes;
-                cont.innerHTML += `<div class="mes-separador"><span>Nómina ${idMes.toUpperCase()}</span></div>`;
+            let mesN = (fecha.getDate() > 25) ? fecha.getMonth() + 1 : fecha.getMonth();
+            let añoN = fecha.getFullYear();
+            if(mesN > 11) { mesN = 0; añoN++; }
+            const nombreM = new Intl.DateTimeFormat('es', { month: 'long' }).format(new Date(añoN, mesN));
+            const idM = `${nombreM} ${añoN}`;
+            if(idM !== ultimoMesNomina) {
+                ultimoMesNomina = idM;
+                cont.innerHTML += `<div class="mes-separador">NÓMINA ${idM.toUpperCase()}</div>`;
             }
             const p = e.extendedProps;
-            cont.innerHTML += `<div class="card">
+            let obsHtml = p.obs ? `<div class="obs-box"><b>Nota:</b> ${p.obs}</div>` : '';
+            cont.innerHTML += `<div class="card" onclick="irAFecha('${e.start}')">
                 <div class="card-header"><span>📅 ${e.start}</span> <span style="color:${e.backgroundColor}">${e.title}</span></div>
                 <div style="font-weight:bold; color:var(--domingo-color)">📍 ${p.ruta || '-'}</div>
-                <div style="font-size:12px; color:#555; margin-top:5px;">${p.t1||''} ${p.t2||''} ${p.r1||''} ${p.r2||''}</div>
+                <div style="font-size:11px; color:#666; margin-top:4px;">${p.t1||''} ${p.t2||''} | ${p.r1||''} ${p.r2||''}</div>
+                ${obsHtml}
             </div>`;
         });
     }
 
+    function irAFecha(f) { nav('cal'); cal.gotoDate(f); mostrarForm(f); }
+
+    function exportar() {
+        const blob = new Blob([JSON.stringify({datos, misRutas})], {type: "application/json"});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `Copia_Cuadrante.json`; a.click();
+    }
+    function importar(event) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const json = JSON.parse(e.target.result);
+            datos = json.datos; misRutas = json.misRutas || misRutas;
+            localStorage.setItem('furgotrayler_v_final_obs', JSON.stringify(datos));
+            location.reload();
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+    function addRutaLista() {
+        const val = document.getElementById('nueva-ruta-input').value;
+        if(val) { misRutas.push(val); localStorage.setItem('rutas_v_ok', JSON.stringify(misRutas)); pintarRutasConfig(); actualizarSelectRutas(); }
+    }
+    function pintarRutasConfig() {
+        document.getElementById('lista-rutas-config').innerHTML = misRutas.map((r, i) => `
+            <div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;">
+                <span>${r}</span><button onclick="eliminarRuta(${i})" style="color:red; border:none; background:none;">X</button>
+            </div>`).join('');
+    }
+    function eliminarRuta(idx) { misRutas.splice(idx, 1); localStorage.setItem('rutas_v_ok', JSON.stringify(misRutas)); pintarRutasConfig(); actualizarSelectRutas(); }
+    function actualizarSelectRutas() { document.getElementById('sel-ruta').innerHTML = '<option value="">-- Elige --</option>' + misRutas.map(r => `<option value="${r}">${r}</option>`).join(''); }
+
     function actualizarTodo() {
-        if(!cal) return;
         const v = cal.getDate();
-        const m = v.getMonth();
-        const a = v.getFullYear();
-        const ini = new Date(a, m - 1, 26);
-        const fin = new Date(a, m, 25, 23, 59);
+        const ini = new Date(v.getFullYear(), v.getMonth() - 1, 26);
+        const fin = new Date(v.getFullYear(), v.getMonth(), 25, 23, 59);
         const opt = { day: 'numeric', month: 'short' };
         document.getElementById('rango-f').innerText = `Periodo: ${ini.toLocaleDateString('es', opt)} al ${fin.toLocaleDateString('es', opt)}`;
         const lista = datos.filter(e => { const f = new Date(e.start); return f>=ini && f<=fin; });
