@@ -25,7 +25,6 @@
         .stats { display: flex; justify-content: space-around; font-weight: bold; font-size: 14px; }
         .rango-txt { display: block; text-align: center; font-size: 11px; color: #666; margin-bottom: 5px; }
 
-        /* Estilo del puntito en el calendario */
         .dot-obs {
             height: 8px; width: 8px; background-color: #e30613; border-radius: 50%;
             display: inline-block; position: absolute; top: 5px; right: 5px; border: 1px solid white;
@@ -114,6 +113,7 @@
         <button class="btn-backup" onclick="exportar()">💾 HACER COPIA DE SEGURIDAD</button>
         <input type="file" id="importFile" onchange="importar(event)" style="display:none">
         <button class="btn-backup" style="background:#95a5a6" onclick="document.getElementById('importFile').click()">📂 CARGAR COPIA</button>
+        <p style="font-size: 11px; color: #666;">(Al cargar, se recuperan viajes y tus rutas guardadas)</p>
         <hr>
         <h3>Mis Rutas</h3>
         <div style="display:flex; gap:5px;">
@@ -132,8 +132,12 @@
 
 <script>
     let cal, currF = null, currT = null;
-    let datos = JSON.parse(localStorage.getItem('furgotrayler_v_final_obs')) || [];
-    let misRutas = JSON.parse(localStorage.getItem('rutas_v_ok')) || ['Ruta Local', 'Base-Base'];
+    // Nombres de almacenamiento
+    const KEY_DATOS = 'furgotrayler_v_final_obs';
+    const KEY_RUTAS = 'rutas_v_ok';
+
+    let datos = JSON.parse(localStorage.getItem(KEY_DATOS)) || [];
+    let misRutas = JSON.parse(localStorage.getItem(KEY_RUTAS)) || ['Ruta Local', 'Base-Base'];
 
     document.addEventListener('DOMContentLoaded', () => {
         cal = new FullCalendar.Calendar(document.getElementById('calendar'), {
@@ -142,7 +146,6 @@
             events: datos,
             dateClick: (i) => { currF = i.dateStr; mostrarForm(i.dateStr); },
             datesSet: actualizarTodo,
-            // Función para dibujar el puntito rojo si hay observaciones
             dayCellDidMount: (info) => {
                 const fStr = info.date.toISOString().split('T')[0];
                 const item = datos.find(d => d.start === fStr);
@@ -208,26 +211,93 @@
                 obs: document.getElementById('obs').value
             }
         });
-        localStorage.setItem('furgotrayler_v_final_obs', JSON.stringify(datos));
-        cal.removeAllEvents(); cal.addEventSource(datos);
-        document.getElementById('form-dia').style.display = 'none';
-        cal.render(); // Refrescar para que aparezca el punto rojo
-        actualizarTodo();
-    }
-
-    function borrar() {
-        datos = datos.filter(e => e.start !== currF);
-        localStorage.setItem('furgotrayler_v_final_obs', JSON.stringify(datos));
+        localStorage.setItem(KEY_DATOS, JSON.stringify(datos));
         cal.removeAllEvents(); cal.addEventSource(datos);
         document.getElementById('form-dia').style.display = 'none';
         cal.render();
         actualizarTodo();
     }
 
+    function borrar() {
+        datos = datos.filter(e => e.start !== currF);
+        localStorage.setItem(KEY_DATOS, JSON.stringify(datos));
+        cal.removeAllEvents(); cal.addEventSource(datos);
+        document.getElementById('form-dia').style.display = 'none';
+        cal.render();
+        actualizarTodo();
+    }
+
+    // --- IMPORTAR / EXPORTAR CORREGIDO ---
+    function exportar() {
+        const payload = {
+            version: "1.0",
+            datos: datos,
+            rutas: misRutas
+        };
+        const blob = new Blob([JSON.stringify(payload)], {type: "application/json"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Copia_Cuadrante_${new Date().toLocaleDateString().replace(/\//g,'-')}.json`;
+        a.click();
+    }
+
+    function importar(event) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const json = JSON.parse(e.target.result);
+                // Si el archivo tiene datos de viajes
+                if(json.datos) {
+                    datos = json.datos;
+                    localStorage.setItem(KEY_DATOS, JSON.stringify(datos));
+                }
+                // Si el archivo tiene rutas personalizadas
+                if(json.rutas) {
+                    misRutas = json.rutas;
+                    localStorage.setItem(KEY_RUTAS, JSON.stringify(misRutas));
+                }
+                alert("¡Copia cargada con éxito! Se han recuperado viajes y rutas.");
+                location.reload(); // Recargar todo para aplicar cambios
+            } catch (err) {
+                alert("Error: El archivo no es válido.");
+            }
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+
+    // --- RUTAS ---
+    function addRutaLista() {
+        const val = document.getElementById('nueva-ruta-input').value;
+        if(val) { 
+            misRutas.push(val); 
+            localStorage.setItem(KEY_RUTAS, JSON.stringify(misRutas)); 
+            pintarRutasConfig(); 
+            actualizarSelectRutas(); 
+            document.getElementById('nueva-ruta-input').value = '';
+        }
+    }
+    function pintarRutasConfig() {
+        document.getElementById('lista-rutas-config').innerHTML = misRutas.map((r, i) => `
+            <div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;">
+                <span>${r}</span><button onclick="eliminarRuta(${i})" style="color:red; border:none; background:none; font-weight:bold;">X</button>
+            </div>`).join('');
+    }
+    function eliminarRuta(idx) { 
+        misRutas.splice(idx, 1); 
+        localStorage.setItem(KEY_RUTAS, JSON.stringify(misRutas)); 
+        pintarRutasConfig(); 
+        actualizarSelectRutas(); 
+    }
+    function actualizarSelectRutas() { 
+        document.getElementById('sel-ruta').innerHTML = '<option value="">-- Elige --</option>' + 
+        misRutas.map(r => `<option value="${r}">${r}</option>`).join(''); 
+    }
+
+    // --- HISTORIAL ---
     function pintarHistorialPorMeses() {
         const cont = document.getElementById('historial-lista');
         cont.innerHTML = '';
-        if(datos.length === 0) { cont.innerHTML = '<p style="text-align:center;color:#999">Vacio.</p>'; return; }
+        if(datos.length === 0) { cont.innerHTML = '<p style="text-align:center;color:#999">Sin datos.</p>'; return; }
         const datosOrdenados = [...datos].sort((a,b) => new Date(b.start) - new Date(a.start));
         let ultimoMesNomina = "";
         datosOrdenados.forEach(e => {
@@ -253,34 +323,6 @@
     }
 
     function irAFecha(f) { nav('cal'); cal.gotoDate(f); mostrarForm(f); }
-
-    function exportar() {
-        const blob = new Blob([JSON.stringify({datos, misRutas})], {type: "application/json"});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = `Copia_Cuadrante.json`; a.click();
-    }
-    function importar(event) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const json = JSON.parse(e.target.result);
-            datos = json.datos; misRutas = json.misRutas || misRutas;
-            localStorage.setItem('furgotrayler_v_final_obs', JSON.stringify(datos));
-            location.reload();
-        };
-        reader.readAsText(event.target.files[0]);
-    }
-    function addRutaLista() {
-        const val = document.getElementById('nueva-ruta-input').value;
-        if(val) { misRutas.push(val); localStorage.setItem('rutas_v_ok', JSON.stringify(misRutas)); pintarRutasConfig(); actualizarSelectRutas(); }
-    }
-    function pintarRutasConfig() {
-        document.getElementById('lista-rutas-config').innerHTML = misRutas.map((r, i) => `
-            <div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;">
-                <span>${r}</span><button onclick="eliminarRuta(${i})" style="color:red; border:none; background:none;">X</button>
-            </div>`).join('');
-    }
-    function eliminarRuta(idx) { misRutas.splice(idx, 1); localStorage.setItem('rutas_v_ok', JSON.stringify(misRutas)); pintarRutasConfig(); actualizarSelectRutas(); }
-    function actualizarSelectRutas() { document.getElementById('sel-ruta').innerHTML = '<option value="">-- Elige --</option>' + misRutas.map(r => `<option value="${r}">${r}</option>`).join(''); }
 
     function actualizarTodo() {
         const v = cal.getDate();
