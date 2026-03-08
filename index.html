@@ -30,18 +30,17 @@
             display: inline-block; position: absolute; top: 4px; right: 4px; border: 1px solid white;
         }
 
-        .mes-separador { background: var(--accent); color: white; padding: 8px 15px; border-radius: 6px; margin: 20px 0 10px 0; font-size: 14px; font-weight: bold; }
-        .card { background: white; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 5px solid var(--accent); }
+        .mes-separador { background: var(--accent); color: white; padding: 10px; border-radius: 6px; margin: 20px 0 10px 0; font-size: 14px; font-weight: bold; }
+        .card { background: white; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 5px solid var(--accent); position: relative; }
         .card-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; font-size: 13px; }
 
-        /* Formulario con anclaje para scroll */
         .form-contenedor { 
             background: #fff; border: 2px solid var(--accent); border-radius: 12px; 
             padding: 15px; margin-top: 10px; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-            scroll-margin-top: 80px; /* Espacio para que el formulario no quede pegado arriba */
+            scroll-margin-top: 80px; 
         }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
-        input, select, textarea { padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box; font-family: inherit; }
+        input, select, textarea { padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box; }
         textarea { resize: none; height: 70px; }
         label { font-size: 10px; color: #666; font-weight: bold; text-transform: uppercase; margin-top: 5px; display: block; }
 
@@ -52,7 +51,8 @@
         .btn-turno { border: none; padding: 12px; border-radius: 6px; color: white; font-weight: bold; font-size: 12px; opacity: 0.4; flex: 1; }
         .btn-turno.selected { opacity: 1; border: 2px solid black; }
         .btn-confirmar { background: var(--domingo-color); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; font-size: 16px; }
-        .btn-backup { background: #3498db; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 10px; font-weight: bold; }
+        
+        .btn-nube { background: #3498db; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; margin-bottom: 10px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -66,7 +66,7 @@
 
     <div id="tab-cal" class="tab-content active">
         <div class="panel-dietas">
-            <span class="rango-txt" id="rango-f">Periodo: 26 al 25</span>
+            <span class="rango-txt" id="rango-f">Cargando...</span>
             <div class="stats">
                 <span>☀️ <span id="c-dia">0</span></span>
                 <span>🌙 <span id="c-noche">0</span></span>
@@ -77,47 +77,47 @@
         <div id="calendar"></div>
         
         <div id="form-dia" class="form-contenedor">
-            <b id="fecha-label" style="font-size: 18px; display: block; margin-bottom: 10px; color: var(--accent);"></b>
-            <div style="display:flex; gap:5px; margin-bottom: 15px;">
+            <b id="fecha-label" style="font-size: 18px;"></b>
+            <div style="display:flex; gap:5px; margin: 15px 0;">
                 <button id="b-dia" class="btn-turno" style="background:var(--dia-color);color:black" onclick="selT('dia')">DÍA</button>
                 <button id="b-noche" class="btn-turno" style="background:var(--noche-color)" onclick="selT('noche')">NOCHE</button>
                 <button id="b-fuera" class="btn-turno" style="background:var(--fuera-color)" onclick="selT('fuera')">FUERA</button>
                 <button class="btn-turno" style="background:#888; opacity:1" onclick="borrar()">BORRAR</button>
             </div>
-            <label>Ruta Seleccionada</label>
+            <label>Ruta</label>
             <select id="sel-ruta"></select>
             <div class="form-grid">
-                <div><label>Camión (T1)</label><input type="text" id="t1" placeholder="FDT..."></div>
-                <div><label>Remolque (T2)</label><input type="text" id="t2" placeholder="R..."></div>
-                <div><label>Ruta 1 (R1)</label><input type="text" id="r1"></div>
-                <div><label>Ruta 2 (R2)</label><input type="text" id="r2"></div>
+                <div><label>T1</label><input type="text" id="t1"></div>
+                <div><label>T2</label><input type="text" id="t2"></div>
+                <div><label>R1</label><input type="text" id="r1"></div>
+                <div><label>R2</label><input type="text" id="r2"></div>
             </div>
-            <label>Observaciones e Incidencias</label>
-            <textarea id="obs" placeholder="Escribe aquí cualquier detalle extra..."></textarea>
-            <button class="btn-confirmar" onclick="guardar()">GUARDAR ESTE DÍA</button>
+            <label>Observaciones</label>
+            <textarea id="obs"></textarea>
+            <button class="btn-confirmar" onclick="guardar()">GUARDAR</button>
         </div>
     </div>
 
     <div id="tab-list" class="tab-content">
-        <h3>Historial de Nóminas</h3>
+        <h3>Mi Historial</h3>
         <div id="historial-lista"></div>
     </div>
 
     <div id="tab-conf" class="tab-content">
-        <h3>Seguridad (Copia Total)</h3>
-        <button class="btn-backup" onclick="exportar()">💾 EXPORTAR TODOS LOS DATOS</button>
-        <p style="font-size: 11px; color: #666;">Incluye: Viajes, Rutas personalizadas y Notas.</p>
+        <h3>Sincronización Móvil-PC</h3>
+        <button class="btn-nube" onclick="exportar()">1. BAJAR COPIA (Móvil)</button>
+        <p style="font-size:11px; color:#666">Baja tus datos y guárdalos en archivos del móvil.</p>
         
-        <label>Restaurar Copia:</label>
-        <input type="file" id="importFile" onchange="importar(event)" style="margin-top:5px; font-size:12px;">
+        <label>2. SUBIR COPIA (Móvil o PC):</label>
+        <input type="file" id="importFile" onchange="importar(event)" style="margin:10px 0;">
         
-        <hr style="margin: 20px 0;">
-        <h3>Mis Rutas Habituales</h3>
+        <hr>
+        <h3>Configuración de Rutas</h3>
         <div style="display:flex; gap:5px;">
-            <input type="text" id="nueva-ruta-input" placeholder="Ej: Zaragoza-Madrid">
-            <button onclick="addRutaLista()" style="background:var(--accent); color:white; border:none; padding:10px; border-radius:6px; font-weight:bold;">+</button>
+            <input type="text" id="nueva-ruta-input" placeholder="Nueva ruta...">
+            <button onclick="addRutaLista()" style="background:var(--accent); color:white; border:none; padding:10px; border-radius:6px;">+</button>
         </div>
-        <div id="lista-rutas-config" style="margin-top:20px;"></div>
+        <div id="lista-rutas-config" style="margin-top:15px;"></div>
     </div>
 
     <nav class="nav-bar">
@@ -128,22 +128,21 @@
 </div>
 
 <script>
-    let cal, currF = null, currT = null;
-    const STORAGE_KEY = 'furgotrayler_v_unificada';
-    const RUTAS_KEY = 'furgotrayler_rutas_v_unificada';
+    // --- MEMORIA "ANTI-ERRORES" ---
+    // Usamos nombres fijos para que no se pierdan al actualizar el código
+    const DB_VIAJES = 'furgotrayler_v1_viajes';
+    const DB_RUTAS = 'furgotrayler_v1_rutas';
 
-    let datos = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    let misRutas = JSON.parse(localStorage.getItem(RUTAS_KEY)) || ['Ruta Local', 'Base-Base'];
+    let cal, currF = null, currT = null;
+    let datos = JSON.parse(localStorage.getItem(DB_VIAJES)) || [];
+    let misRutas = JSON.parse(localStorage.getItem(DB_RUTAS)) || ['Ruta Local', 'Base-Base'];
 
     document.addEventListener('DOMContentLoaded', () => {
         cal = new FullCalendar.Calendar(document.getElementById('calendar'), {
             initialView: 'dayGridMonth', locale: 'es', firstDay: 1, height: 'auto',
             headerToolbar: { left: 'prev,next', center: 'title', right: '' },
             events: datos,
-            dateClick: (i) => { 
-                currF = i.dateStr; 
-                mostrarForm(i.dateStr); 
-            },
+            dateClick: (i) => { currF = i.dateStr; mostrarForm(i.dateStr); },
             datesSet: actualizarTodo,
             dayCellDidMount: (info) => {
                 const dateIso = info.date.toLocaleDateString('en-CA'); 
@@ -172,10 +171,8 @@
     function mostrarForm(f) {
         const form = document.getElementById('form-dia');
         form.style.display = 'block';
-        
-        // Formato fecha bonita
         const [y, m, d] = f.split('-');
-        document.getElementById('fecha-label').innerText = `${d}/${m}/${y}`;
+        document.getElementById('fecha-label').innerText = `Día ${d}/${m}/${y}`;
         
         const ex = datos.find(e => e.start === f);
         if(ex) {
@@ -191,11 +188,7 @@
             document.querySelectorAll('#form-dia input, #form-dia textarea').forEach(i => i.value = '');
             document.getElementById('sel-ruta').value = '';
         }
-
-        // --- MEJORA: Scroll automático hacia el formulario ---
-        setTimeout(() => {
-            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
+        setTimeout(() => { form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
     }
 
     function selT(t) {
@@ -205,10 +198,11 @@
     }
 
     function guardar() {
-        if(!currT) return alert("Selecciona Turno");
+        if(!currT) return alert("Elige DÍA o NOCHE");
         datos = datos.filter(e => e.start !== currF);
         const col = {dia:'var(--dia-color)', noche:'var(--noche-color)', fuera:'var(--fuera-color)'};
         const txt = {dia:'☀️ DÍA', noche:'🌙 NOCHE', fuera:'🏨 FUERA'};
+        
         datos.push({
             title: txt[currT], start: currF, backgroundColor: col[currT], borderColor: 'black',
             extendedProps: {
@@ -218,45 +212,52 @@
                 obs: document.getElementById('obs').value
             }
         });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+        localStorage.setItem(DB_VIAJES, JSON.stringify(datos));
         cal.removeAllEvents(); cal.addEventSource(datos);
         document.getElementById('form-dia').style.display = 'none';
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // Vuelve arriba tras guardar
         actualizarTodo();
     }
 
     function borrar() {
         datos = datos.filter(e => e.start !== currF);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+        localStorage.setItem(DB_VIAJES, JSON.stringify(datos));
         cal.removeAllEvents(); cal.addEventSource(datos);
         document.getElementById('form-dia').style.display = 'none';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         actualizarTodo();
     }
 
+    // --- FUNCIONES DE COPIA (SINCRO PC) ---
     function exportar() {
-        const fullBackup = { viajes: datos, rutas: misRutas, ts: new Date().toISOString() };
-        const blob = new Blob([JSON.stringify(fullBackup)], {type: "application/json"});
+        const full = { viajes: datos, rutas: misRutas };
+        const blob = new Blob([JSON.stringify(full)], {type: "application/json"});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = `FURGO_BACKUP_${new Date().toLocaleDateString()}.json`; a.click();
+        a.download = `Copia_Seguridad_Furgo.json`; a.click();
     }
 
     function importar(event) {
         const reader = new FileReader();
         reader.onload = (e) => {
             const json = JSON.parse(e.target.result);
-            if(json.viajes) localStorage.setItem(STORAGE_KEY, JSON.stringify(json.viajes));
-            if(json.rutas) localStorage.setItem(RUTAS_KEY, JSON.stringify(json.rutas));
+            if(json.viajes) {
+                datos = json.viajes;
+                localStorage.setItem(DB_VIAJES, JSON.stringify(datos));
+            }
+            if(json.rutas) {
+                misRutas = json.rutas;
+                localStorage.setItem(DB_RUTAS, JSON.stringify(misRutas));
+            }
+            alert("¡Datos sincronizados!");
             location.reload();
         };
         reader.readAsText(event.target.files[0]);
     }
 
+    // --- RUTAS ---
     function addRutaLista() {
         const val = document.getElementById('nueva-ruta-input').value;
         if(!val) return;
         misRutas.push(val);
-        localStorage.setItem(RUTAS_KEY, JSON.stringify(misRutas));
+        localStorage.setItem(DB_RUTAS, JSON.stringify(misRutas));
         document.getElementById('nueva-ruta-input').value = '';
         pintarRutasConfig(); actualizarSelectRutas();
     }
@@ -264,13 +265,13 @@
     function pintarRutasConfig() {
         document.getElementById('lista-rutas-config').innerHTML = misRutas.map((r, i) => `
             <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee; align-items:center;">
-                <span>${r}</span><button onclick="eliminarRuta(${i})" style="color:red; border:none; background:none; font-size:18px;">&times;</button>
+                <span>${r}</span><button onclick="eliminarRuta(${i})" style="color:red; border:none; background:none; font-size:20px;">&times;</button>
             </div>`).join('');
     }
 
     function eliminarRuta(idx) {
         misRutas.splice(idx, 1);
-        localStorage.setItem(RUTAS_KEY, JSON.stringify(misRutas));
+        localStorage.setItem(DB_RUTAS, JSON.stringify(misRutas));
         pintarRutasConfig(); actualizarSelectRutas();
     }
 
@@ -282,26 +283,24 @@
     function pintarHistorialPorMeses() {
         const cont = document.getElementById('historial-lista');
         cont.innerHTML = '';
-        if(datos.length === 0) { cont.innerHTML = '<p style="text-align:center;color:#999">Vacio.</p>'; return; }
-        const datosOrdenados = [...datos].sort((a,b) => new Date(b.start) - new Date(a.start));
-        let ultimoMesNomina = "";
-        datosOrdenados.forEach(e => {
-            const fecha = new Date(e.start);
-            let mesN = (fecha.getDate() > 25) ? fecha.getMonth() + 1 : fecha.getMonth();
-            let añoN = fecha.getFullYear(); if(mesN > 11) { mesN = 0; añoN++; }
-            const nombreM = new Intl.DateTimeFormat('es', { month: 'long' }).format(new Date(añoN, mesN));
-            const idM = `${nombreM} ${añoN}`;
-            if(idM !== ultimoMesNomina) {
-                ultimoMesNomina = idM;
+        const ordenados = [...datos].sort((a,b) => new Date(b.start) - new Date(a.start));
+        let lastM = "";
+        ordenados.forEach(e => {
+            const f = new Date(e.start);
+            let mN = (f.getDate() > 25) ? f.getMonth() + 1 : f.getMonth();
+            let aN = f.getFullYear(); if(mN > 11) { mN = 0; aN++; }
+            const nomM = new Intl.DateTimeFormat('es', { month: 'long' }).format(new Date(aN, mN));
+            const idM = `${nomM} ${aN}`;
+            if(idM !== lastM) {
+                lastM = idM;
                 cont.innerHTML += `<div class="mes-separador">NÓMINA ${idM.toUpperCase()}</div>`;
             }
             const p = e.extendedProps;
-            let obsHtml = p.obs ? `<div class="obs-box"><b>Nota:</b> ${p.obs}</div>` : '';
             cont.innerHTML += `<div class="card">
-                <div class="card-header"><span>📅 ${e.start}</span> <span style="color:${e.backgroundColor}">${e.title}</span></div>
+                <div class="card-header"><span>📅 ${e.start.split('-').reverse().join('/')}</span> <span style="color:${e.backgroundColor}">${e.title}</span></div>
                 <div style="font-weight:bold; color:var(--domingo-color)">📍 ${p.ruta || '-'}</div>
                 <div style="font-size:11px; color:#666; margin-top:4px;">${p.t1||''} ${p.t2||''} | ${p.r1||''} ${p.r2||''}</div>
-                ${obsHtml}
+                ${p.obs ? `<div class="obs-box"><b>Nota:</b> ${p.obs}</div>` : ''}
             </div>`;
         });
     }
