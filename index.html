@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bitácora Furgo-Trayler NUBE</title>
+    <title>Furgo-Trayler Cloud Multi</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
@@ -14,75 +14,64 @@
             --dia-color: #FFD700; --noche-color: #4B0082; --fuera-color: #FF4500; 
             --domingo-color: #27ae60; --accent: #2c3e50; --bg: #f4f4f9;
         }
-        body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: var(--bg); padding-bottom: 80px; }
-        #app { max-width: 600px; margin: 0 auto; background: white; min-height: 100vh; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); padding-bottom: 80px; }
+        #app { max-width: 600px; margin: 0 auto; background: white; min-height: 100vh; position: relative; }
         
-        header { 
-            padding: 10px; text-align: center; background: white; position: sticky; top:0; z-index:100; 
-            border-bottom: 1px solid #ddd; display: flex; justify-content: center; align-items: center; height: 65px; 
+        /* PANTALLA DE LOGIN */
+        #login-screen {
+            position: fixed; inset: 0; background: var(--accent); z-index: 2000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; color: white;
         }
-        
+        .login-box { background: white; padding: 25px; border-radius: 15px; width: 80%; max-width: 300px; color: #333; text-align: center; }
+
+        header { padding: 10px; text-align: center; background: white; border-bottom: 1px solid #ddd; height: 65px; display: flex; flex-direction: column; justify-content: center; }
         .tab-content { display: none; padding: 10px; }
         .tab-content.active { display: block; }
 
         .panel-dietas { background: #e8f5e9; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #c8e6c9; }
         .stats { display: flex; justify-content: space-around; font-weight: bold; font-size: 14px; }
-        .rango-txt { display: block; text-align: center; font-size: 11px; color: #666; margin-bottom: 5px; }
-
-        .dot-obs {
-            height: 8px; width: 8px; background-color: #e30613; border-radius: 50%;
-            display: inline-block; position: absolute; top: 4px; right: 4px; border: 1px solid white;
-        }
-
+        
+        .dot-obs { height: 8px; width: 8px; background-color: #e30613; border-radius: 50%; display: inline-block; position: absolute; top: 4px; right: 4px; border: 1px solid white; }
         .mes-separador { background: var(--accent); color: white; padding: 10px; border-radius: 6px; margin: 20px 0 10px 0; font-size: 14px; font-weight: bold; }
         .card { background: white; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 5px solid var(--accent); position: relative; }
-        .card-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; font-size: 13px; }
 
-        .form-contenedor { 
-            background: #fff; border: 2px solid var(--accent); border-radius: 12px; 
-            padding: 15px; margin-top: 10px; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-            scroll-margin-top: 80px; 
-        }
+        .form-contenedor { background: #fff; border: 2px solid var(--accent); border-radius: 12px; padding: 15px; margin-top: 10px; display: none; scroll-margin-top: 80px; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
         input, select, textarea { padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box; }
-        textarea { resize: none; height: 70px; }
-        label { font-size: 10px; color: #666; font-weight: bold; text-transform: uppercase; margin-top: 5px; display: block; }
-
+        
         .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
         .nav-btn { background: none; border: none; color: #999; font-size: 10px; font-weight: bold; }
         .nav-btn.active { color: var(--accent); }
 
         .btn-turno { border: none; padding: 12px; border-radius: 6px; color: white; font-weight: bold; font-size: 12px; opacity: 0.4; flex: 1; }
         .btn-turno.selected { opacity: 1; border: 2px solid black; }
-        .btn-confirmar { background: var(--domingo-color); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; font-size: 16px; }
-        
-        .obs-box { background: #fff9c4; border-left: 3px solid #fbc02d; padding: 8px; margin-top: 8px; font-size: 12px; border-radius: 4px; color: #5d4037; }
+        .btn-principal { background: var(--domingo-color); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<script>
-    // --- PEGA AQUÍ TUS DATOS DE FIREBASE ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyDXnKRYZ_1BLKEK9T50d85Gzzf3so2DDbM",
-        databaseURL: "https://mi-cuadrante-furgo-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "mi-cuadrante-furgo"
-    };
+<div id="login-screen">
+    <div style="font-weight: 900; color: white; font-size: 30px; margin-bottom: 20px; font-style: italic;">
+        FURGO<span style="opacity: 0.7;">TRAYLER</span>
+    </div>
+    <div class="login-box">
+        <label style="display:block; margin-bottom: 10px; font-weight: bold;">¿Quién eres?</label>
+        <input type="text" id="user-name" placeholder="Tu nombre..." style="margin-bottom: 15px; text-align: center; text-transform: uppercase;">
+        <button class="btn-principal" onclick="iniciarSesion()">ENTRAR</button>
+    </div>
+</div>
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-</script>
-
-<div id="app">
+<div id="app" style="display:none;">
     <header>
-        <div style="font-weight: 900; color: #e30613; font-size: 24px; font-style: italic;">
+        <div style="font-weight: 900; color: #e30613; font-size: 18px; font-style: italic;">
             FURGO<span style="color: #4d4d4d;">TRAYLER</span> ☁️
         </div>
+        <div id="saludo-user" style="font-size: 10px; color: #666; font-weight: bold;"></div>
     </header>
 
     <div id="tab-cal" class="tab-content active">
         <div class="panel-dietas">
-            <span class="rango-txt" id="rango-f">Periodo: 26 al 25</span>
+            <div id="rango-f" style="text-align:center; font-size:11px; color:#666; margin-bottom:5px;"></div>
             <div class="stats">
                 <span>☀️ <span id="c-dia">0</span></span>
                 <span>🌙 <span id="c-noche">0</span></span>
@@ -91,9 +80,8 @@
             </div>
         </div>
         <div id="calendar"></div>
-        
         <div id="form-dia" class="form-contenedor">
-            <b id="fecha-label" style="font-size: 18px;"></b>
+            <b id="fecha-label"></b>
             <div style="display:flex; gap:5px; margin: 15px 0;">
                 <button id="b-dia" class="btn-turno" style="background:var(--dia-color);color:black" onclick="selT('dia')">DÍA</button>
                 <button id="b-noche" class="btn-turno" style="background:var(--noche-color)" onclick="selT('noche')">NOCHE</button>
@@ -108,24 +96,24 @@
                 <div><label>R1</label><input type="text" id="r1"></div>
                 <div><label>R2</label><input type="text" id="r2"></div>
             </div>
-            <label>Observaciones</label>
-            <textarea id="obs" placeholder="Notas..."></textarea>
-            <button class="btn-confirmar" onclick="guardarNube()">GUARDAR EN LA NUBE</button>
+            <textarea id="obs" placeholder="Observaciones..."></textarea>
+            <button class="btn-principal" style="margin-top:10px;" onclick="guardarNube()">GUARDAR</button>
         </div>
     </div>
 
     <div id="tab-list" class="tab-content">
-        <h3>Historial de Nóminas</h3>
+        <h3>Mi Historial</h3>
         <div id="historial-lista"></div>
     </div>
 
     <div id="tab-conf" class="tab-content">
-        <h3>Gestión de Rutas (Nube)</h3>
+        <h3>Mis Rutas Guardadas</h3>
         <div style="display:flex; gap:5px;">
-            <input type="text" id="nueva-ruta-input" placeholder="Ej: Barcelona-Madrid">
-            <button onclick="addRutaNube()" style="background:var(--accent); color:white; border:none; padding:10px; border-radius:6px; font-weight:bold;">+</button>
+            <input type="text" id="nueva-ruta-input" placeholder="Añadir nueva...">
+            <button onclick="addRutaNube()" style="background:var(--accent); color:white; border:none; padding:10px; border-radius:6px;">+</button>
         </div>
-        <div id="lista-rutas-config" style="margin-top:20px;"></div>
+        <div id="lista-rutas-config" style="margin-top:15px;"></div>
+        <button onclick="cerrarSesion()" style="margin-top:30px; color:red; border:none; background:none; font-size:12px; width:100%;">Cerrar Sesión / Cambiar Usuario</button>
     </div>
 
     <nav class="nav-bar">
@@ -136,32 +124,48 @@
 </div>
 
 <script>
-    let cal, currF = null, currT = null;
+    // --- FIREBASE (PON TUS DATOS AQUÍ) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyDXnKRYZ_1BLKEK9T50d85Gzzf3so2DDbM",
+        databaseURL: "https://mi-cuadrante-furgo-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "mi-cuadrante-furgo"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let cal, currF, currT, currentUser = "";
     let datos = [], misRutas = ['Ruta Local', 'Base-Base'];
 
-    document.addEventListener('DOMContentLoaded', () => {
-        cal = new FullCalendar.Calendar(document.getElementById('calendar'), {
-            initialView: 'dayGridMonth', locale: 'es', firstDay: 1, height: 'auto',
-            headerToolbar: { left: 'prev,next', center: 'title', right: '' },
-            dateClick: (i) => { currF = i.dateStr; mostrarForm(i.dateStr); },
-            datesSet: actualizarTodo,
-            dayCellDidMount: (info) => {
-                const dateIso = info.date.toLocaleDateString('en-CA'); 
-                const item = datos.find(d => d.start === dateIso);
-                if (item && item.extendedProps?.obs?.trim()) {
-                    const dot = document.createElement('span');
-                    dot.className = 'dot-obs';
-                    info.el.querySelector('.fc-daygrid-day-top').appendChild(dot);
-                }
-            }
-        });
-        cal.render();
-        cargarTodoDeNube();
-    });
+    // --- LÓGICA DE USUARIOS ---
+    function iniciarSesion() {
+        const name = document.getElementById('user-name').value.trim().toUpperCase();
+        if(!name) return alert("Escribe tu nombre");
+        currentUser = name;
+        localStorage.setItem('FT_LAST_USER', name);
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('saludo-user').innerText = "USUARIO: " + name;
+        
+        initCalendar();
+        cargarDatosUsuario();
+    }
 
-    function cargarTodoDeNube() {
-        // Cargar Viajes
-        db.ref('viajes').on('value', (snap) => {
+    function cerrarSesion() {
+        localStorage.removeItem('FT_LAST_USER');
+        location.reload();
+    }
+
+    // Auto-login si ya entró antes
+    const last = localStorage.getItem('FT_LAST_USER');
+    if(last) {
+        document.getElementById('user-name').value = last;
+        setTimeout(iniciarSesion, 100);
+    }
+
+    function cargarDatosUsuario() {
+        // Solo descarga los datos de la carpeta del usuario actual
+        db.ref('usuarios/' + currentUser + '/viajes').on('value', (snap) => {
             const val = snap.val();
             datos = val ? Object.values(val) : [];
             cal.removeAllEvents();
@@ -169,58 +173,72 @@
             actualizarTodo();
             if(document.getElementById('tab-list').classList.contains('active')) pintarHistorialPorMeses();
         });
-        // Cargar Rutas
-        db.ref('rutas').on('value', (snap) => {
+
+        db.ref('usuarios/' + currentUser + '/rutas').on('value', (snap) => {
             if(snap.val()) misRutas = snap.val();
             pintarRutasConfig();
             actualizarSelectRutas();
         });
     }
 
+    function initCalendar() {
+        cal = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            initialView: 'dayGridMonth', locale: 'es', firstDay: 1, height: 'auto',
+            headerToolbar: { left: 'prev,next', center: 'title', right: '' },
+            dateClick: (i) => { currF = i.dateStr; mostrarForm(i.dateStr); },
+            datesSet: actualizarTodo,
+            dayCellDidMount: (info) => {
+                const item = datos.find(d => d.start === info.date.toLocaleDateString('en-CA'));
+                if (item?.extendedProps?.obs) {
+                    const dot = document.createElement('span'); dot.className = 'dot-obs';
+                    info.el.querySelector('.fc-daygrid-day-top').appendChild(dot);
+                }
+            }
+        });
+        cal.render();
+    }
+
     function guardarNube() {
-        if(!currT) return alert("Selecciona Turno");
-        const col = {dia:'var(--dia-color)', noche:'var(--noche-color)', fuera:'var(--fuera-color)'};
-        const txt = {dia:'☀️ DÍA', noche:'🌙 NOCHE', fuera:'🏨 FUERA'};
-        
-        const registro = {
-            title: txt[currT], start: currF, backgroundColor: col[currT], borderColor: 'black',
+        if(!currT) return alert("Elige turno");
+        const reg = {
+            title: currT === 'dia' ? '☀️ DÍA' : (currT === 'noche' ? '🌙 NOCHE' : '🏨 FUERA'),
+            start: currF,
+            backgroundColor: currT === 'dia' ? 'var(--dia-color)' : (currT === 'noche' ? 'var(--noche-color)' : 'var(--fuera-color)'),
+            borderColor: 'black',
             extendedProps: {
                 tipo: currT, ruta: document.getElementById('sel-ruta').value,
-                t1: document.getElementById('t1').value.toUpperCase(), t2: document.getElementById('t2').value.toUpperCase(),
-                r1: document.getElementById('r1').value.toUpperCase(), r2: document.getElementById('r2').value.toUpperCase(),
+                t1: document.getElementById('t1').value, t2: document.getElementById('t2').value,
+                r1: document.getElementById('r1').value, r2: document.getElementById('r2').value,
                 obs: document.getElementById('obs').value
             }
         };
-        db.ref('viajes/' + currF).set(registro);
+        db.ref('usuarios/' + currentUser + '/viajes/' + currF).set(reg);
         document.getElementById('form-dia').style.display = 'none';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function borrarNube() {
-        if(confirm("¿Borrar este día?")) {
-            db.ref('viajes/' + currF).remove();
-            document.getElementById('form-dia').style.display = 'none';
-        }
+        if(confirm("¿Borrar?")) db.ref('usuarios/' + currentUser + '/viajes/' + currF).remove();
+        document.getElementById('form-dia').style.display = 'none';
     }
 
     function addRutaNube() {
-        const val = document.getElementById('nueva-ruta-input').value;
-        if(!val) return;
-        misRutas.push(val);
-        db.ref('rutas').set(misRutas);
+        const v = document.getElementById('nueva-ruta-input').value;
+        if(!v) return;
+        misRutas.push(v);
+        db.ref('usuarios/' + currentUser + '/rutas').set(misRutas);
         document.getElementById('nueva-ruta-input').value = '';
     }
 
     function eliminarRuta(idx) {
         misRutas.splice(idx, 1);
-        db.ref('rutas').set(misRutas);
+        db.ref('usuarios/' + currentUser + '/rutas').set(misRutas);
     }
 
+    // --- RESTO DE FUNCIONES IGUAL QUE ANTES ---
     function mostrarForm(f) {
         const form = document.getElementById('form-dia');
         form.style.display = 'block';
-        const [y, m, d] = f.split('-');
-        document.getElementById('fecha-label').innerText = `${d}/${m}/${y}`;
+        document.getElementById('fecha-label').innerText = f.split('-').reverse().join('/');
         const ex = datos.find(e => e.start === f);
         if(ex) {
             selT(ex.extendedProps.tipo);
@@ -234,14 +252,10 @@
             selT(null);
             document.querySelectorAll('#form-dia input, #form-dia textarea').forEach(i => i.value = '');
         }
-        setTimeout(() => { form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+        setTimeout(() => form.scrollIntoView({behavior:'smooth'}), 100);
     }
 
-    function selT(t) {
-        currT = t;
-        document.querySelectorAll('.btn-turno').forEach(b => b.classList.remove('selected'));
-        if(t) document.getElementById('b-'+t).classList.add('selected');
-    }
+    function selT(t) { currT = t; document.querySelectorAll('.btn-turno').forEach(b => b.classList.remove('selected')); if(t) document.getElementById('b-'+t).classList.add('selected'); }
 
     function nav(t) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -260,14 +274,12 @@
     }
 
     function actualizarSelectRutas() {
-        document.getElementById('sel-ruta').innerHTML = '<option value="">-- Selecciona Ruta --</option>' + 
-            misRutas.map(r => `<option value="${r}">${r}</option>`).join('');
+        document.getElementById('sel-ruta').innerHTML = misRutas.map(r => `<option value="${r}">${r}</option>`).join('');
     }
 
     function pintarHistorialPorMeses() {
         const cont = document.getElementById('historial-lista');
         cont.innerHTML = '';
-        if(datos.length === 0) { cont.innerHTML = '<p style="text-align:center;color:#999">Vacio.</p>'; return; }
         const ordenados = [...datos].sort((a,b) => new Date(b.start) - new Date(a.start));
         let lastM = "";
         ordenados.forEach(e => {
@@ -275,17 +287,16 @@
             let mN = (f.getDate() > 25) ? f.getMonth() + 1 : f.getMonth();
             let aN = f.getFullYear(); if(mN > 11) { mN = 0; aN++; }
             const nomM = new Intl.DateTimeFormat('es', { month: 'long' }).format(new Date(aN, mN));
-            const idM = `${nomM} ${aN}`;
-            if(idM !== lastM) {
-                lastM = idM;
-                cont.innerHTML += `<div class="mes-separador">NÓMINA ${idM.toUpperCase()}</div>`;
+            if(`${nomM} ${aN}` !== lastM) {
+                lastM = `${nomM} ${aN}`;
+                cont.innerHTML += `<div class="mes-separador">NÓMINA ${lastM.toUpperCase()}</div>`;
             }
             const p = e.extendedProps;
             cont.innerHTML += `<div class="card">
                 <div class="card-header"><span>📅 ${e.start.split('-').reverse().join('/')}</span> <span style="color:${e.backgroundColor}">${e.title}</span></div>
                 <div style="font-weight:bold; color:var(--domingo-color)">📍 ${p.ruta || '-'}</div>
                 <div style="font-size:11px; color:#666; margin-top:4px;">${p.t1||''} ${p.t2||''} | ${p.r1||''} ${p.r2||''}</div>
-                ${p.obs ? `<div class="obs-box"><b>Nota:</b> ${p.obs}</div>` : ''}
+                ${p.obs ? `<div style="background:#fff9c4; padding:5px; margin-top:5px; font-size:11px;">${p.obs}</div>` : ''}
             </div>`;
         });
     }
@@ -295,14 +306,14 @@
         const v = cal.getDate();
         const ini = new Date(v.getFullYear(), v.getMonth() - 1, 26);
         const fin = new Date(v.getFullYear(), v.getMonth(), 25, 23, 59);
-        const opt = { day: 'numeric', month: 'short' };
-        document.getElementById('rango-f').innerText = `Periodo: ${ini.toLocaleDateString('es', opt)} al ${fin.toLocaleDateString('es', opt)}`;
         const lista = datos.filter(e => { const f = new Date(e.start); return f>=ini && f<=fin; });
         document.getElementById('c-dia').innerText = lista.filter(e=>e.extendedProps.tipo==='dia').length;
         document.getElementById('c-noche').innerText = lista.filter(e=>e.extendedProps.tipo==='noche').length;
         document.getElementById('c-fuera').innerText = lista.filter(e=>e.extendedProps.tipo==='fuera').length;
         const doms = lista.filter(e => { const fe = new Date(e.start); return fe.getDay()===0 && (e.extendedProps.tipo==='dia'||e.extendedProps.tipo==='noche'); }).length;
         document.getElementById('c-euros').innerText = doms * 50;
+        const opt = { day: 'numeric', month: 'short' };
+        document.getElementById('rango-f').innerText = `Periodo: ${ini.toLocaleDateString('es', opt)} al ${fin.toLocaleDateString('es', opt)}`;
     }
 </script>
 </body>
