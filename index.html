@@ -9,6 +9,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     
+    <script src="config.js"></script>
+
     <style>
         :root {
             --dia-color: #FFD700; --noche-color: #4B0082; --fuera-color: #FF4500; 
@@ -50,11 +52,7 @@
 <body>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyDXnKRYZ_1BLKEK9T50d85Gzzf3so2DDbM",
-        databaseURL: "https://mi-cuadrante-furgo-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "mi-cuadrante-furgo"
-    };
+    // Inicializa Firebase usando el objeto que está en config.js
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 </script>
