@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -542,6 +541,60 @@ function escHtml(v){
 function escAttr(v){return escHtml(v);}
 function isValidDateKey(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||''));}
 function baseRef(path){return db.ref(userBasePath+'/'+path);}
+function hasUserData(v){
+  return !!(v&&(v.viajes||v.tacografo||v.rutas||v.perfil));
+}
+function normUserKey(v){
+  return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+}
+function mergeLegacyIntoUid(done){
+  if(!currentUid||!currentUser){if(done)done();return;}
+  var uidRef=db.ref('usuarios/'+currentUid);
+  uidRef.once('value').then(function(uidSnap){
+    if(hasUserData(uidSnap.val())){if(done)done();return;}
+    var keys=[currentUser,safeUserName(currentUser),safeText(currentUser,30),String(currentUser||'').trim()];
+    var seen={};
+    var uniq=keys.filter(function(k){
+      var kk=String(k||'').trim();
+      if(!kk||kk===currentUid||seen[kk])return false;
+      seen[kk]=true;
+      return true;
+    });
+    function importLegacy(legacy){
+      var payload={};
+      if(legacy.perfil)payload.perfil=legacy.perfil;
+      if(legacy.rutas)payload.rutas=legacy.rutas;
+      if(legacy.tacografo)payload.tacografo=legacy.tacografo;
+      if(legacy.viajes)payload.viajes=legacy.viajes;
+      uidRef.update(payload).then(function(){if(done)done();}).catch(function(){if(done)done();});
+    }
+    function findByNormalizedName(){
+      db.ref('usuarios').once('value').then(function(allSnap){
+        var all=allSnap.val()||{};
+        var target=normUserKey(currentUser);
+        var match=Object.keys(all).find(function(k){
+          if(k===currentUid)return false;
+          return normUserKey(k)===target&&hasUserData(all[k]);
+        });
+        if(!match){if(done)done();return;}
+        importLegacy(all[match]);
+      }).catch(function(){if(done)done();});
+    }
+    function next(i){
+      if(i>=uniq.length){if(done)done();return;}
+      var legacyRef=db.ref('usuarios/'+uniq[i]);
+      legacyRef.once('value').then(function(snap){
+        var legacy=snap.val();
+        if(!hasUserData(legacy)){
+          if(i===uniq.length-1){findByNormalizedName();return;}
+          next(i+1);return;
+        }
+        importLegacy(legacy);
+      }).catch(function(){next(i+1);});
+    }
+    next(0);
+  }).catch(function(){if(done)done();});
+}
 
 // Guarda en Firebase (nube) Y en localStorage (backup offline)
 function saveT(){
@@ -619,20 +672,21 @@ if(lu){document.getElementById('uName').value=lu;setTimeout(login,80);}
 ═══════════════════════════════════════ */
 function loadUser(){
   if(!authReady||!currentUid||!userBasePath){showToast('⚠️ Sesión no válida');return;}
-  // Cargar tacografo desde Firebase
-  loadTacoFromFirebase();
-  baseRef('perfil').update({nombre:currentUser,updatedAt:Date.now()});
-  baseRef('viajes').on('value',function(s){
-    var v=s.val(); datos=v?Object.values(v):[];
-    if(cal){cal.removeAllEvents();cal.addEventSource(datos);}
-    updDietas();
-    repintarCalendario();
-    if(document.getElementById('tab-hist').classList.contains('active'))paintHist();
-    if(document.getElementById('tab-stats').classList.contains('active'))updStats();
-  });
-  baseRef('rutas').on('value',function(s){
-    if(s.val())misRutas=s.val();
-    paintRutas(); buildSel();
+  mergeLegacyIntoUid(function(){
+    loadTacoFromFirebase();
+    baseRef('perfil').update({nombre:currentUser,updatedAt:Date.now()});
+    baseRef('viajes').on('value',function(s){
+      var v=s.val(); datos=v?Object.values(v):[];
+      if(cal){cal.removeAllEvents();cal.addEventSource(datos);}
+      updDietas();
+      repintarCalendario();
+      if(document.getElementById('tab-hist').classList.contains('active'))paintHist();
+      if(document.getElementById('tab-stats').classList.contains('active'))updStats();
+    });
+    baseRef('rutas').on('value',function(s){
+      if(s.val())misRutas=s.val();
+      paintRutas(); buildSel();
+    });
   });
 }
 
