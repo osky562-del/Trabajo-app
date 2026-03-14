@@ -166,13 +166,34 @@ select option{background:var(--bg3);color:var(--text);}
 .fc .fc-toolbar{background:var(--bg3);padding:9px 11px;border-bottom:1px solid var(--border);}
 .fc .fc-toolbar-title{font-family:'Russo One',sans-serif;font-size:.85rem;letter-spacing:1px;color:var(--text);}
 .fc .fc-button{background:var(--bg4)!important;border-color:var(--border2)!important;color:var(--text)!important;font-size:.7rem!important;padding:5px 9px!important;border-radius:5px!important;}
-.fc .fc-daygrid-day{background:var(--bg2)!important;border-color:var(--border)!important;}
-.fc .fc-daygrid-day.fc-day-today{background:rgba(0,229,160,.05)!important;}
+.fc .fc-daygrid-day{background:var(--bg2)!important;border-color:var(--border)!important;transition:background .3s;}
+.fc .fc-daygrid-day.fc-day-today{box-shadow:inset 0 0 0 2px var(--brand2)!important;}
 .fc .fc-col-header-cell{background:var(--bg3)!important;border-color:var(--border)!important;}
 .fc .fc-col-header-cell-cushion{color:var(--text2)!important;font-size:.66rem!important;text-transform:uppercase;letter-spacing:.5px;}
-.fc .fc-daygrid-day-number{color:var(--text2)!important;font-size:.72rem!important;}
-.fc .fc-day-today .fc-daygrid-day-number{color:var(--brand2)!important;font-weight:700;}
-.fc .fc-event{border-radius:3px!important;font-size:.62rem!important;border:none!important;}
+.fc .fc-daygrid-day-number{font-size:.75rem!important;font-weight:700!important;}
+.fc .fc-day-today .fc-daygrid-day-number{color:var(--brand2)!important;}
+.fc .fc-event{display:none!important;}
+/* Colores de celda por tipo de jornada */
+.fc .fc-daygrid-day.dia-c   {background:rgba(184,134,11,.22)!important;border-color:rgba(255,215,0,.35)!important;}
+.fc .fc-daygrid-day.noche-c {background:rgba(100,50,200,.25)!important;border-color:rgba(156,95,255,.4)!important;}
+.fc .fc-daygrid-day.fuera-c {background:rgba(180,50,50,.25)!important; border-color:rgba(255,107,107,.4)!important;}
+.fc .fc-daygrid-day.vacas-c {background:rgba(30,140,70,.25)!important; border-color:rgba(46,204,113,.4)!important;}
+/* Número del día con color según tipo */
+.fc .fc-daygrid-day.dia-c   .fc-daygrid-day-number{color:#FFD700!important;}
+.fc .fc-daygrid-day.noche-c .fc-daygrid-day-number{color:#b39dff!important;}
+.fc .fc-daygrid-day.fuera-c .fc-daygrid-day-number{color:#ff8a80!important;}
+.fc .fc-daygrid-day.vacas-c .fc-daygrid-day-number{color:#69f0ae!important;}
+/* Etiqueta de tipo dentro de la celda */
+.day-label{
+  font-size:.52rem;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;text-align:center;
+  padding:1px 3px;border-radius:3px;margin-top:1px;
+  display:block;line-height:1.4;
+}
+.dia-c   .day-label{color:#b8860b;background:rgba(255,215,0,.15);}
+.noche-c .day-label{color:#9c5fff;background:rgba(156,95,255,.15);}
+.fuera-c .day-label{color:#c0392b;background:rgba(255,107,107,.15);}
+.vacas-c .day-label{color:#27ae60;background:rgba(46,204,113,.15);}
 .fc .fc-scrollgrid{border-color:var(--border)!important;}
 .fc .fc-scrollgrid-section>td{border-color:var(--border)!important;}
 .dot-obs{
@@ -560,6 +581,7 @@ function loadUser(){
     var v=s.val(); datos=v?Object.values(v):[];
     if(cal){cal.removeAllEvents();cal.addEventSource(datos);}
     updDietas();
+    repintarCalendario();
     if(document.getElementById('tab-hist').classList.contains('active'))paintHist();
     if(document.getElementById('tab-stats').classList.contains('active'))updStats();
   });
@@ -572,6 +594,48 @@ function loadUser(){
 /* ═══════════════════════════════════════
    CALENDAR
 ═══════════════════════════════════════ */
+function repintarCalendario(){
+  if(!cal)return;
+  document.querySelectorAll('.fc-daygrid-day').forEach(function(el){
+    var dn=el.getAttribute('data-date');
+    if(dn) pintarCelda(el, dn);
+  });
+}
+function pintarCelda(el, dateStr){
+  // Limpiar clases y elementos anteriores
+  el.classList.remove('dia-c','noche-c','fuera-c','vacas-c');
+  var oldLbl=el.querySelector('.day-label');
+  if(oldLbl)oldLbl.remove();
+  var oldDot=el.querySelector('.dot-obs');
+  if(oldDot)oldDot.remove();
+
+  var item=datos.find(function(d){return d.start===dateStr;});
+  if(!item||!item.extendedProps)return;
+  var p=item.extendedProps;
+  var tp=p.tipo;
+
+  // Color de fondo de la celda
+  if(tp) el.classList.add(tp+'-c');
+
+  // Etiqueta pequeña del tipo dentro de la celda
+  if(tp){
+    var lbl=document.createElement('span');
+    lbl.className='day-label';
+    var icons={dia:'☀️ DÍA',noche:'🌙 NOCHE',fuera:'🏨 FUERA',vacas:'🌴 VACAS'};
+    lbl.textContent=icons[tp]||tp;
+    var inner=el.querySelector('.fc-daygrid-day-frame')||el;
+    inner.appendChild(lbl);
+  }
+
+  // Punto rojo si tiene observación
+  if(p.obs&&p.obs.trim()!==''){
+    var dot=document.createElement('span');
+    dot.className='dot-obs';
+    dot.title='📝 '+p.obs.substring(0,60);
+    var dayTop=el.querySelector('.fc-daygrid-day-top');
+    if(dayTop){dayTop.style.position='relative';dayTop.appendChild(dot);}
+  }
+}
 function initCal(){
   cal=new FullCalendar.Calendar(document.getElementById('calendar'),{
     initialView:'dayGridMonth',locale:'es',firstDay:1,height:'auto',
@@ -579,33 +643,11 @@ function initCal(){
     dateClick:function(i){currF=i.dateStr;showDayForm(i.dateStr);},
     datesSet:updDietas,
     dayCellDidMount:function(info){
-      var dateStr=info.date.toLocaleDateString('en-CA');
-      var item=datos.find(function(d){return d.start===dateStr;});
-      var existing=info.el.querySelector('.dot-obs');
-      if(existing)existing.remove();
-      if(item&&item.extendedProps&&item.extendedProps.obs&&item.extendedProps.obs.trim()!==''){
-        var dot=document.createElement('span');
-        dot.className='dot-obs';
-        dot.title='📝 '+item.extendedProps.obs.substring(0,60);
-        var dayTop=info.el.querySelector('.fc-daygrid-day-top');
-        if(dayTop){dayTop.style.position='relative';dayTop.appendChild(dot);}
-      }
+      pintarCelda(info.el, info.date.toLocaleDateString('en-CA'));
     },
     eventDidMount:function(info){
-      // Re-check dot after events render (in case datos loaded after cells)
-      var dateStr=info.event.startStr;
       var dayEl=info.el.closest('.fc-daygrid-day');
-      if(!dayEl)return;
-      var existing=dayEl.querySelector('.dot-obs');
-      if(existing)existing.remove();
-      var item=datos.find(function(d){return d.start===dateStr;});
-      if(item&&item.extendedProps&&item.extendedProps.obs&&item.extendedProps.obs.trim()!==''){
-        var dot=document.createElement('span');
-        dot.className='dot-obs';
-        dot.title='📝 '+item.extendedProps.obs.substring(0,60);
-        var dayTop=dayEl.querySelector('.fc-daygrid-day-top');
-        if(dayTop){dayTop.style.position='relative';dayTop.appendChild(dot);}
-      }
+      if(dayEl) pintarCelda(dayEl, info.event.startStr);
     }
   });
   cal.render();
@@ -663,7 +705,7 @@ function guardarJ(){
   document.getElementById('dayForm').classList.remove('open');
   window.scrollTo({top:0,behavior:'smooth'});
   showToast('✅ Guardado en la nube');
-  setTimeout(function(){if(cal){cal.render();}},400);
+  setTimeout(function(){if(cal){cal.render();setTimeout(repintarCalendario,100);}},400);
 }
 function borrarJ(){
   if(!confirm('¿Borrar este día?'))return;
