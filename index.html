@@ -507,14 +507,14 @@ function loadTacoFromFirebase(){
         try{
           var ls=JSON.parse(localStorage.getItem('ftp_v3'));
           if(ls&&ls.act&&ls.actStart&&ls.today===new Date().toDateString()){T.act=ls.act;T.actStart=ls.actStart;}
-        }catch{}
+        }catch(e){}
       }
     } else {
       // Sin datos en nube: migrar localStorage antiguo si existe
       try{
         var old=JSON.parse(localStorage.getItem('ftp_v3')||localStorage.getItem('tacoapp_v2')||'null');
         if(old&&old.history){T=old;showToast('☁️ Datos anteriores migrados a la nube');}
-      }catch{}
+      }catch(e){}
     }
     loadCfgUI(); updateTacoUI(); saveT();
     if(T.act&&T.actStart){clearInterval(tickId);tickId=setInterval(tick,1000);}
