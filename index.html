@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,6 +7,7 @@
 <title>FurgoTrayler Pro — Tacógrafo + Jornadas</title>
 <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -299,6 +301,7 @@ select option{background:var(--bg3);color:var(--text);}
 <script>
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
+var auth = firebase.auth();
 </script>
 
 <!-- LOGIN -->
@@ -507,8 +510,38 @@ var cal,currentUser='',datos=[],misRutas=['Ruta Local','Base-Base'];
 var currF=null,currT=null,tickId=null;
 var T=defT();
 var tacoRef=null;
+var authReady=false;
+var currentUid='';
+var userBasePath='';
 
 function defT(){return{act:null,actStart:null,drive:0,rest:0,brk:0,work:0,contDrive:0,accBreak:0,history:[],today:new Date().toDateString(),cfg:{name:'',company:''}};}
+function safeText(v,maxLen){
+  var t=String(v||'').replace(/[\u0000-\u001F\u007F]/g,'').trim();
+  return t.slice(0,maxLen||120);
+}
+function safeTime(v){
+  var t=safeText(v,5);
+  return /^\d{1,2}:\d{2}$/.test(t)?t:'';
+}
+function safeKm(v){
+  var n=Number(v);
+  if(!isFinite(n)||n<0)return'';
+  return String(Math.floor(n));
+}
+function safeUserName(v){
+  return safeText(v,30).toUpperCase().replace(/\s+/g,' ');
+}
+function escHtml(v){
+  return String(v==null?'':v)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function escAttr(v){return escHtml(v);}
+function isValidDateKey(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||''));}
+function baseRef(path){return db.ref(userBasePath+'/'+path);}
 
 // Guarda en Firebase (nube) Y en localStorage (backup offline)
 function saveT(){
@@ -527,7 +560,7 @@ function showSyncDot(ok){
 
 // Carga desde Firebase al iniciar sesion
 function loadTacoFromFirebase(){
-  tacoRef=db.ref('usuarios/'+currentUser+'/tacografo');
+  tacoRef=baseRef('tacografo');
   tacoRef.once('value',function(snap){
     var remote=snap.val();
     if(remote){
@@ -558,16 +591,26 @@ function loadTacoFromFirebase(){
    LOGIN
 ═══════════════════════════════════════ */
 function login(){
-  var n=document.getElementById('uName').value.trim().toUpperCase();
+  var n=safeUserName(document.getElementById('uName').value);
   if(!n){showToast('⚠️ Escribe tu nombre');return;}
-  currentUser=n; localStorage.setItem('FTP_USER',n);
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app').style.display='block';
-  document.getElementById('hUser').textContent=n;
-  initCal(); loadUser();
-  // updateTacoUI and timer resume are handled inside loadTacoFromFirebase()
+  document.getElementById('uName').value=n;
+  auth.signInAnonymously().then(function(cred){
+    currentUid=cred&&cred.user?cred.user.uid:'';
+    if(!currentUid){throw new Error('Sin UID');}
+    authReady=true;
+    currentUser=n;
+    localStorage.setItem('FTP_USER',n);
+    userBasePath='usuarios/'+currentUid;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('hUser').textContent=n;
+    if(!cal)initCal();
+    loadUser();
+  }).catch(function(){
+    showToast('⚠️ Error de autenticación segura');
+  });
 }
-function logout(){localStorage.removeItem('FTP_USER');location.reload();}
+function logout(){localStorage.removeItem('FTP_USER');auth.signOut().finally(function(){location.reload();});}
 var lu=localStorage.getItem('FTP_USER');
 if(lu){document.getElementById('uName').value=lu;setTimeout(login,80);}
 
@@ -575,9 +618,11 @@ if(lu){document.getElementById('uName').value=lu;setTimeout(login,80);}
    FIREBASE
 ═══════════════════════════════════════ */
 function loadUser(){
+  if(!authReady||!currentUid||!userBasePath){showToast('⚠️ Sesión no válida');return;}
   // Cargar tacografo desde Firebase
   loadTacoFromFirebase();
-  db.ref('usuarios/'+currentUser+'/viajes').on('value',function(s){
+  baseRef('perfil').update({nombre:currentUser,updatedAt:Date.now()});
+  baseRef('viajes').on('value',function(s){
     var v=s.val(); datos=v?Object.values(v):[];
     if(cal){cal.removeAllEvents();cal.addEventSource(datos);}
     updDietas();
@@ -585,7 +630,7 @@ function loadUser(){
     if(document.getElementById('tab-hist').classList.contains('active'))paintHist();
     if(document.getElementById('tab-stats').classList.contains('active'))updStats();
   });
-  db.ref('usuarios/'+currentUser+'/rutas').on('value',function(s){
+  baseRef('rutas').on('value',function(s){
     if(s.val())misRutas=s.val();
     paintRutas(); buildSel();
   });
@@ -689,19 +734,26 @@ function selT(t){
   if(t){var el=document.getElementById('b'+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.classList.add('selected');}
 }
 function guardarJ(){
-  if(!currT){showToast('⚠️ Elige tipo de turno');return;}
+  if(!currT||!authReady){showToast('⚠️ Elige tipo de turno');return;}
+  if(!isValidDateKey(currF)){showToast('⚠️ Fecha inválida');return;}
   var col={dia:'rgba(255,215,0,0.75)',noche:'rgba(156,95,255,0.75)',fuera:'rgba(255,107,107,0.75)',vacas:'rgba(46,204,113,0.75)'};
   var txt={dia:'☀️ DÍA',noche:'🌙 NOCHE',fuera:'🏨 FUERA',vacas:'🌴 VACAS'};
-  var kmIniVal=document.getElementById('fKmIni').value;
-  var kmFinVal=document.getElementById('fKmFin').value;
+  var kmIniVal=safeKm(document.getElementById('fKmIni').value);
+  var kmFinVal=safeKm(document.getElementById('fKmFin').value);
+  var rutaVal=safeText(document.getElementById('selR').value,60);
+  var t1Val=safeTime(document.getElementById('fT1').value);
+  var t2Val=safeTime(document.getElementById('fT2').value);
+  var r1Val=safeTime(document.getElementById('fR1').value);
+  var r2Val=safeTime(document.getElementById('fR2').value);
+  var obsVal=safeText(document.getElementById('fObs').value,220);
   var reg={title:txt[currT],start:currF,backgroundColor:col[currT],borderColor:'rgba(0,0,0,0.2)',
-    extendedProps:{tipo:currT,ruta:document.getElementById('selR').value,
-      t1:document.getElementById('fT1').value,t2:document.getElementById('fT2').value,
-      r1:document.getElementById('fR1').value,r2:document.getElementById('fR2').value,
-      obs:document.getElementById('fObs').value,
+    extendedProps:{tipo:currT,ruta:rutaVal,
+      t1:t1Val,t2:t2Val,
+      r1:r1Val,r2:r2Val,
+      obs:obsVal,
       kmIni:kmIniVal,kmFin:kmFinVal,
       kmRec:(kmIniVal&&kmFinVal&&Number(kmFinVal)>Number(kmIniVal))?String(Number(kmFinVal)-Number(kmIniVal)):''}};
-  db.ref('usuarios/'+currentUser+'/viajes/'+currF).set(reg);
+  baseRef('viajes/'+currF).set(reg);
   document.getElementById('dayForm').classList.remove('open');
   window.scrollTo({top:0,behavior:'smooth'});
   showToast('✅ Guardado en la nube');
@@ -709,25 +761,26 @@ function guardarJ(){
 }
 function borrarJ(){
   if(!confirm('¿Borrar este día?'))return;
-  db.ref('usuarios/'+currentUser+'/viajes/'+currF).remove();
+  if(!isValidDateKey(currF)){showToast('⚠️ Fecha inválida');return;}
+  baseRef('viajes/'+currF).remove();
   document.getElementById('dayForm').classList.remove('open');
   showToast('🗑 Borrado');
 }
 function addRuta(){
-  var v=document.getElementById('nri').value.trim();
+  var v=safeText(document.getElementById('nri').value,60);
   if(!v)return;
   misRutas.push(v);
-  db.ref('usuarios/'+currentUser+'/rutas').set(misRutas);
+  baseRef('rutas').set(misRutas);
   document.getElementById('nri').value='';
 }
-function elimRuta(i){misRutas.splice(i,1);db.ref('usuarios/'+currentUser+'/rutas').set(misRutas);}
+function elimRuta(i){misRutas.splice(i,1);baseRef('rutas').set(misRutas);}
 function paintRutas(){
   document.getElementById('rutasL').innerHTML=misRutas.map(function(r,i){
-    return '<div class="ri"><span>'+r+'</span><button class="btn-del" onclick="elimRuta('+i+')">×</button></div>';
+    return '<div class="ri"><span>'+escHtml(r)+'</span><button class="btn-del" onclick="elimRuta('+i+')">×</button></div>';
   }).join('');
 }
 function buildSel(){
-  document.getElementById('selR').innerHTML=misRutas.map(function(r){return '<option value="'+r+'">'+r+'</option>';}).join('');
+  document.getElementById('selR').innerHTML=misRutas.map(function(r){return '<option value="'+escAttr(r)+'">'+escHtml(r)+'</option>';}).join('');
 }
 function updDietas(){
   if(!cal)return;
@@ -810,12 +863,12 @@ function paintHist(){
           return '<div class="card ct-'+tp+'">'
             +'<div class="cr1">'
               +'<span class="c-dt">📅 '+e.start.split('-').reverse().join('/')+'</span>'
-              +'<span class="c-tp" style="color:'+cx[tp]+'">'+e.title+'</span>'
+              +'<span class="c-tp" style="color:'+cx[tp]+'">'+escHtml(e.title)+'</span>'
             +'</div>'
-            +(p.ruta?'<div class="c-ru">📍 '+p.ruta+'</div>':'')
-            +([p.t1,p.t2,p.r1,p.r2].filter(Boolean).length?'<div class="c-ti">'+[p.t1,p.t2,p.r1,p.r2].filter(Boolean).join(' · ')+'</div>':'')
-            +(p.kmRec?'<div class="c-ti" style="color:var(--c-drive);">🛣️ '+p.kmIni+' → '+p.kmFin+' km &nbsp;|&nbsp; <strong>'+p.kmRec+' km recorridos</strong></div>':'')
-            +(p.obs?'<div class="c-ob">💬 '+p.obs+'</div>':'')
+            +(p.ruta?'<div class="c-ru">📍 '+escHtml(p.ruta)+'</div>':'')
+            +([p.t1,p.t2,p.r1,p.r2].filter(Boolean).length?'<div class="c-ti">'+[p.t1,p.t2,p.r1,p.r2].filter(Boolean).map(escHtml).join(' · ')+'</div>':'')
+            +(p.kmRec?'<div class="c-ti" style="color:var(--c-drive);">🛣️ '+escHtml(p.kmIni)+' → '+escHtml(p.kmFin)+' km &nbsp;|&nbsp; <strong>'+escHtml(p.kmRec)+' km recorridos</strong></div>':'')
+            +(p.obs?'<div class="c-ob">💬 '+escHtml(p.obs)+'</div>':'')
           +'</div>';
         }).join('')
         +'</div>'
@@ -995,7 +1048,7 @@ function xHistPDF(){
 /* ═══════════════════════════════════════
    CONFIG
 ═══════════════════════════════════════ */
-function saveCfg(){T.cfg={name:document.getElementById('cfgN').value,company:document.getElementById('cfgC').value};saveT();}
+function saveCfg(){T.cfg={name:safeText(document.getElementById('cfgN').value,50),company:safeText(document.getElementById('cfgC').value,70)};saveT();}
 function loadCfgUI(){var d=T.cfg||{};document.getElementById('cfgN').value=d.name||'';document.getElementById('cfgC').value=d.company||'';}
 function newDay(){if(!confirm('¿Nueva jornada? Se resetean los contadores del tacógrafo.'))return;stopAct(false);var h=T.history;var c=T.cfg;T=defT();T.history=h;T.cfg=c;saveT();updateTacoUI();showToast('✅ Nueva jornada — guardado en la nube');}
 
@@ -1023,3 +1076,4 @@ updClk();setInterval(updClk,1000);
 </script>
 </body>
 </html>
+
