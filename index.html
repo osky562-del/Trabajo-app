@@ -193,10 +193,32 @@ select option{background:var(--bg3);color:var(--text);}
 .bt-dia{background:#b8860b;color:#fff;}.bt-noche{background:var(--noche);}.bt-fuera{background:#c0392b;}.bt-vacas{background:#27ae60;}
 .bt-del{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);opacity:1;}
 
-/* ─── HISTORIAL ─── */
-.mes-sep{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 11px;margin:14px 0 7px;font-family:'Russo One',sans-serif;font-size:.68rem;color:var(--text2);letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
-.mes-sep::after{content:'';flex:1;height:1px;background:var(--border);}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;margin-bottom:6px;border-left:3px solid var(--border2);}
+/* ─── HISTORIAL ACORDEÓN ─── */
+.mes-grupo{margin-bottom:8px;}
+.mes-header{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:8px;padding:10px 13px;
+  cursor:pointer;user-select:none;
+  transition:background .2s, border-color .2s;
+}
+.mes-header:hover{background:var(--bg4);border-color:var(--border2);}
+.mes-header.open{border-radius:8px 8px 0 0;border-bottom-color:transparent;background:var(--bg4);}
+.mes-titulo{font-family:'Russo One',sans-serif;font-size:.72rem;color:var(--text2);letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.mes-badge{display:flex;gap:5px;align-items:center;}
+.mes-cnt{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;}
+.mes-arrow{color:var(--text2);font-size:.7rem;transition:transform .25s;flex-shrink:0;}
+.mes-header.open .mes-arrow{transform:rotate(180deg);}
+.mes-body{
+  max-height:0;overflow:hidden;
+  transition:max-height .35s ease;
+  background:var(--bg2);border:1px solid var(--border2);
+  border-top:none;border-radius:0 0 8px 8px;
+}
+.mes-body.open{max-height:4000px;}
+.mes-body-inner{padding:8px;}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:5px;border-left:3px solid var(--border2);transition:border-color .2s;}
+.card:last-child{margin-bottom:0;}
 .card.ct-dia{border-left-color:var(--dia);}.card.ct-noche{border-left-color:var(--noche);}.card.ct-fuera{border-left-color:var(--fuera);}.card.ct-vacas{border-left-color:var(--vacas);}
 .cr1{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
 .c-dt{font-size:.72rem;color:var(--text2);}.c-tp{font-size:.75rem;font-weight:700;}
@@ -204,6 +226,9 @@ select option{background:var(--bg3);color:var(--text);}
 .c-ti{font-size:.65rem;color:var(--text2);font-family:'Share Tech Mono',monospace;}
 .c-ob{font-size:.65rem;color:var(--text3);background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.15);border-radius:4px;padding:4px 7px;margin-top:5px;line-height:1.4;}
 .empty-msg{color:var(--text2);font-size:.8rem;text-align:center;padding:24px 0;}
+/* iconitos de tipo en el badge del mes */
+.mes-tipos{display:flex;gap:3px;}
+.mt-dot{width:7px;height:7px;border-radius:50%;}
 
 /* ─── STATS ─── */
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px;}
@@ -542,20 +567,32 @@ function initCal(){
     dateClick:function(i){currF=i.dateStr;showDayForm(i.dateStr);},
     datesSet:updDietas,
     dayCellDidMount:function(info){
-      var item=datos.find(function(d){return d.start===info.date.toLocaleDateString('en-CA');});
-      // Remove any existing dot first
+      var dateStr=info.date.toLocaleDateString('en-CA');
+      var item=datos.find(function(d){return d.start===dateStr;});
       var existing=info.el.querySelector('.dot-obs');
       if(existing)existing.remove();
       if(item&&item.extendedProps&&item.extendedProps.obs&&item.extendedProps.obs.trim()!==''){
         var dot=document.createElement('span');
         dot.className='dot-obs';
-        dot.title='Tiene observaciones';
-        // Insert into the day-number cell for top-left positioning
+        dot.title='📝 '+item.extendedProps.obs.substring(0,60);
         var dayTop=info.el.querySelector('.fc-daygrid-day-top');
-        if(dayTop){
-          dayTop.style.position='relative';
-          dayTop.appendChild(dot);
-        }
+        if(dayTop){dayTop.style.position='relative';dayTop.appendChild(dot);}
+      }
+    },
+    eventDidMount:function(info){
+      // Re-check dot after events render (in case datos loaded after cells)
+      var dateStr=info.event.startStr;
+      var dayEl=info.el.closest('.fc-daygrid-day');
+      if(!dayEl)return;
+      var existing=dayEl.querySelector('.dot-obs');
+      if(existing)existing.remove();
+      var item=datos.find(function(d){return d.start===dateStr;});
+      if(item&&item.extendedProps&&item.extendedProps.obs&&item.extendedProps.obs.trim()!==''){
+        var dot=document.createElement('span');
+        dot.className='dot-obs';
+        dot.title='📝 '+item.extendedProps.obs.substring(0,60);
+        var dayTop=dayEl.querySelector('.fc-daygrid-day-top');
+        if(dayTop){dayTop.style.position='relative';dayTop.appendChild(dot);}
       }
     }
   });
@@ -642,21 +679,71 @@ function updDietas(){
   document.getElementById('stFuera').textContent=f;document.getElementById('stVacas').textContent=vc;
   document.getElementById('stEuros').textContent=dm*50;
 }
+function toggleMes(id){
+  var h=document.getElementById('mh-'+id);
+  var b=document.getElementById('mb-'+id);
+  if(!h||!b)return;
+  var isOpen=b.classList.contains('open');
+  // Cerrar todos
+  document.querySelectorAll('.mes-body').forEach(function(x){x.classList.remove('open');});
+  document.querySelectorAll('.mes-header').forEach(function(x){x.classList.remove('open');});
+  // Abrir el pulsado si estaba cerrado
+  if(!isOpen){h.classList.add('open');b.classList.add('open');}
+}
 function paintHist(){
   var cont=document.getElementById('histLista'); cont.innerHTML='';
   if(!datos.length){cont.innerHTML='<div class="empty-msg">Sin registros</div>';return;}
   var ord=datos.slice().sort(function(a,b){return new Date(b.start)-new Date(a.start);});
-  var lastM='';
+  // Agrupar por mes de nómina
+  var grupos={};var orden=[];
   ord.forEach(function(e){
     var f=new Date(e.start);
     var mN=(f.getDate()>25)?f.getMonth()+1:f.getMonth();
     var aN=f.getFullYear();if(mN>11){mN=0;aN++;}
     var nomM=new Intl.DateTimeFormat('es',{month:'long'}).format(new Date(aN,mN));
-    var key=nomM+' '+aN;
-    if(key!==lastM){lastM=key;cont.innerHTML+='<div class="mes-sep">NÓMINA '+lastM.toUpperCase()+'</div>';}
-    var p=e.extendedProps; var tp=p.tipo||'dia';
-    var cx={dia:'var(--dia)',noche:'var(--noche)',fuera:'var(--fuera)',vacas:'var(--vacas)'};
-    cont.innerHTML+='<div class="card ct-'+tp+'"><div class="cr1"><span class="c-dt">📅 '+e.start.split('-').reverse().join('/')+'</span><span class="c-tp" style="color:'+cx[tp]+'">'+e.title+'</span></div>'+(p.ruta?'<div class="c-ru">📍 '+p.ruta+'</div>':'')+([p.t1,p.t2,p.r1,p.r2].filter(Boolean).length?'<div class="c-ti">'+[p.t1,p.t2,p.r1,p.r2].filter(Boolean).join(' · ')+'</div>':'')+(p.obs?'<div class="c-ob">💬 '+p.obs+'</div>':'')+'</div>';
+    var key=nomM+'|'+aN;
+    if(!grupos[key]){grupos[key]={label:nomM+' '+aN,items:[]};orden.push(key);}
+    grupos[key].items.push(e);
+  });
+  var cx={dia:'var(--dia)',noche:'var(--noche)',fuera:'var(--fuera)',vacas:'var(--vacas)'};
+  var cdot={dia:'#FFD700',noche:'#9c5fff',fuera:'#FF6B6B',vacas:'#2ecc71'};
+  orden.forEach(function(key,gi){
+    var g=grupos[key];
+    // contar tipos
+    var cnts={dia:0,noche:0,fuera:0,vacas:0};
+    g.items.forEach(function(e){var t=e.extendedProps.tipo||'dia';if(cnts[t]!==undefined)cnts[t]++;});
+    var tiposDots='';
+    ['dia','noche','fuera','vacas'].forEach(function(t){
+      if(cnts[t]>0)tiposDots+='<span style="display:inline-flex;align-items:center;gap:2px;font-size:.6rem;color:'+cdot[t]+';"><span style="width:6px;height:6px;border-radius:50%;background:'+cdot[t]+';display:inline-block;"></span>'+cnts[t]+'</span>';
+    });
+    var isFirst=(gi===0);
+    cont.innerHTML+='<div class="mes-grupo">'
+      +'<div class="mes-header'+(isFirst?' open':'')+'" id="mh-'+gi+'" onclick="toggleMes('+gi+')">'
+        +'<div class="mes-titulo">📋 NÓMINA '+g.label.toUpperCase()
+          +' <span style="font-size:.6rem;color:var(--text2);font-family:'Share Tech Mono',monospace;font-weight:400;">('+g.items.length+' días)</span>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px;">'
+          +'<div class="mes-badge" style="display:flex;gap:5px;">'+tiposDots+'</div>'
+          +'<span class="mes-arrow">▼</span>'
+        +'</div>'
+      +'</div>'
+      +'<div class="mes-body'+(isFirst?' open':'')+'" id="mb-'+gi+'">'
+        +'<div class="mes-body-inner">'
+        +g.items.map(function(e){
+          var p=e.extendedProps; var tp=p.tipo||'dia';
+          return '<div class="card ct-'+tp+'">'
+            +'<div class="cr1">'
+              +'<span class="c-dt">📅 '+e.start.split('-').reverse().join('/')+'</span>'
+              +'<span class="c-tp" style="color:'+cx[tp]+'">'+e.title+'</span>'
+            +'</div>'
+            +(p.ruta?'<div class="c-ru">📍 '+p.ruta+'</div>':'')
+            +([p.t1,p.t2,p.r1,p.r2].filter(Boolean).length?'<div class="c-ti">'+[p.t1,p.t2,p.r1,p.r2].filter(Boolean).join(' · ')+'</div>':'')
+            +(p.obs?'<div class="c-ob">💬 '+p.obs+'</div>':'')
+          +'</div>';
+        }).join('')
+        +'</div>'
+      +'</div>'
+    +'</div>';
   });
 }
 
@@ -848,4 +935,3 @@ updClk();setInterval(updClk,1000);
 </script>
 </body>
 </html>
-
