@@ -514,6 +514,21 @@ var currentUid='';
 var userBasePath='';
 
 function defT(){return{act:null,actStart:null,drive:0,rest:0,brk:0,work:0,contDrive:0,accBreak:0,history:[],today:new Date().toDateString(),cfg:{name:'',company:''}};}
+function normalizeTaco(v){
+  var b=defT(),s=v&&typeof v==='object'?v:{};
+  b.act=['driving','rest','break','work',null].indexOf(s.act)>=0?s.act:null;
+  b.actStart=typeof s.actStart==='number'&&isFinite(s.actStart)?s.actStart:null;
+  b.drive=typeof s.drive==='number'&&isFinite(s.drive)&&s.drive>=0?s.drive:0;
+  b.rest=typeof s.rest==='number'&&isFinite(s.rest)&&s.rest>=0?s.rest:0;
+  b.brk=typeof s.brk==='number'&&isFinite(s.brk)&&s.brk>=0?s.brk:0;
+  b.work=typeof s.work==='number'&&isFinite(s.work)&&s.work>=0?s.work:0;
+  b.contDrive=typeof s.contDrive==='number'&&isFinite(s.contDrive)&&s.contDrive>=0?s.contDrive:0;
+  b.accBreak=typeof s.accBreak==='number'&&isFinite(s.accBreak)&&s.accBreak>=0?s.accBreak:0;
+  b.history=Array.isArray(s.history)?s.history:[];
+  b.today=typeof s.today==='string'&&s.today?s.today:new Date().toDateString();
+  b.cfg=s.cfg&&typeof s.cfg==='object'?{name:safeText(s.cfg.name||'',50),company:safeText(s.cfg.company||'',70)}:{name:'',company:''};
+  return b;
+}
 function safeText(v,maxLen){
   var t=String(v||'').replace(/[\u0000-\u001F\u007F]/g,'').trim();
   return t.slice(0,maxLen||120);
@@ -564,7 +579,7 @@ function mergeLegacyIntoUid(done){
       var payload={};
       if(legacy.perfil)payload.perfil=legacy.perfil;
       if(legacy.rutas)payload.rutas=legacy.rutas;
-      if(legacy.tacografo)payload.tacografo=legacy.tacografo;
+      if(legacy.tacografo)payload.tacografo=normalizeTaco(legacy.tacografo);
       if(legacy.viajes)payload.viajes=legacy.viajes;
       uidRef.update(payload).then(function(){if(done)done();}).catch(function(){if(done)done();});
     }
@@ -598,6 +613,7 @@ function mergeLegacyIntoUid(done){
 
 // Guarda en Firebase (nube) Y en localStorage (backup offline)
 function saveT(){
+  T=normalizeTaco(T);
   localStorage.setItem('ftp_v3',JSON.stringify(T));
   if(tacoRef){
     var d=JSON.parse(JSON.stringify(T));
@@ -617,6 +633,7 @@ function loadTacoFromFirebase(){
   tacoRef.once('value',function(snap){
     var remote=snap.val();
     if(remote){
+      remote=normalizeTaco(remote);
       if(remote.today!==new Date().toDateString()){
         // Nuevo dia: resetea contadores pero conserva historial y config
         var n=defT(); n.history=remote.history||[]; n.cfg=remote.cfg||{}; T=n;
@@ -632,7 +649,7 @@ function loadTacoFromFirebase(){
       // Sin datos en nube: migrar localStorage antiguo si existe
       try{
         var old=JSON.parse(localStorage.getItem('ftp_v3')||localStorage.getItem('tacoapp_v2')||'null');
-        if(old&&old.history){T=old;showToast('☁️ Datos anteriores migrados a la nube');}
+        if(old&&old.history){T=normalizeTaco(old);showToast('☁️ Datos anteriores migrados a la nube');}
       }catch(e){}
     }
     loadCfgUI(); updateTacoUI(); saveT();
@@ -1130,6 +1147,7 @@ updClk();setInterval(updClk,1000);
 </script>
 </body>
 </html>
+
 
 
 
