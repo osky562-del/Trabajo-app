@@ -246,6 +246,12 @@ select option{background:var(--bg3);color:var(--text);}
 .wdbs{display:flex;flex-direction:column;justify-content:flex-end;height:42px;gap:1px;}
 .wds{border-radius:2px;min-height:2px;}.wdt{font-family:'Share Tech Mono',monospace;font-size:.52rem;color:var(--text2);margin-top:3px;}
 
+/* ─── KM ─── */
+.km-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:9px;align-items:end;}
+.km-total{background:var(--bg4);border:1px solid var(--brand2);border-radius:8px;padding:9px 11px;text-align:center;}
+.km-total-lbl{font-size:.58rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.km-total-val{font-family:'Share Tech Mono',monospace;font-size:1rem;font-weight:700;color:var(--brand2);}
+.dst.km .dst-v{color:var(--c-drive);}
 /* ─── CONFIG ─── */
 .ri{display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);font-size:.8rem;color:var(--text3);}
 .ri:last-child{border-bottom:none;}.btn-del{background:none;border:none;color:var(--c-danger);font-size:1rem;cursor:pointer;padding:3px;}
@@ -357,6 +363,7 @@ var db = firebase.database();
         <div class="dst"><span class="dst-i">🏨</span><span class="dst-v" id="cFuera">0</span><span class="dst-l">FUERA</span></div>
         <div class="dst"><span class="dst-i">🌴</span><span class="dst-v" id="cVacas">0</span><span class="dst-l">VACAS</span></div>
         <div class="dst eur"><span class="dst-i">💶</span><span class="dst-v" id="cEuros">0</span><span class="dst-l">EUROS</span></div>
+        <div class="dst km"><span class="dst-i">🛣️</span><span class="dst-v" id="cKm">0</span><span class="dst-l">KM</span></div>
       </div>
     </div>
     <div id="calendar"></div>
@@ -375,6 +382,11 @@ var db = firebase.database();
         <div><label class="flbl">T2</label><input type="text" id="fT2"></div>
         <div><label class="flbl">R1</label><input type="text" id="fR1"></div>
         <div><label class="flbl">R2</label><input type="text" id="fR2"></div>
+      </div>
+      <div class="km-row">
+        <div><label class="flbl">KM Inicio</label><input type="number" id="fKmIni" placeholder="Ej: 125400" min="0"></div>
+        <div><label class="flbl">KM Final</label><input type="number" id="fKmFin" placeholder="Ej: 125850" min="0" oninput="calcKmDia()"></div>
+        <div class="km-total"><div class="km-total-lbl">KM recorridos</div><div class="km-total-val" id="kmDiaCalc">—</div></div>
       </div>
       <div class="fgrp"><label class="flbl">Observaciones</label><textarea id="fObs" rows="2" placeholder="Notas..."></textarea></div>
       <button class="btn-primary" onclick="guardarJ()">☁️ GUARDAR EN LA NUBE</button>
@@ -422,6 +434,7 @@ var db = firebase.database();
         <div class="dst"><span class="dst-i">🏨</span><span class="dst-v" id="stFuera">0</span><span class="dst-l">FUERA</span></div>
         <div class="dst"><span class="dst-i">🌴</span><span class="dst-v" id="stVacas">0</span><span class="dst-l">VACAS</span></div>
         <div class="dst eur"><span class="dst-i">💶</span><span class="dst-v" id="stEuros">0</span><span class="dst-l">DOM€</span></div>
+        <div class="dst km"><span class="dst-i">🛣️</span><span class="dst-v" id="stKm">0</span><span class="dst-l">KM</span></div>
       </div>
     </div>
   </div>
@@ -436,11 +449,10 @@ var db = firebase.database();
     <div class="panel">
       <div class="panel-hd">👤 Datos del conductor</div>
       <div class="form-grid" style="gap:7px;">
-        <div><label class="flbl" style="display:block;margin-bottom:4px;">Nombre</label><input type="text" id="cfgN" placeholder="Nombre" oninput="saveCfg()"></div>
-        <div><label class="flbl" style="display:block;margin-bottom:4px;">Matrícula</label><input type="text" id="cfgP" placeholder="0000 AAA" oninput="saveCfg()"></div>
+        <div><label class="flbl" style="display:block;margin-bottom:4px;">Nombre conductor</label><input type="text" id="cfgN" placeholder="Tu nombre" oninput="saveCfg()"></div>
         <div><label class="flbl" style="display:block;margin-bottom:4px;">Empresa</label><input type="text" id="cfgC" placeholder="Empresa" oninput="saveCfg()"></div>
-        <div><label class="flbl" style="display:block;margin-bottom:4px;">Ruta habitual</label><input type="text" id="cfgR" placeholder="Ruta" oninput="saveCfg()"></div>
       </div>
+      <p style="font-size:.65rem;color:var(--text2);margin-top:4px;">La matrícula y ruta se registran cada día en la jornada.</p>
     </div>
     <div class="panel">
       <div class="panel-hd">📐 Normativa CE 561/2006</div>
@@ -475,7 +487,7 @@ var currF=null,currT=null,tickId=null;
 var T=defT();
 var tacoRef=null;
 
-function defT(){return{act:null,actStart:null,drive:0,rest:0,brk:0,work:0,contDrive:0,accBreak:0,history:[],today:new Date().toDateString(),cfg:{name:'',plate:'',company:'',route:''}};}
+function defT(){return{act:null,actStart:null,drive:0,rest:0,brk:0,work:0,contDrive:0,accBreak:0,history:[],today:new Date().toDateString(),cfg:{name:'',company:''}};}
 
 // Guarda en Firebase (nube) Y en localStorage (backup offline)
 function saveT(){
@@ -611,11 +623,23 @@ function showDayForm(f){
     document.getElementById('fR2').value=ex.extendedProps.r2||'';
     document.getElementById('selR').value=ex.extendedProps.ruta||'';
     document.getElementById('fObs').value=ex.extendedProps.obs||'';
+    document.getElementById('fKmIni').value=ex.extendedProps.kmIni||'';
+    document.getElementById('fKmFin').value=ex.extendedProps.kmFin||'';
+    calcKmDia();
   }else{
     selT(null);
-    ['fT1','fT2','fR1','fR2','fObs'].forEach(function(id){document.getElementById(id).value='';});
+    ['fT1','fT2','fR1','fR2','fObs','fKmIni','fKmFin'].forEach(function(id){document.getElementById(id).value='';});
+    document.getElementById('kmDiaCalc').textContent='—';
   }
   setTimeout(function(){form.scrollIntoView({behavior:'smooth',block:'start'});},100);
+}
+function calcKmDia(){
+  var ini=Number(document.getElementById('fKmIni').value);
+  var fin=Number(document.getElementById('fKmFin').value);
+  var el=document.getElementById('kmDiaCalc');
+  if(ini&&fin&&fin>ini){el.textContent=(fin-ini)+' km';}
+  else if(ini&&fin&&fin<=ini){el.textContent='⚠️ Error';}
+  else{el.textContent='—';}
 }
 function selT(t){
   currT=t;
@@ -626,11 +650,15 @@ function guardarJ(){
   if(!currT){showToast('⚠️ Elige tipo de turno');return;}
   var col={dia:'rgba(255,215,0,0.75)',noche:'rgba(156,95,255,0.75)',fuera:'rgba(255,107,107,0.75)',vacas:'rgba(46,204,113,0.75)'};
   var txt={dia:'☀️ DÍA',noche:'🌙 NOCHE',fuera:'🏨 FUERA',vacas:'🌴 VACAS'};
+  var kmIniVal=document.getElementById('fKmIni').value;
+  var kmFinVal=document.getElementById('fKmFin').value;
   var reg={title:txt[currT],start:currF,backgroundColor:col[currT],borderColor:'rgba(0,0,0,0.2)',
     extendedProps:{tipo:currT,ruta:document.getElementById('selR').value,
       t1:document.getElementById('fT1').value,t2:document.getElementById('fT2').value,
       r1:document.getElementById('fR1').value,r2:document.getElementById('fR2').value,
-      obs:document.getElementById('fObs').value}};
+      obs:document.getElementById('fObs').value,
+      kmIni:kmIniVal,kmFin:kmFinVal,
+      kmRec:(kmIniVal&&kmFinVal&&Number(kmFinVal)>Number(kmIniVal))?String(Number(kmFinVal)-Number(kmIniVal)):''}};
   db.ref('usuarios/'+currentUser+'/viajes/'+currF).set(reg);
   document.getElementById('dayForm').classList.remove('open');
   window.scrollTo({top:0,behavior:'smooth'});
@@ -670,14 +698,20 @@ function updDietas(){
   var f=lista.filter(function(e){return e.extendedProps.tipo==='fuera';}).length;
   var vc=lista.filter(function(e){return e.extendedProps.tipo==='vacas';}).length;
   var dm=lista.filter(function(e){var fe=new Date(e.start);return fe.getDay()===0&&['dia','noche'].includes(e.extendedProps.tipo);}).length;
+  var kmTotal=lista.reduce(function(acc,e){
+    var k=e.extendedProps&&e.extendedProps.kmRec?Number(e.extendedProps.kmRec):0;
+    return acc+(isNaN(k)?0:k);
+  },0);
   document.getElementById('cDia').textContent=d;document.getElementById('cNoche').textContent=n;
   document.getElementById('cFuera').textContent=f;document.getElementById('cVacas').textContent=vc;
   document.getElementById('cEuros').textContent=dm*50;
+  document.getElementById('cKm').textContent=kmTotal>0?kmTotal:'0';
   var opt={day:'numeric',month:'short'};
-  document.getElementById('prdLbl').textContent='Nómina: '+ini.toLocaleDateString('es',opt)+' → '+fin.toLocaleDateString('es',opt);
+  document.getElementById('prdLbl').textContent='Nomina: '+ini.toLocaleDateString('es',opt)+' > '+fin.toLocaleDateString('es',opt);
   document.getElementById('stDia').textContent=d;document.getElementById('stNoche').textContent=n;
   document.getElementById('stFuera').textContent=f;document.getElementById('stVacas').textContent=vc;
   document.getElementById('stEuros').textContent=dm*50;
+  document.getElementById('stKm').textContent=kmTotal>0?kmTotal:'0';
 }
 function toggleMes(id){
   var h=document.getElementById('mh-'+id);
@@ -738,6 +772,7 @@ function paintHist(){
             +'</div>'
             +(p.ruta?'<div class="c-ru">📍 '+p.ruta+'</div>':'')
             +([p.t1,p.t2,p.r1,p.r2].filter(Boolean).length?'<div class="c-ti">'+[p.t1,p.t2,p.r1,p.r2].filter(Boolean).join(' · ')+'</div>':'')
+            +(p.kmRec?'<div class="c-ti" style="color:var(--c-drive);">🛣️ '+p.kmIni+' → '+p.kmFin+' km &nbsp;|&nbsp; <strong>'+p.kmRec+' km recorridos</strong></div>':'')
             +(p.obs?'<div class="c-ob">💬 '+p.obs+'</div>':'')
           +'</div>';
         }).join('')
@@ -864,14 +899,14 @@ function xCSV(){
   var today=T.history.filter(function(h){return h.date===new Date().toDateString();});
   if(!today.length){showToast('⚠️ Sin datos hoy');return;}
   var dc=T.cfg||{};
-  var lines=['# FurgoTrayler Pro — Tacógrafo','# Conductor: '+(dc.name||currentUser||'-'),'# Matrícula: '+(dc.plate||'-'),'# Empresa: '+(dc.company||'-'),'# Fecha: '+new Date().toLocaleDateString('es-ES'),'','Actividad,Inicio,Fin,Duración(seg),Duración'];
+  var lines=['# FurgoTrayler Pro — Tacógrafo','# Conductor: '+(dc.name||currentUser||'-'),'# Empresa: '+(dc.company||'-'),'# Fecha: '+new Date().toLocaleDateString('es-ES'),'','Actividad,Inicio,Fin,Duracion(seg),Duracion'];
   today.forEach(function(h){var s=new Date(h.startTs).toLocaleTimeString('es-ES');var e=new Date(h.endTs).toLocaleTimeString('es-ES');lines.push((AN[h.type]||h.type)+','+s+','+e+','+h.elapsed+','+fmt(h.elapsed));});
   dlCSV(lines.join('\n'),'tacografo_'+new Date().toISOString().slice(0,10)+'.csv');showToast('✅ CSV exportado');
 }
 function xHistCSV(){
   if(!datos.length){showToast('⚠️ Sin jornadas');return;}
-  var lines=['Fecha,Tipo,Ruta,T1,T2,R1,R2,Obs'];
-  datos.slice().sort(function(a,b){return new Date(b.start)-new Date(a.start);}).forEach(function(e){var p=e.extendedProps;lines.push(e.start+','+(p.tipo||'')+','+(p.ruta||'')+','+(p.t1||'')+','+(p.t2||'')+','+(p.r1||'')+','+(p.r2||'')+','+(p.obs||'').replace(/,/g,';'));});
+  var lines=['Fecha,Tipo,Ruta,T1,T2,R1,R2,KM Ini,KM Fin,KM Recorridos,Obs'];
+  datos.slice().sort(function(a,b){return new Date(b.start)-new Date(a.start);}).forEach(function(e){var p=e.extendedProps;lines.push(e.start+','+(p.tipo||'')+','+(p.ruta||'')+','+(p.t1||'')+','+(p.t2||'')+','+(p.r1||'')+','+(p.r2||'')+','+(p.kmIni||'')+','+(p.kmFin||'')+','+(p.kmRec||'')+','+(p.obs||'').replace(/,/g,';'));});
   dlCSV(lines.join('\n'),'jornadas_'+new Date().toISOString().slice(0,10)+'.csv');showToast('✅ CSV jornadas');
 }
 function dlCSV(csv,name){var b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
@@ -880,7 +915,18 @@ function xPDF(){
   try{var JP=window.jspdf;if(!JP)throw new Error();var doc=new JP.jsPDF();
     var dc=T.cfg||{};var today=T.history.filter(function(h){return h.date===new Date().toDateString();});
     doc.setFillColor(8,12,16);doc.rect(0,0,210,26,'F');doc.setTextColor(0,229,160);doc.setFontSize(14);doc.setFont('helvetica','bold');doc.text('FURGOTRAYLER PRO — TACÓGRAFO',14,15);doc.setFontSize(7);doc.setTextColor(107,130,160);doc.text('CE 561/2006 | Normativa ES',14,21);
-    doc.setFillColor(20,30,46);doc.rect(14,30,182,24,'F');doc.setFontSize(7);doc.setTextColor(107,130,160);doc.text('CONDUCTOR: '+(dc.name||currentUser||'—'),18,38);doc.text('MATRÍCULA: '+(dc.plate||'—'),110,38);doc.text('EMPRESA: '+(dc.company||'—'),18,45);doc.text('FECHA: '+new Date().toLocaleDateString('es-ES'),110,45);
+    // Matrícula y ruta del primer registro del día
+    var todayRec=today.length>0?null:null;
+    var jornDia=datos.find(function(d){return d.start===new Date().toLocaleDateString('en-CA');});
+    var jPlate=jornDia&&jornDia.extendedProps&&jornDia.extendedProps.t1?jornDia.extendedProps.t1:'—';
+    var jRuta=jornDia&&jornDia.extendedProps&&jornDia.extendedProps.ruta?jornDia.extendedProps.ruta:'—';
+    var jKm=jornDia&&jornDia.extendedProps&&jornDia.extendedProps.kmRec?jornDia.extendedProps.kmRec+' km':'—';
+    doc.setFillColor(20,30,46);doc.rect(14,30,182,26,'F');doc.setFontSize(7);doc.setTextColor(107,130,160);
+    doc.text('CONDUCTOR: '+(dc.name||currentUser||'—'),18,38);
+    doc.text('EMPRESA: '+(dc.company||'—'),110,38);
+    doc.text('RUTA: '+jRuta,18,45);
+    doc.text('KM DIA: '+jKm,110,45);
+    doc.text('FECHA: '+new Date().toLocaleDateString('es-ES'),18,52);
     var y=62;doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(0,229,160);doc.text('ACTIVIDADES',14,y);doc.setDrawColor(0,229,160);doc.line(14,y+2,196,y+2);y+=8;
     doc.setFontSize(7);doc.setTextColor(107,130,160);doc.text('ACTIVIDAD',18,y);doc.text('INICIO',80,y);doc.text('FIN',120,y);doc.text('DURACIÓN',160,y);y+=7;
     today.forEach(function(h,i){if(y>265){doc.addPage();y=20;}if(i%2===0){doc.setFillColor(14,21,32);doc.rect(14,y-4,182,7,'F');}var s=new Date(h.startTs).toLocaleTimeString('es-ES');var e=new Date(h.endTs).toLocaleTimeString('es-ES');var cx={driving:[0,200,140],rest:[79,195,247],break:[255,183,77],work:[206,147,216]};var c=cx[h.type]||[200,200,200];doc.setTextColor(c[0],c[1],c[2]);doc.setFont('helvetica','bold');doc.text((AN[h.type]||h.type),18,y);doc.setTextColor(200,215,235);doc.setFont('helvetica','normal');doc.text(s,80,y);doc.text(e,120,y);doc.text(fmt(h.elapsed),160,y);y+=7;});
@@ -907,8 +953,8 @@ function xHistPDF(){
 /* ═══════════════════════════════════════
    CONFIG
 ═══════════════════════════════════════ */
-function saveCfg(){T.cfg={name:document.getElementById('cfgN').value,plate:document.getElementById('cfgP').value,company:document.getElementById('cfgC').value,route:document.getElementById('cfgR').value};saveT();}
-function loadCfgUI(){var d=T.cfg||{};document.getElementById('cfgN').value=d.name||'';document.getElementById('cfgP').value=d.plate||'';document.getElementById('cfgC').value=d.company||'';document.getElementById('cfgR').value=d.route||'';}
+function saveCfg(){T.cfg={name:document.getElementById('cfgN').value,company:document.getElementById('cfgC').value};saveT();}
+function loadCfgUI(){var d=T.cfg||{};document.getElementById('cfgN').value=d.name||'';document.getElementById('cfgC').value=d.company||'';}
 function newDay(){if(!confirm('¿Nueva jornada? Se resetean los contadores del tacógrafo.'))return;stopAct(false);var h=T.history;var c=T.cfg;T=defT();T.history=h;T.cfg=c;saveT();updateTacoUI();showToast('✅ Nueva jornada — guardado en la nube');}
 
 /* ═══════════════════════════════════════
