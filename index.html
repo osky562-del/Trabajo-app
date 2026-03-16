@@ -314,6 +314,7 @@ var db=firebase.database();
         <div class="res-card g"><div class="rc-lbl">KM semana</div><div class="rc-val g" id="rSK">—</div></div>
         <div class="res-card"><div class="rc-lbl">Días trab.</div><div class="rc-val" id="rSD">—</div></div>
       </div>
+      <div class="alert-box" id="weekRestBox" style="margin-top:9px;"></div>
     </div>
 
     <!-- Resumen mes -->
@@ -702,6 +703,66 @@ function updSemana(){
   document.getElementById('pbSLbl').textContent=hNum(semH)+' / 56h';
   setPB('pbQ',qp,qp<70?'bl':qp<88?'l1':'l3');
   document.getElementById('pbQLbl').textContent=hNum(qH)+' / 90h';
+  paintDescansoSemanal();
+}
+function getTrabajoBounds(ds,d){
+  if(!d)return null;
+  var base=new Date(ds+'T00:00:00');
+  var iniMin=d.horaIni?tMin(d.horaIni):null;
+  var finMin=d.horaFin?tMin(d.horaFin):null;
+  var jMin=parseInt(d.jornMin)||0;
+  if(iniMin!==null&&finMin!==null){
+    var ini=new Date(base.getTime()+iniMin*60000);
+    var fin=new Date(base.getTime()+finMin*60000);
+    if(fin<=ini)fin=new Date(fin.getTime()+86400000);
+    return {start:ini,end:fin};
+  }
+  if(iniMin!==null&&jMin>0){
+    var ini2=new Date(base.getTime()+iniMin*60000);
+    return {start:ini2,end:new Date(ini2.getTime()+jMin*60000)};
+  }
+  if(finMin!==null&&jMin>0){
+    var fin2=new Date(base.getTime()+finMin*60000);
+    return {start:new Date(fin2.getTime()-jMin*60000),end:fin2};
+  }
+  return null;
+}
+function getEstadoDescansoSemanal(){
+  var lunes=getLunes();
+  lunes.setHours(0,0,0,0);
+  var primerInicio=null;
+  for(var i=0;i<7;i++){
+    var dt=new Date(lunes);
+    dt.setDate(lunes.getDate()+i);
+    var ds=dt.toLocaleDateString('en-CA');
+    var b=getTrabajoBounds(ds,diasT[ds]);
+    if(b&&(!primerInicio||b.start<primerInicio))primerInicio=b.start;
+  }
+  var ref=primerInicio||new Date();
+  var ultimoFin=null;
+  Object.keys(diasT).forEach(function(ds){
+    var b=getTrabajoBounds(ds,diasT[ds]);
+    if(!b)return;
+    if(b.end<=ref&&(!ultimoFin||b.end>ultimoFin))ultimoFin=b.end;
+  });
+  if(!ultimoFin){
+    return {c:'warn',i:'ℹ️',h:'Descanso semanal sin datos suficientes',b:'No puedo validar el descanso semanal porque faltan horas de jornadas anteriores.'};
+  }
+  var h=(ref.getTime()-ultimoFin.getTime())/3600000;
+  var txt=hNum(h);
+  if(h>=45){
+    return {c:'ok',i:'✅',h:'Descanso semanal normal realizado',b:'Al iniciar la semana llevabas '+txt+' de descanso entre jornadas (mínimo 45h).'};
+  }
+  if(h>=24){
+    return {c:'warn',i:'⚠️',h:'Descanso semanal reducido realizado',b:'Al iniciar la semana llevabas '+txt+' de descanso (válido como reducido: 24h a <45h).'};
+  }
+  return {c:'danger',i:'🚫',h:'Descanso semanal insuficiente',b:'Al iniciar la semana solo constan '+txt+' de descanso. Debes llegar al menos a 24h.'};
+}
+function paintDescansoSemanal(){
+  var a=getEstadoDescansoSemanal();
+  var box=document.getElementById('weekRestBox');
+  if(!box)return;
+  box.innerHTML='<div class="alrt '+a.c+'"><span style="font-size:.9rem;flex-shrink:0;margin-top:1px;">'+a.i+'</span><div><strong>'+a.h+'</strong>'+a.b+'</div></div>';
 }
 function updMes(){
   var hoy=new Date();
