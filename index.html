@@ -470,18 +470,24 @@ var diaActual=new Date().toLocaleDateString('en-CA');
    LOGIN
 ════════════════════════════════════════════ */
 function login(){
-  var rawName = document.getElementById('uName').value.trim().toUpperCase();
-  // Extraemos solo el primer nombre (hasta el primer espacio) para ignorar apellidos
-  rawName = rawName.split(" ")[0];
+  var rawNameComplete = document.getElementById('uName').value.trim().toUpperCase();
   
-  // Listado de usuarios que históricamente tienen cuenta CON tilde o algún nombre específico (para que no se les sobreescriba a la version sin tilde)
-  if (rawName === "AGUSTÍN" || rawName === "AGUSTIN") {
-    // Forzamos siempre a la versión CON tilde que ya tiene sus datos en la nube.
-    var n = "AGUSTÍN";
+  // Excepción 1: Personas con cuentas completas con apellidos que no deben cortarse ni procesarse
+  if (rawNameComplete === "GUSTAVO TERENTE") {
+    var n = "GUSTAVO TERENTE";
   } else {
-    // El resto se normaliza (se eliminan las tildes) para evitar crear nuevos duplicados.
-    var n = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // Para el resto extraemos solo el primer nombre (hasta el primer espacio) para ignorar apellidos
+    var rawName = rawNameComplete.split(" ")[0];
+    
+    // Excepción 2: Personas con tildes en sus nombres antiguos en base de datos
+    if (rawName === "AGUSTÍN" || rawName === "AGUSTIN") {
+      var n = "AGUSTÍN";
+    } else {
+      // El resto se normaliza (se eliminan las tildes) para evitar crear nuevos duplicados.
+      var n = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
   }
+
   if(!n){toast('⚠️ Escribe tu nombre');return;}
   currentUser=n;
   localStorage.setItem('FTP_USER',n);
