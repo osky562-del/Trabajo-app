@@ -471,7 +471,10 @@ var diaActual=new Date().toLocaleDateString('en-CA');
 ════════════════════════════════════════════ */
 function login(){
   var rawName = document.getElementById('uName').value.trim().toUpperCase();
-  // Listado de usuarios que históricamente tienen cuenta CON tilde (para que no se les sobreescriba a la version sin tilde)
+  // Extraemos solo el primer nombre (hasta el primer espacio) para ignorar apellidos
+  rawName = rawName.split(" ")[0];
+  
+  // Listado de usuarios que históricamente tienen cuenta CON tilde o algún nombre específico (para que no se les sobreescriba a la version sin tilde)
   if (rawName === "AGUSTÍN" || rawName === "AGUSTIN") {
     // Forzamos siempre a la versión CON tilde que ya tiene sus datos en la nube.
     var n = "AGUSTÍN";
