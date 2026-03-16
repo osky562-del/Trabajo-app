@@ -470,7 +470,7 @@ var diaActual=new Date().toLocaleDateString('en-CA');
    LOGIN
 ════════════════════════════════════════════ */
 function login(){
-  var n=document.getElementById('uName').value.trim().toUpperCase();
+  var n=document.getElementById('uName').value.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if(!n){toast('⚠️ Escribe tu nombre');return;}
   currentUser=n;
   localStorage.setItem('FTP_USER',n);
