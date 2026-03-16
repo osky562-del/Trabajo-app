@@ -283,6 +283,10 @@ var db=firebase.database();
       </div>
       <div class="tfield" style="margin-bottom:10px;"><label>Observaciones</label><input type="text" id="tObs" placeholder="Notas opcionales..."></div>
       <button class="btn-primary" onclick="guardarDia()">☁️ GUARDAR DÍA</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;">
+        <button class="sm-btn" onclick="limpiarForm()" title="Borra lo que has escrito pero NO lo que hay guardado en la nube">🧹 Limpiar campos</button>
+        <button class="sm-btn" style="color:var(--danger);border-color:rgba(255,82,82,.3);" onclick="borrarDia()" title="Borra este día de la nube definitivamente">🗑 Borrar día guardado</button>
+      </div>
     </div>
 
     <!-- Resultados calculados -->
@@ -786,6 +790,26 @@ function guardarJ(){
   window.scrollTo({top:0,behavior:'smooth'});
   toast('✅ Guardado en la nube');
   setTimeout(function(){if(cal){cal.render();setTimeout(repintarCal,100);}},400);
+}
+function limpiarForm(){
+  // Solo limpia los campos del formulario, NO toca lo guardado en la nube
+  ['tIni','tFin','tHC','tKI','tKF','tObs'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
+  calcTaco();
+  toast('🧹 Campos limpiados — los datos guardados en la nube NO se han borrado');
+}
+function borrarDia(){
+  var fecha=new Date(diaActual+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+  if(!diasT[diaActual]){toast('⚠️ Este día no tiene datos guardados');return;}
+  if(!confirm('Borrar los datos del tacografo del '+fecha+'? Esto eliminara la jornada de la nube y no se puede deshacer.'))return;
+  delete diasT[diaActual];
+  tacoRef.child(diaActual).remove();
+  limpiarForm();
+  buildWeekStrip();
+  updSemana();
+  updMes();
+  toast('🗑 Día borrado de la nube');
 }
 function borrarJ(){
   if(!confirm('¿Borrar este día?'))return;
