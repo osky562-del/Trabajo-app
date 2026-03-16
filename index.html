@@ -440,6 +440,14 @@ var db=firebase.database();
         <div class="lc"><div class="lc-l">Multa muy grave</div><div class="lc-v">4.601€ <small>+ inmov.</small></div></div>
       </div>
     </div>
+    <div class="panel">
+      <div class="panel-hd">🛡 Seguridad de datos</div>
+      <div class="sm-row" style="margin-top:0;">
+        <button class="sm-btn" onclick="crearBackupSeguro()">☁️ Backup nube</button>
+        <button class="sm-btn" onclick="exportBackupJSON()">📥 Backup JSON</button>
+        <button class="sm-btn" onclick="restaurarUltimoBackup()">♻️ Restaurar último</button>
+      </div>
+    </div>
     <button class="btn-out" onclick="logout()">↩ Cerrar sesión / Cambiar conductor</button>
   </div>
 </div>
@@ -803,19 +811,32 @@ function borrarDia(){
   var fecha=new Date(diaActual+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
   if(!diasT[diaActual]){toast('⚠️ Este día no tiene datos guardados');return;}
   if(!confirm('Borrar los datos del tacografo del '+fecha+'? Esto eliminara la jornada de la nube y no se puede deshacer.'))return;
-  delete diasT[diaActual];
-  tacoRef.child(diaActual).remove();
-  limpiarForm();
-  buildWeekStrip();
-  updSemana();
-  updMes();
-  toast('🗑 Día borrado de la nube');
+  var reg=diasT[diaActual];
+  moverAPapelera('tacoDias',diaActual,reg).then(function(){
+    delete diasT[diaActual];
+    return tacoRef.child(diaActual).remove();
+  }).then(function(){
+    limpiarForm();
+    buildWeekStrip();
+    updSemana();
+    updMes();
+    toast('🗑 Día borrado y protegido en papelera');
+  }).catch(function(){
+    toast('⚠️ No se borró para proteger tus datos');
+  });
 }
 function borrarJ(){
   if(!confirm('¿Borrar este día?'))return;
-  db.ref('usuarios/'+currentUser+'/viajes/'+currF).remove();
-  document.getElementById('dayForm').classList.remove('open');
-  toast('🗑 Borrado');
+  var ex=datos.find(function(e){return e.start===currF;});
+  if(!ex){toast('⚠️ No hay registro para borrar');return;}
+  moverAPapelera('viajes',currF,ex).then(function(){
+    return db.ref('usuarios/'+currentUser+'/viajes/'+currF).remove();
+  }).then(function(){
+    document.getElementById('dayForm').classList.remove('open');
+    toast('🗑 Borrado y protegido en papelera');
+  }).catch(function(){
+    toast('⚠️ No se borró para proteger tus datos');
+  });
 }
 function addRuta(){
   var v=document.getElementById('nri').value.trim();if(!v)return;
@@ -1059,6 +1080,115 @@ function xHistPDF(){
     doc.save('jornadas_'+new Date().toISOString().slice(0,10)+'.pdf');
     toast('✅ PDF jornadas');
   }catch(err){toast('⚠️ Usa CSV');xHistCSV();}
+}
+function getViajesMap(){
+  var out={};
+  datos.forEach(function(e){
+    if(e&&e.start)out[e.start]=e;
+  });
+  return out;
+}
+function buildBackupPayload(tag){
+  return {
+    tag:tag||'manual',
+    createdAt:Date.now(),
+    createdAtISO:new Date().toISOString(),
+    user:currentUser,
+    data:{
+      tacoDias:diasT||{},
+      viajes:getViajesMap(),
+      rutas:misRutas||[],
+      cfg:cfg||{}
+    }
+  };
+}
+function guardarBackupLocal(payload){
+  var key='FTP_SAFE_BACKUPS_'+currentUser;
+  var list;
+  try{list=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){list=[];}
+  if(!Array.isArray(list))list=[];
+  list.unshift(payload);
+  if(list.length>10)list=list.slice(0,10);
+  localStorage.setItem(key,JSON.stringify(list));
+}
+function getBackupsLocales(){
+  var key='FTP_SAFE_BACKUPS_'+currentUser;
+  var list;
+  try{list=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){list=[];}
+  return Array.isArray(list)?list:[];
+}
+function crearBackupSeguro(){
+  var payload=buildBackupPayload('manual');
+  guardarBackupLocal(payload);
+  db.ref('usuarios/'+currentUser+'/backups/'+payload.createdAt).set(payload).then(function(){
+    toast('✅ Backup guardado en nube y local');
+  }).catch(function(){
+    toast('⚠️ Backup local guardado. Falló la nube');
+  });
+}
+function exportBackupJSON(){
+  var payload=buildBackupPayload('json-export');
+  guardarBackupLocal(payload);
+  var b=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8;'});
+  var u=URL.createObjectURL(b);
+  var a=document.createElement('a');
+  a.href=u;
+  a.download='backup_'+(currentUser||'user')+'_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(u);
+  toast('✅ Backup JSON descargado');
+}
+function aplicarBackupPayload(payload){
+  if(!payload||!payload.data)return Promise.reject();
+  var data=payload.data;
+  var restoreTaco=(data.tacoDias&&typeof data.tacoDias==='object')?data.tacoDias:{};
+  var restoreViajes=(data.viajes&&typeof data.viajes==='object')?data.viajes:{};
+  var restoreRutas=Array.isArray(data.rutas)?data.rutas:[];
+  var restoreCfg=(data.cfg&&typeof data.cfg==='object')?data.cfg:{};
+  var base='usuarios/'+currentUser+'/';
+  var updates={};
+  updates[base+'tacoDias']=restoreTaco;
+  updates[base+'viajes']=restoreViajes;
+  updates[base+'rutas']=restoreRutas;
+  updates[base+'cfg']=restoreCfg;
+  return db.ref().update(updates);
+}
+function restaurarUltimoBackup(){
+  function fromLocal(){
+    var list=getBackupsLocales();
+    return list.length?Promise.resolve(list[0]):Promise.reject();
+  }
+  function fromCloud(){
+    return db.ref('usuarios/'+currentUser+'/backups').orderByChild('createdAt').limitToLast(1).once('value').then(function(snap){
+      var val=snap.val();
+      if(!val)return Promise.reject();
+      var arr=Object.values(val).sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);});
+      return arr[0]||Promise.reject();
+    });
+  }
+  var backup=null;
+  fromLocal().catch(fromCloud).then(function(found){
+    backup=found;
+    if(!backup||!backup.data){toast('⚠️ No hay backup válido para restaurar');return;}
+    var fecha=(backup.createdAtISO||new Date(backup.createdAt||Date.now()).toISOString()).replace('T',' ').slice(0,16);
+    if(!confirm('¿Restaurar el último backup ('+fecha+')? Reemplazará tus datos actuales.'))return;
+    var pre=buildBackupPayload('pre-restore');
+    guardarBackupLocal(pre);
+    return db.ref('usuarios/'+currentUser+'/backups/'+pre.createdAt).set(pre).catch(function(){}).then(function(){
+      return aplicarBackupPayload(backup);
+    }).then(function(){
+      toast('✅ Backup restaurado correctamente');
+    });
+  }).catch(function(){
+    toast('⚠️ No se encontró ningún backup para restaurar');
+  });
+}
+function moverAPapelera(section,key,val){
+  if(!val)return Promise.reject();
+  var id=Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  var reg={section:section,key:key,deletedAt:Date.now(),user:currentUser,value:val};
+  guardarBackupLocal(buildBackupPayload('pre-delete-'+section));
+  return db.ref('usuarios/'+currentUser+'/papelera/'+id).set(reg);
 }
 
 /* ════════════════════════════════════════════
