@@ -490,6 +490,14 @@ function login(){
   }
 
   if(!n){toast('⚠️ Escribe tu nombre');return;}
+
+  // --- LISTA BLANCA DE ACCESOS --- SÓLO ELLOS PUEDEN ENTRAR ---
+  var usuariosPermitidos = ["AGUSTÍN", "OSCAR", "CHEMA", "IVAN", "GUSTAVO TERENTE", "BRAÑA"];
+  
+  if (!usuariosPermitidos.includes(n)) {
+    toast('⛔ Usuario no autorizado. Base de datos bloqueada para nuevos usuarios.');
+    return; // Sale de la función y no deja loguear ni crea la base de datos
+  }
   currentUser=n;
   localStorage.setItem('FTP_USER',n);
   document.getElementById('login-screen').style.display='none';
