@@ -650,6 +650,13 @@ var pendingUser='';
 var pendingKey='';
 
 function sanitizeKey(n){
+  n = n.trim().toUpperCase();
+
+  // Unificaciones Específicas (Alias)
+  if (n === "GUSTAVO TERENTE") n = "GUSTAVO";
+  if (n === "AGUSTÍN") n = "AGUSTIN";
+  if (n === "BRAÑA") n = "BRANA";
+
   return n
     .replace(/Ñ/g,'N').replace(/ñ/g,'N')
     .replace(/Á/g,'A').replace(/á/g,'A')
@@ -664,6 +671,14 @@ function sanitizeKey(n){
 function goStep2(){
   var n=document.getElementById('uName').value.trim().toUpperCase();
   if(!n){toast('⚠️ Escribe tu nombre');return;}
+
+  // Lista Restrictiva de Usuarios Autorizados
+  var allowedUsers = ["BRANA", "BRAÑA", "OSCAR", "PEDRO", "IVAN", "GUSTAVO", "GUSTAVO TERENTE", "CHEMA", "AGUSTIN", "AGUSTÍN"];
+  if (!allowedUsers.includes(n)) {
+    toast('⚠️ Usuario no autorizado');
+    return;
+  }
+
   pendingUser=n;
   pendingKey=sanitizeKey(n);
   pinBuffer='';
