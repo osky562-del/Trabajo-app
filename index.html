@@ -1567,14 +1567,21 @@ function analizarConClaude(texto){
       txt = data.content[0].text; // Fallback al antiguo formato de Anthropic
     }
     
-    // Limpiar posibles backticks
-    txt=txt.replace(/```json|```/g,'').trim();
+    // Groq a veces incluye texto antes o después del JSON. Extraemos solo lo que haya entre llaves { }
+    var match = txt.match(/\{[\s\S]*?\}/);
+    if(match){
+        txt = match[0];
+    } else {
+        txt = txt.replace(/```json|```/g,'').trim();
+    }
+    
     try{
       var parsed=JSON.parse(txt);
       vozDatosExtraidos=parsed;
       mostrarResultadoVoz(parsed);
     } catch(e){
-      document.getElementById('vozStatusTxt').textContent='No he podido entender los datos. Inténtalo de nuevo con más claridad.';
+      console.log("Error parseando respuesta de Groq:", txt);
+      document.getElementById('vozStatusTxt').textContent='Groq ha respondido pero no en el formato correcto. Inténtalo de nuevo.';
     }
   })
   .catch(function(e){
