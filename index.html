@@ -1559,6 +1559,9 @@ function analizarConClaude(texto){
   })
   .then(function(r){return r.json();})
   .then(function(data){
+    // DIAGNÓSTICO: ver exactamente qué devuelve el Worker
+    console.log("Respuesta completa del Worker:", JSON.stringify(data));
+
     // Adaptado para aceptar el formato de OpenAI/Groq que devuelve el worker
     var txt = '';
     if (data.choices && data.choices.length > 0 && data.choices[0].message) {
@@ -1568,7 +1571,7 @@ function analizarConClaude(texto){
     }
     
     // Groq a veces incluye texto antes o después del JSON. Extraemos solo lo que haya entre llaves { }
-    var match = txt.match(/\{[\s\S]*?\}/);
+    var match = txt.match(/\{[\s\S]*\}/);
     if(match){
         txt = match[0];
     } else {
@@ -1580,7 +1583,7 @@ function analizarConClaude(texto){
       vozDatosExtraidos=parsed;
       mostrarResultadoVoz(parsed);
     } catch(e){
-      console.log("Error parseando respuesta de Groq:", txt);
+      console.log("Error parseando respuesta de Groq. Texto recibido:", txt);
       document.getElementById('vozStatusTxt').textContent='Groq ha respondido pero no en el formato correcto. Inténtalo de nuevo.';
     }
   })
