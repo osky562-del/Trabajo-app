@@ -350,7 +350,7 @@ body.sz-xxl .flbl,.sz-xxl .tfield label{font-size:.78rem;}
 <script>
 firebase.initializeApp(firebaseConfig);
 var db=firebase.database();
-// workerUrl viene de config.js — añade: var workerUrl = "https://furgotrayler.TU_USUARIO.workers.dev";
+// workerUrl viene de config.js 
 </script>
 
 <!-- LOGIN -->
@@ -1543,8 +1543,8 @@ function analizarConClaude(texto){
   }
 
   // Comprobar que está configurado el Worker
-  if(typeof workerUrl==='undefined'||!workerUrl||workerUrl.indexOf('TU_WORKER')!==-1){
-    document.getElementById('vozStatusTxt').textContent='Falta configurar el Worker. Añade var workerUrl = "https://..." en config.js';
+  if(typeof workerUrl==='undefined'||!workerUrl){
+    document.getElementById('vozStatusTxt').textContent='Falta configurar el Worker workerUrl en config.js';
     document.getElementById('vozAnim').textContent='⚠️';
     return;
   }
@@ -1552,12 +1552,21 @@ function analizarConClaude(texto){
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
+      model: "llama3-8b-8192",
+      temperature: 0.1,
       messages:[{role:'user',content:prompt}]
     })
   })
   .then(function(r){return r.json();})
   .then(function(data){
-    var txt=data.content&&data.content[0]?data.content[0].text:'';
+    // Adaptado para aceptar el formato de OpenAI/Groq que devuelve el worker
+    var txt = '';
+    if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+      txt = data.choices[0].message.content;
+    } else if (data.content && data.content[0]) {
+      txt = data.content[0].text; // Fallback al antiguo formato de Anthropic
+    }
+    
     // Limpiar posibles backticks
     txt=txt.replace(/```json|```/g,'').trim();
     try{
@@ -1568,9 +1577,10 @@ function analizarConClaude(texto){
       document.getElementById('vozStatusTxt').textContent='No he podido entender los datos. Inténtalo de nuevo con más claridad.';
     }
   })
-  .catch(function(){
+  .catch(function(e){
+    console.error(e);
     // Si falla la API, intentar parseo manual básico
-    document.getElementById('vozStatusTxt').textContent='Sin conexión a la IA. Revisa tu conexión e inténtalo de nuevo.';
+    document.getElementById('vozStatusTxt').textContent='Error al conectar con el Worker. Revisa tu conexión URL del Cloudflare.';
   });
 }
 
