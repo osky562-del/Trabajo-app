@@ -350,6 +350,7 @@ body.sz-xxl .flbl,.sz-xxl .tfield label{font-size:.78rem;}
 <script>
 firebase.initializeApp(firebaseConfig);
 var db=firebase.database();
+// workerUrl viene de config.js — añade: var workerUrl = "https://furgotrayler.TU_USUARIO.workers.dev";
 </script>
 
 <!-- LOGIN -->
@@ -1541,12 +1542,16 @@ function analizarConClaude(texto){
       'Texto del usuario: "'+texto+'"';
   }
 
-  fetch('https://api.anthropic.com/v1/messages',{
+  // Comprobar que está configurado el Worker
+  if(typeof workerUrl==='undefined'||!workerUrl||workerUrl.indexOf('TU_WORKER')!==-1){
+    document.getElementById('vozStatusTxt').textContent='Falta configurar el Worker. Añade var workerUrl = "https://..." en config.js';
+    document.getElementById('vozAnim').textContent='⚠️';
+    return;
+  }
+  fetch(workerUrl,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      model:'claude-sonnet-4-20250514',
-      max_tokens:300,
       messages:[{role:'user',content:prompt}]
     })
   })
