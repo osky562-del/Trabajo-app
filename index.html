@@ -2585,11 +2585,13 @@
     function sanitizeKey(n) {
       n = n.trim().toUpperCase();
 
-      // Unificaciones Específicas (Alias)
-      if (n === "GUSTAVO") n = "GUSTAVO TERENTE"; // GUSTAVO TERENTE es la buena
-      if (n === "AGUSTIN") n = "AGUSTÍN"; // AGUSTÍN es la buena
-      if (n === "BRAÑA") n = "BRANA"; // BRANA es la buena
+      // 1. Unificaciones Específicas (Alias Prioritarios)
+      // Se devuelven los nombres canónicos exactos para coincidir con la base de datos existente.
+      if (n === "GUSTAVO" || n === "GUSTAVO TERENTE") return "GUSTAVO TERENTE";
+      if (n === "AGUSTIN" || n === "AGUSTÍN") return "AGUSTÍN";
+      if (n === "BRAÑA" || n === "BRANA") return "BRANA";
 
+      // 2. Sanitización General para otros usuarios
       return n
         .replace(/Ñ/g, 'N').replace(/ñ/g, 'N')
         .replace(/Á/g, 'A').replace(/á/g, 'A')
@@ -2614,18 +2616,17 @@
 
       pendingUser = n;
       pendingKey = sanitizeKey(n);
+      
+      document.getElementById('pinTitle').textContent = "HOLA " + n + ", INTRODUCE TU CLAVE";
       pinBuffer = '';
       updatePinDots();
-      // Comprobar si ya tiene PIN guardado en Firebase
-      db.ref('usuarios/' + pendingKey + '/pin').once('value', function (snap) {
-        var storedPin = snap.val();
-        if (storedPin) {
-          // Usuario ya registrado → pedir su clave
+
+      db.ref('usuarios/' + pendingKey + '/pin').once('value').then(function (snap) {
+        if (snap.exists()) {
           pinMode = 'check';
           document.getElementById('pinTitle').textContent = 'INTRODUCE TU CLAVE';
-          document.getElementById('pinHint').textContent = '';
+          document.getElementById('pinHint').textContent = 'Introduce tu clave de 4 dígitos para entrar';
         } else {
-          // Usuario nuevo → crear clave
           pinMode = 'set';
           document.getElementById('pinTitle').textContent = 'CREA TU CLAVE (4 dígitos)';
           document.getElementById('pinHint').textContent = 'Primera vez — elige una clave de 4 dígitos que solo tú sepas';
