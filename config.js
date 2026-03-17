@@ -9,4 +9,4 @@ const firebaseConfig = {
 };
 
 // URL de tu Cloudflare Worker configurado con el API de Groq
-var workerUrl = "https://furgotrayler.TU_USUARIO.workers.dev";
+var workerUrl = "https://dietasfurgo.osky562.workers.dev";
