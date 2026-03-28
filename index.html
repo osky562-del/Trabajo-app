@@ -2606,7 +2606,7 @@
       calcTaco();
     }
 
-    function calcTaco() {
+        function calcTaco() {
       var ini = document.getElementById('tIni').value;
       var fin = document.getElementById('tFin').value;
       var hcRaw = parseFloat(document.getElementById('tHC').value);
@@ -2636,24 +2636,90 @@
       // KM
       var kmRec = kf > ki ? kf - ki : 0;
 
-      // Mostrar resultados
-      sv('rJorn', jornMin > 0 ? hNum(jornH) : '—', jornH > 13 ? 'r' : jornH > 10 ? 'w' : 'b');
+      // Analizar descansos semanales
+      var turnos = [];
+      for (var k in diasT) turnos.push({ dia: k, d: diasT[k] });
+      // Omitimos el día actual del historial (se sobrescribe temporalmente si hay datos visuales)
+      turnos = turnos.filter(t => t.dia !== diaActual);
+      if (ini && fin) turnos.push({ dia: diaActual, d: { horaIni: ini, horaFin: fin, hCond: hc } });
+
+      var fechas = [];
+      turnos.forEach(t => {
+        if (!t.d.horaIni || !t.d.horaFin) return;
+        var start = new Date(t.dia + 'T' + t.d.horaIni + ':00');
+        if (isNaN(start.getTime())) return;
+        var a2 = tMin(t.d.horaIni);
+        var b2 = tMin(t.d.horaFin);
+        var m = b2 < a2 ? b2 + 1440 : b2;
+        var end = new Date(start.getTime() + (m - a2) * 60000);
+        fechas.push({ start: start, end: end, hc: t.d.hCond || 0});
+      });
+      fechas.sort((x,y) => x.start - y.start);
+
+      var debeHoras = 0;
+      var ultimDesc = "Desconocido";
+      for (var i = 1; i < fechas.length; i++) {
+        var prevEnd = fechas[i-1].end;
+        var currStart = fechas[i].start;
+        if (prevEnd > currStart) continue; // solapado, descartamos
+
+        var gapH = (currStart - prevEnd) / 3600000;
+        
+        if (gapH >= 24 && gapH < 45) {
+          ultimDesc = "Reducido (" + parseFloat(gapH.toFixed(1)) + "h)";
+          debeHoras += (45 - gapH); // Genera deuda
+        } else if (gapH >= 45) {
+          ultimDesc = "Normal (" + parseFloat(gapH.toFixed(1)) + "h)";
+        }
+        
+        // La deuda se compensa sumándola a MÍNIMO un descanso diario legal de 9h
+        if (debeHoras > 0 && gapH >= (9 + debeHoras)) {
+           debeHoras = 0; // deuda compensada
+        }
+      }
+
+      // Mostrar resultados numéricos
+      var maxJ = (descH >= 9 && descH < 11) ? 15 : 13;
+      var rJornCls = jornH > maxJ ? 'r' : (jornH > 13 ? 'w' : 'b');
+      
+      sv('rJorn', jornMin > 0 ? hNum(jornH) : '—', rJornCls);
       sv('rCond', hc > 0 ? hNum(hc) : '—', hc > 10 ? 'r' : hc > 9 ? 'w' : 'g');
       sv('rPausa', pausaMin > 0 ? pausaMin + 'min' : 'No nec.', '');
       sv('rOtro', otroH > 0 ? hNum(otroH) : '—', '');
       sv('rDesc', jornMin > 0 ? hNum(descH) : '—', descH < 9 ? 'r' : descH < 11 ? 'w' : 'b');
       sv('rKm', kmRec > 0 ? kmRec + ' km' : '—', kmRec > 0 ? 'g' : '');
 
-      // Alertas
+      // Alertas (ley de tacógrafo de España - CE 561/2006)
       var al = [];
-      if (hc > 10) al.push({ c: 'danger', i: '🚨', h: 'Conducción máxima superada', b: '' + hNum(hc) + ' conducidos. Máximo extendido: 10h (solo 2 veces/semana).' });
-      else if (hc > 9) al.push({ c: 'warn', i: '⚠️', h: 'Jornada extendida 10h', b: 'Estás usando una de las 2 jornadas extendidas semanales permitidas.' });
-      if (descH < 9 && jornMin > 0) al.push({ c: 'danger', i: '🛑', h: 'Descanso insuficiente', b: 'Solo ' + hNum(descH) + ' de descanso. Mínimo absoluto: 9h (reducido). Normal: 11h.' });
-      else if (descH < 11 && jornMin > 0) al.push({ c: 'warn', i: '⚠️', h: 'Descanso reducido', b: hNum(descH) + ' descanso. Lo normal es 11h. Máximo 3 veces/semana.' });
-      if (jornH > 13) al.push({ c: 'danger', i: '🚫', h: 'Jornada máxima superada', b: '' + hNum(jornH) + ' de jornada. El límite legal es 13h.' });
-      if (jornH > 0 && al.length === 0) al.push({ c: 'ok', i: '✅', h: 'Jornada dentro de los límites legales', b: '' + hNum(hc) + ' de conducción — ' + hNum(descH) + ' de descanso. Todo correcto.' });
+      
+      // Control de Conduccion
+      if (hc > 10) al.push({ c: 'danger', i: '🚨', h: 'Exceso de conducción', b: hNum(hc) + ' conducidos. Límite absoluto extendido: 10h (máx. 2/sem).' });
+      else if (hc > 9) al.push({ c: 'warn', i: '⚠️', h: 'Conducción extendida (10h)', b: 'Ojo: gastas una conducción de 10h permitida (máx. 2 veces por sem).' });
+      
+      // Control Diario
+      if (descH < 9 && jornMin > 0) al.push({ c: 'danger', i: '🛑', h: 'Descanso diario insuficiente', b: hNum(descH) + ' de descanso. Mínimo legal: 9h (reducido).' });
+      else if (descH >= 9 && descH < 11 && jornMin > 0) al.push({ c: 'warn', i: '⚠️', h: 'Descanso diario reducido', b: hNum(descH) + ' de descanso. Máximo 3 veces entre descansos semanales.' });
+
+      // Jornada (Disponibilidad / Amplitude)
+      if (jornH > maxJ && jornMin > 0) al.push({ c: 'danger', i: '🚫', h: 'Jornada excedida', b: hNum(jornH) + ' de trabajo continuado. Con el descanso de hoy (' + hNum(descH) + '), el máximo es ' + maxJ + 'h de disponibilidad.' });
+
+      // Control Semanal
+      if (ultimDesc !== 'Desconocido' && fechas.length > 0) {
+        var msg = "Último detectado: " + ultimDesc + ". ";
+        if (debeHoras > 0) {
+          al.push({ c: 'warn', i: '⏳', h: 'Descanso Semanal: DEUDA', b: msg + "Debes compensar <strong>" + hNum(debeHoras) + "</strong> en un solo bloque, sumado a un descanso mínimo de 9h." });
+        } else {
+          al.push({ c: 'ok', i: '💤', h: 'Descansos Semanales al día', b: msg + "Todo tu descanso semanal está compensado correctamente en base al reglamento." });
+        }
+      }
+
+      // Si todo bien todo el dia legal
+      if (jornH > 0 && al.length === (ultimDesc !== 'Desconocido' ? 1 : 0)) {
+         al.unshift({ c: 'ok', i: '✅', h: 'Día dentro de los límites legales', b: 'Tu jornada de hoy (' + hNum(jornH) + ') cumple el Reglamento 561/2006.' });
+      }
+
       document.getElementById('alertBox').innerHTML = al.map(function (a) {
-        return '<div class="alrt ' + a.c + '"><span style="font-size:.9rem;flex-shrink:0;margin-top:1px;">' + a.i + '</span><div><strong>' + a.h + '</strong>' + a.b + '</div></div>';
+        return '<div class="alrt ' + a.c + '"><span style="font-size:.9rem;flex-shrink:0;margin-top:1px;">' + a.i + '</span><div><strong>' + a.h + '</strong>' + (a.b ? '<br>' + a.b : '') + '</div></div>';
       }).join('');
     }
 
