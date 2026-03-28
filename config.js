@@ -7,6 +7,3 @@ const firebaseConfig = {
     messagingSenderId: "253909116712",
     appId: "1:253909116712:web:46981183adc70b7373121d"
 };
-
-// URL de tu Cloudflare Worker configurado con el API de Groq
-var workerUrl = "https://dietasfurgo.osky562.workers.dev";
