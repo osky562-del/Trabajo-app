@@ -2718,6 +2718,32 @@
          al.unshift({ c: 'ok', i: '✅', h: 'Día dentro de los límites legales', b: 'Tu jornada de hoy (' + hNum(jornH) + ') cumple el Reglamento 561/2006.' });
       }
 
+      // Próxima Disponibilidad
+      if (ini && fin) {
+        var aZ = tMin(ini), bZ = tMin(fin);
+        var finOffset = (bZ < aZ) ? bZ + 1440 : bZ;
+        // Obtenemos la fecha exacta del fin del turno (evitando problemas de zona horaria forzando el parse manual si es necesario, pero como usamos getTime() local está bien)
+        var arrDate = diaActual.split('-');
+        var baseDate = new Date(arrDate[0], arrDate[1] - 1, arrDate[2], 0, 0, 0); 
+        var endMs = baseDate.getTime() + finOffset * 60000;
+        
+        var d9 = new Date(endMs + 9 * 3600000);
+        var d11 = new Date(endMs + 11 * 3600000);
+        var d24 = new Date(endMs + 24 * 3600000);
+        var d45 = new Date(endMs + 45 * 3600000);
+        
+        var formatD = function(d) {
+          var ds = d.toLocaleDateString('es-ES', {weekday: 'short'});
+          var hs = d.getHours().toString().padStart(2, '0');
+          var ms = d.getMinutes().toString().padStart(2, '0');
+          return ds.charAt(0).toUpperCase() + ds.slice(1) + ' a las ' + hs + ':' + ms;
+        };
+        
+        var msgAvail = 'Diario: <strong>' + formatD(d11) + '</strong> (reducido: ' + formatD(d9) + ')<br>' + 
+                       'Semanal: <strong>' + formatD(d45) + '</strong> (reducido: ' + formatD(d24) + ')';
+        al.push({ c: 'ok', i: '🕒', h: 'Apto para reanudar marcha:', b: msgAvail });
+      }
+
       document.getElementById('alertBox').innerHTML = al.map(function (a) {
         return '<div class="alrt ' + a.c + '"><span style="font-size:.9rem;flex-shrink:0;margin-top:1px;">' + a.i + '</span><div><strong>' + a.h + '</strong>' + (a.b ? '<br>' + a.b : '') + '</div></div>';
       }).join('');
