@@ -1955,6 +1955,12 @@
     .pin-screen.active {
       display: block;
     }
+    /* --- FOTOS LOCALES --- */
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 10px; }
+    .photo-item { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--border2); background: var(--bg3); }
+    .photo-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+    .photo-del { position: absolute; top: 2px; right: 2px; background: rgba(255, 82, 82, 0.8); color: white; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
+    .camera-dot { background: var(--brand2); border-radius: 50%; width: 6px; height: 6px; display: inline-block; margin-left: 2px; margin-top: -10px; box-shadow: 0 0 5px var(--brand2); vertical-align: middle; }
   </style>
 </head>
 
@@ -2052,8 +2058,8 @@
           <div class="tfield"><label>Hora salida</label><input type="time" id="tFin" oninput="calcTaco()"></div>
         </div>
         <div class="g3">
-          <div class="tfield"><label>H. conducción</label><input type="number" id="tHC" placeholder="Ej: 7.5" step="0.5"
-              min="0" max="13" oninput="calcTaco()"></div>
+          <div class="tfield"><label>Cond. (HH:MM)</label><div style="display:flex; gap:5px;"><input type="number" id="tHCh" placeholder="HH" style="flex:1" min="0" max="15" oninput="calcTaco()">
+              <input type="number" id="tHCm" placeholder="MM" style="flex:1" min="0" max="59" oninput="calcTaco()"></div></div>
           <div class="tfield"><label>KM inicio</label><input type="number" id="tKI" placeholder="0" min="0"
               oninput="calcTaco()"></div>
           <div class="tfield"><label>KM final</label><input type="number" id="tKF" placeholder="0" min="0"
@@ -2068,6 +2074,16 @@
           <button class="sm-btn" style="color:var(--danger);border-color:rgba(255,82,82,.3);" onclick="borrarDia()"
             title="Borra este día de la nube definitivamente">🗑 Borrar día guardado</button>
         </div>
+      </div>
+
+      <!-- SECCIÓN FOTOS (LOCAL) -->
+      <div class="tcard">
+        <div class="tcard-title">📸 Fotos de la jornada (Local)</div>
+        <input type="file" id="fotoInput" accept="image/*" capture="camera" style="display:none" onchange="procesarFoto(this)">
+        <button class="btn-primary" style="background: linear-gradient(135deg, var(--cr), #0288d1); margin-bottom:10px;" onclick="document.getElementById('fotoInput').click()">
+          📷 HACER / AÑADIR FOTO
+        </button>
+        <div class="photo-grid" id="photoGrid"></div>
       </div>
 
       <!-- Resultados calculados -->
@@ -2599,11 +2615,16 @@
       var d = diasT[ds] || {};
       document.getElementById('tIni').value = d.horaIni || '';
       document.getElementById('tFin').value = d.horaFin || '';
-      document.getElementById('tHC').value = d.hCond || '';
+      var dec = parseFloat(d.hCond) || 0;
+      var hh = Math.floor(dec);
+      var mm = Math.round((dec - hh) * 60);
+      document.getElementById('tHCh').value = hh || '';
+      document.getElementById('tHCm').value = mm || '';
       document.getElementById('tKI').value = d.kmIni || '';
       document.getElementById('tKF').value = d.kmFin || '';
       document.getElementById('tObs').value = d.obs || '';
       calcTaco();
+      if(typeof cargarFotos === "function") cargarFotos(ds);
     }
 
         function calcTaco() {
@@ -2761,7 +2782,9 @@
     function guardarDia() {
       var ini = document.getElementById('tIni').value;
       var fin = document.getElementById('tFin').value;
-      var hc = parseFloat(document.getElementById('tHC').value) || 0;
+      var hch = parseInt(document.getElementById('tHCh').value) || 0;
+      var hcm = parseInt(document.getElementById('tHCm').value) || 0;
+      var hc = hch + (hcm / 60);
       var ki = parseInt(document.getElementById('tKI').value) || 0;
       var kf = parseInt(document.getElementById('tKF').value) || 0;
       var obs = document.getElementById('tObs').value;
@@ -2868,6 +2891,17 @@
         var top = el.querySelector('.fc-daygrid-day-top');
         if (top) { top.style.position = 'relative'; top.appendChild(dot); }
       }
+      if(typeof fdb !== "undefined" && fdb) {
+        var tx = fdb.transaction("fechas", "readonly");
+        var req = tx.objectStore("fechas").get(ds);
+        req.onsuccess = function(e) {
+          if(e.target.result) {
+            var dotF = document.createElement("span"); dotF.className = "camera-dot"; dotF.title = "📸 Fotos locales";
+            var top2 = el.querySelector(".fc-daygrid-day-top");
+            if(top2) { top2.style.position = "relative"; top2.appendChild(dotF); }
+          }
+        };
+      }
     }
     function showDayForm(f) {
       var form = document.getElementById('dayForm'); form.classList.add('open');
@@ -2915,7 +2949,7 @@
     }
     function limpiarForm() {
       // Solo limpia los campos del formulario, NO toca lo guardado en la nube
-      ['tIni', 'tFin', 'tHC', 'tKI', 'tKF', 'tObs'].forEach(function (id) {
+      ['tIni', 'tFin', 'tHCh', 'tHCm', 'tKI', 'tKF', 'tObs'].forEach(function (id) {
         document.getElementById(id).value = '';
       });
       calcTaco();
@@ -3249,6 +3283,118 @@
         }, 200);
       }
     })();
+    /* ════════════════════════════════════════════
+       FOTOS LOCALES (INDEXEDDB)
+    ════════════════════════════════════════════ */
+    var fdb;
+    var fdbReq = indexedDB.open("FurgoFotosDB", 1);
+    fdbReq.onupgradeneeded = function(e) {
+      fdb = e.target.result;
+      if (!fdb.objectStoreNames.contains("fotos")) {
+        fdb.createObjectStore("fotos", { keyPath: "id", autoIncrement: true });
+        fdb.createObjectStore("fechas", { keyPath: "fecha" }); // para puntos del calendario
+      }
+    };
+    fdbReq.onsuccess = function(e) { 
+      fdb = e.target.result; 
+      if(typeof diaActual !== "undefined" && diaActual) cargarFotos(diaActual); 
+    };
+    fdbReq.onerror = function(e) { console.error("Error IndexedDB", e); };
+
+    function procesarFoto(input) {
+      if(!input.files || !input.files[0]) return;
+      var f = input.files[0];
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var base64 = e.target.result;
+        guardarFotoDB(window.diaActual, base64);
+        input.value = ""; // reset
+      };
+      reader.readAsDataURL(f);
+    }
+
+    function guardarFotoDB(fecha, dataUrl) {
+      var tx = fdb.transaction(["fotos", "fechas"], "readwrite");
+      var fStore = tx.objectStore("fotos");
+      var dStore = tx.objectStore("fechas");
+      
+      fStore.add({ fecha: fecha, img: dataUrl, ts: Date.now() });
+      dStore.put({ fecha: fecha, hasFotos: true });
+      
+      tx.oncomplete = function() {
+        cargarFotos(fecha);
+        toast("📷 Foto guardada localmente");
+        if(typeof buildMesCalendar === "function") buildMesCalendar();
+      };
+    }
+
+    function cargarFotos(fecha) {
+      var grid = document.getElementById("photoGrid");
+      if(!grid) return;
+      grid.innerHTML = "";
+      if(!fdb) return;
+
+      var tx = fdb.transaction("fotos", "readonly");
+      var d = tx.objectStore("fotos");
+      var req = d.openCursor();
+      req.onsuccess = function(e) {
+        var cursor = e.target.result;
+        if(cursor) {
+          if(cursor.value.fecha === fecha) {
+            renderFotoItem(cursor.value.id, cursor.value.img);
+          }
+          cursor.continue();
+        }
+      };
+    }
+
+    function renderFotoItem(id, src) {
+      var d = document.createElement("div"); d.className = "photo-item";
+      var img = document.createElement("img"); img.src = src;
+      img.onclick = function() { verFotoGrande(src); };
+      var btn = document.createElement("button"); btn.className = "photo-del"; btn.innerHTML = "×";
+      btn.onclick = function() { borrarFotoDB(id, window.diaActual); };
+      d.appendChild(img); d.appendChild(btn);
+      document.getElementById("photoGrid").appendChild(d);
+    }
+
+    function borrarFotoDB(id, fecha) {
+      if(!confirm("¿Borrar esta foto del almacenamiento local?")) return;
+      var tx = fdb.transaction(["fotos", "fechas"], "readwrite");
+      var fStore = tx.objectStore("fotos");
+      fStore.delete(id);
+      
+      tx.oncomplete = function() {
+        cargarFotos(fecha);
+        // Comprobar si hay más
+        var tx2 = fdb.transaction("fotos", "readonly");
+        var count = 0;
+        var r2 = tx2.objectStore("fotos").openCursor();
+        r2.onsuccess = function(e2) {
+          var c2 = e2.target.result;
+          if(c2) {
+            if(c2.value.fecha === fecha) count++;
+            c2.continue();
+          } else {
+            if(count === 0) {
+              var tx3 = fdb.transaction("fechas", "readwrite");
+              tx3.objectStore("fechas").delete(fecha);
+              tx3.oncomplete = function() { if(typeof buildMesCalendar === "function") buildMesCalendar(); };
+            }
+          }
+        };
+      };
+    }
+
+    function verFotoGrande(src) {
+      var v = document.createElement("div");
+      v.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px;";
+      var i = document.createElement("img"); i.src=src; i.style.cssText = "max-width:100%;max-height:85%;object-fit:contain;border-radius:10px;";
+      var b = document.createElement("button"); b.className="btn-primary"; b.style.marginTop="20px"; b.innerHTML="CERRAR FOTO"; b.style.width="200px";
+      b.onclick=function(){ document.body.removeChild(v); };
+      v.appendChild(i); v.appendChild(b);
+      document.body.appendChild(v);
+    }
   </script>
 </body>
 
