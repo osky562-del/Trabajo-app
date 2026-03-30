@@ -1036,36 +1036,36 @@
     }
 
     .day-label {
-      font-size: .5rem;
+      font-size: .75rem;
       font-weight: 700;
-      letter-spacing: .5px;
+      letter-spacing: 1px;
       text-transform: uppercase;
       text-align: center;
-      padding: 1px 3px;
+      padding: 4px;
       border-radius: 3px;
-      margin-top: 1px;
+      margin-top: 0; position: absolute; top: 50%; left: 50%; width: 95%; transform: translate(-50%, -50%); z-index: 2; box-shadow: 0 4px 8px rgba(0,0,0,0.5); pointer-events: none;
       display: block;
       line-height: 1.4;
     }
 
     .dia-c .day-label {
-      color: #b8860b;
-      background: rgba(255, 215, 0, .15);
+      color: #000;
+      background: rgba(255, 215, 0, .85);
     }
 
     .noche-c .day-label {
-      color: #9c5fff;
-      background: rgba(156, 95, 255, .15);
+      color: #fff;
+      background: rgba(156, 95, 255, .85);
     }
 
     .fuera-c .day-label {
-      color: #c0392b;
-      background: rgba(255, 107, 107, .15);
+      color: #fff;
+      background: rgba(255, 107, 107, .85);
     }
 
     .vacas-c .day-label {
-      color: #27ae60;
-      background: rgba(46, 204, 113, .15);
+      color: #000;
+      background: rgba(46, 204, 113, .85);
     }
 
     .dot-obs {
@@ -1075,8 +1075,8 @@
       border-radius: 50%;
       display: inline-block;
       position: absolute;
-      top: 2px;
-      left: 2px;
+      top: 4px;
+      left: 4px;
       border: 1px solid rgba(255, 255, 255, .3);
       box-shadow: 0 0 4px rgba(227, 6, 19, .8);
       z-index: 10;
@@ -1960,7 +1960,7 @@
     .photo-item { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--border2); background: var(--bg3); }
     .photo-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
     .photo-del { position: absolute; top: 2px; right: 2px; background: rgba(255, 82, 82, 0.8); color: white; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
-    .camera-dot { background: var(--brand2); border-radius: 50%; width: 6px; height: 6px; display: inline-block; margin-left: 2px; margin-top: -10px; box-shadow: 0 0 5px var(--brand2); vertical-align: middle; }
+    .camera-dot { background: #00ff00; border-radius: 50%; width: 8px; height: 8px; position: absolute; left: 18px; top: 4px; box-shadow: 0 0 8px #00ff00; z-index: 5; pointer-events: none; }
   </style>
 </head>
 
