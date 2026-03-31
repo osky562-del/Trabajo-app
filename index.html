@@ -2078,12 +2078,22 @@
 
       <!-- SECCIÓN FOTOS (LOCAL) -->
       <div class="tcard">
-        <div class="tcard-title">📸 Fotos de la jornada (Local)</div>
-        <input type="file" id="fotoInput" accept="image/*" capture="camera" style="display:none" onchange="procesarFoto(this)">
-        <button class="btn-primary" style="background: linear-gradient(135deg, var(--cr), #0288d1); margin-bottom:10px;" onclick="document.getElementById('fotoInput').click()">
-          📷 HACER / AÑADIR FOTO
+        <button class="toggle-photos-btn" onclick="togglePhotosSec(this)">
+          <div class="tcard-title" style="margin-bottom:0">📸 Fotos de la jornada (Local)</div>
+          <span class="arrow">▼</span>
         </button>
-        <div class="photo-grid" id="photoGrid"></div>
+        <div id="photoGridContainer">
+          <input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="procesarFoto(this)">
+          <div style="display: flex; gap: 8px; margin: 12px 0;">
+            <button class="btn-primary" style="background: linear-gradient(135deg, var(--cr), #0288d1); flex: 1;" onclick="document.getElementById('fotoInput').setAttribute('capture', 'camera'); document.getElementById('fotoInput').click()">
+              📷 CÁMARA
+            </button>
+            <button class="btn-primary" style="background: linear-gradient(135deg, var(--cb), #f57c00); flex: 1;" onclick="document.getElementById('fotoInput').removeAttribute('capture'); document.getElementById('fotoInput').click()">
+              🖼️ GALERÍA
+            </button>
+          </div>
+          <div class="photo-grid" id="photoGrid"></div>
+        </div>
       </div>
 
       <!-- Resultados calculados -->
@@ -3386,16 +3396,59 @@
       };
     }
 
+    function togglePhotosSec(btn) {
+      btn.classList.toggle('open');
+      document.getElementById('photoGridContainer').classList.toggle('open');
+    }
+
+    var isZoomed = false;
     function verFotoGrande(src) {
-      var v = document.createElement("div");
-      v.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px;";
-      var i = document.createElement("img"); i.src=src; i.style.cssText = "max-width:100%;max-height:85%;object-fit:contain;border-radius:10px;";
-      var b = document.createElement("button"); b.className="btn-primary"; b.style.marginTop="20px"; b.innerHTML="CERRAR FOTO"; b.style.width="200px";
-      b.onclick=function(){ document.body.removeChild(v); };
-      v.appendChild(i); v.appendChild(b);
-      document.body.appendChild(v);
+      var v = document.getElementById("photo-viewer");
+      var i = document.getElementById("viewer-img");
+      i.src = src;
+      i.style.transform = "scale(1)";
+      isZoomed = false;
+      v.style.display = "flex";
+      document.body.style.overflow = "hidden"; // Evitar scroll de fondo
+    }
+
+    function toggleZoom(e) {
+      var i = document.getElementById("viewer-img");
+      if (isZoomed) {
+        i.style.transform = "scale(1)";
+        isZoomed = false;
+      } else {
+        i.style.transform = "scale(2.5)";
+        isZoomed = true;
+      }
+    }
+
+    function cerrarVisor() {
+      document.getElementById("photo-viewer").style.display = "none";
+      document.body.style.overflow = "";
     }
   </script>
+
+  <!-- VISOR DE FOTOS -->
+  <style>
+    #photo-viewer { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.97); z-index:10000; display:none; flex-direction:column; align-items:center; justify-content:center; overflow: auto; }
+    #photo-viewer img { max-width:100%; max-height:100%; object-fit:contain; transition: transform 0.3s ease; cursor: zoom-in; }
+    #photo-viewer .viewer-close { position:absolute; top:20px; right:20px; width:44px; height:44px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:white; font-size:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index: 10001; }
+    #photo-viewer .viewer-info { position:absolute; bottom:20px; color:rgba(255,255,255,0.6); font-size:12px; pointer-events:none; }
+    
+    .toggle-photos-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; padding: 0; cursor: pointer; color: inherit; }
+    .toggle-photos-btn .arrow { transition: transform 0.3s; color: var(--text2); }
+    .toggle-photos-btn.open .arrow { transform: rotate(180deg); }
+    #photoGridContainer { display: none; margin-top: 10px; }
+    #photoGridContainer.open { display: block; }
+  </style>
+
+  <div id="photo-viewer" onclick="cerrarVisor()">
+    <div class="viewer-close" onclick="cerrarVisor()">×</div>
+    <img id="viewer-img" src="" onclick="event.stopPropagation(); toggleZoom(event)">
+    <div class="viewer-info">Toca para ampliar · Pulsa fuera para cerrar</div>
+  </div>
 </body>
+
 
 </html>
