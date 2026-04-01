@@ -1465,6 +1465,76 @@
       margin-top: 3px
     }
 
+    /* STATS GRID */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .stat-card {
+      background: var(--bg3);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .stat-card .sc-label {
+      font-size: .58rem;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .stat-card .sc-value {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .stat-card .sc-sub {
+      font-size: .55rem;
+      color: var(--text2);
+    }
+    .stat-card.accent .sc-value { color: var(--cd); }
+    .stat-card.warn .sc-value { color: var(--cb); }
+    .stat-card.info .sc-value { color: var(--cr); }
+    .stat-card.purple .sc-value { color: var(--cw); }
+
+    /* BAR CHART 30 días */
+    .stats-barchart {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 90px;
+      padding: 4px 0;
+    }
+    .sbc-bar {
+      flex: 1;
+      min-width: 0;
+      border-radius: 3px 3px 0 0;
+      background: var(--cd);
+      position: relative;
+      transition: height .4s ease;
+      cursor: default;
+    }
+    .sbc-bar.over { background: var(--danger); }
+    .sbc-bar:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg1);
+      color: var(--text);
+      font-size: .55rem;
+      font-family: 'Share Tech Mono', monospace;
+      padding: 3px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      border: 1px solid var(--border);
+      z-index: 10;
+    }
+
     /* CONFIG */
     .ri {
       display: flex;
@@ -2089,12 +2159,22 @@
 
       <!-- SECCIÓN FOTOS (LOCAL) -->
       <div class="tcard">
-        <div class="tcard-title">📸 Fotos de la jornada (Local)</div>
-        <input type="file" id="fotoInput" accept="image/*" capture="camera" style="display:none" onchange="procesarFoto(this)">
-        <button class="btn-primary" style="background: linear-gradient(135deg, var(--cr), #0288d1); margin-bottom:10px;" onclick="document.getElementById('fotoInput').click()">
-        📷 HACER / AÑADIR FOTO
-        </button>
-        <div class="photo-grid" id="photoGrid"></div>
+        <details id="fotosDetails">
+          <summary style="cursor:pointer;font-weight:600;font-size:1.05em;padding:6px 0;user-select:none;">📸 Fotos de la jornada (Local) ▾</summary>
+          <div style="margin-top:10px;">
+            <input type="file" id="fotoInput" accept="image/*" capture="camera" style="display:none" onchange="procesarFoto(this)">
+            <input type="file" id="fotoGaleriaInput" accept="image/*" multiple style="display:none" onchange="procesarFotosMultiple(this)">
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+              <button class="btn-primary" style="background: linear-gradient(135deg, var(--cr), #0288d1);flex:1;min-width:140px;" onclick="document.getElementById('fotoInput').click()">
+              📷 HACER FOTO
+              </button>
+              <button class="btn-primary" style="background: linear-gradient(135deg, #7c4dff, #448aff);flex:1;min-width:140px;" onclick="document.getElementById('fotoGaleriaInput').click()">
+              🖼️ GALERÍA
+              </button>
+            </div>
+            <div class="photo-grid" id="photoGrid"></div>
+          </div>
+        </details>
       </div>
 
       <!-- Resultados calculados -->
@@ -2182,31 +2262,53 @@
 
     <!-- ══ TAB STATS ══ -->
     <div class="tab-content" id="tab-stats">
+
+      <!-- Resumen rápido del día -->
+      <div class="panel">
+        <div class="panel-hd">📊 Distribución de hoy</div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <svg width="100" height="100" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="38" fill="none" stroke="var(--bg4)" stroke-width="14" />
+            <circle id="da1" cx="50" cy="50" r="38" fill="none" stroke="var(--cd)" stroke-width="14" stroke-dasharray="0 239" transform="rotate(-90 50 50)" />
+            <circle id="da2" cx="50" cy="50" r="38" fill="none" stroke="var(--cr)" stroke-width="14" stroke-dasharray="0 239" transform="rotate(-90 50 50)" />
+            <circle id="da3" cx="50" cy="50" r="38" fill="none" stroke="var(--cb)" stroke-width="14" stroke-dasharray="0 239" transform="rotate(-90 50 50)" />
+            <circle id="da4" cx="50" cy="50" r="38" fill="none" stroke="var(--cw)" stroke-width="14" stroke-dasharray="0 239" transform="rotate(-90 50 50)" />
+            <text id="donutCenter" x="50" y="54" text-anchor="middle" fill="var(--text)" font-size="13" font-weight="700" font-family="Share Tech Mono, monospace">—</text>
+          </svg>
+          <div class="dl" style="flex:1;min-width:120px;">
+            <div class="dli"><div class="dld" style="background:var(--cd)"></div>Conducción<span class="dlv" id="dlD">—</span></div>
+            <div class="dli"><div class="dld" style="background:var(--cr)"></div>Descanso<span class="dlv" id="dlR">—</span></div>
+            <div class="dli"><div class="dld" style="background:var(--cb)"></div>Pausa<span class="dlv" id="dlB">—</span></div>
+            <div class="dli"><div class="dld" style="background:var(--cw)"></div>Otro trabajo<span class="dlv" id="dlW">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Límites legales -->
+      <div class="panel">
+        <div class="panel-hd">⚖️ Límites legales</div>
+        <div id="limBar"></div>
+      </div>
+
+      <!-- Semana tacógrafo -->
       <div class="panel">
         <div class="panel-hd">📅 Semana (tacógrafo)</div>
         <div class="wk-grid" id="wkGrid"></div>
       </div>
-      <div class="chart-grid">
-        <div class="cbox">
-          <div class="ctit">Distribución hoy</div>
-          <div class="dw">
-            <svg width="74" height="74" viewBox="0 0 74 74">
-              <circle cx="37" cy="37" r="29" fill="none" stroke="var(--bg4)" stroke-width="11" />
-              <circle id="da1" cx="37" cy="37" r="29" fill="none" stroke="var(--cd)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
-              <circle id="da2" cx="37" cy="37" r="29" fill="none" stroke="var(--cr)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
-              <circle id="da3" cx="37" cy="37" r="29" fill="none" stroke="var(--cb)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
-              <circle id="da4" cx="37" cy="37" r="29" fill="none" stroke="var(--cw)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
-            </svg>
-            <div class="dl">
-              <div class="dli"><div class="dld" style="background:var(--cd)"></div>Cond.<span class="dlv" id="dlD">—</span></div>
-              <div class="dli"><div class="dld" style="background:var(--cr)"></div>Desc.<span class="dlv" id="dlR">—</span></div>
-              <div class="dli"><div class="dld" style="background:var(--cb)"></div>Pausa<span class="dlv" id="dlB">—</span></div>
-              <div class="dli"><div class="dld" style="background:var(--cw)"></div>Otro<span class="dlv" id="dlW">—</span></div>
-            </div>
-          </div>
-        </div>
-        <div class="cbox"><div class="ctit">Límites legales %</div><div id="limBar"></div></div>
+
+      <!-- Estadísticas del mes -->
+      <div class="panel">
+        <div class="panel-hd">📈 Estadísticas del mes</div>
+        <div class="stats-grid" id="statsMonth"></div>
       </div>
+
+      <!-- Gráfico barras mensual -->
+      <div class="panel">
+        <div class="panel-hd">📊 Últimos 30 días — Conducción diaria</div>
+        <div class="stats-barchart" id="statsBarChart"></div>
+      </div>
+
+      <!-- Jornadas del periodo -->
       <div class="panel">
         <div class="panel-hd">🗓 Jornadas del periodo</div>
         <div class="dsts">
@@ -2217,6 +2319,13 @@
           <div class="dst eur"><span class="dst-i">💶</span><span class="dst-v" id="stEuros">0</span><span class="dst-l">DOM€</span></div>
         </div>
       </div>
+
+      <!-- Histórico global -->
+      <div class="panel">
+        <div class="panel-hd">🏆 Récords y acumulados</div>
+        <div class="stats-grid" id="statsGlobal"></div>
+      </div>
+
     </div>
 
     <!-- ══ TAB CONFIG ══ -->
@@ -2495,13 +2604,18 @@
     ════════════════════════════════════════════ */
     function buildWeekStrip() {
       var dn = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
-      var hoy = new Date().toLocaleDateString('en-CA');
+      var hoy = new Date(); hoy.setHours(12,0,0,0);
+      var hoyStr = hoy.toLocaleDateString('en-CA');
+      var inicio = getInicioSemTaco();
+      var dias = Math.round((hoy - inicio) / 86400000) + 1;
+      if (dias < 1) dias = 1;
+      if (dias > 7) dias = 7;
       var html = '';
-      for (var i = 6; i >= 0; i--) {
-        var dt = new Date(); dt.setDate(dt.getDate() - i);
+      for (var i = 0; i < dias; i++) {
+        var dt = new Date(inicio); dt.setDate(inicio.getDate() + i);
         var ds = dt.toLocaleDateString('en-CA');
         var d = diasT[ds];
-        var cls = 'wsd' + (ds === diaActual ? ' sel' : '') + (d ? ' saved' : '') + (ds === hoy ? ' today-d' : '');
+        var cls = 'wsd' + (ds === diaActual ? ' sel' : '') + (d ? ' saved' : '') + (ds === hoyStr ? ' today-d' : '');
         var hStr = d && d.hCond ? hNum(d.hCond) : '—';
         html += '<div class="' + cls + '" onclick="selDia(\'' + ds + '\')">'
           + '<div class="wsd-n">' + dn[dt.getDay()] + '</div>'
@@ -2718,13 +2832,36 @@
       l.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
       return l;
     }
+    /* Semana tacógrafo: busca hacia atrás el inicio de la semana en curso.
+       La semana empieza tras el último descanso semanal (>=24h sin actividad registrada).
+       Se buscan días consecutivos sin registro hacia atrás; al encontrar un hueco de
+       al menos 1 día completo sin datos (descanso semanal), el día siguiente es el inicio. */
+    function getInicioSemTaco() {
+      var hoy = new Date();
+      hoy.setHours(12, 0, 0, 0);
+      // Buscar hacia atrás hasta 14 días máx.
+      for (var i = 1; i <= 14; i++) {
+        var dt = new Date(hoy); dt.setDate(hoy.getDate() - i);
+        var ds = dt.toLocaleDateString('en-CA');
+        var d = diasT[ds];
+        // Un día sin registro = descanso. La semana en curso empieza el día siguiente.
+        if (!d || (!d.hCond && !d.jornMin)) {
+          var inicio = new Date(dt); inicio.setDate(dt.getDate() + 1);
+          return inicio;
+        }
+      }
+      // Si no se encontró descanso en 14 días, usar hace 6 días como fallback
+      var fb = new Date(hoy); fb.setDate(hoy.getDate() - 6);
+      return fb;
+    }
     function updSemana() {
       var hoy = new Date();
-      var lunes = getLunes();
+      var inicio = getInicioSemTaco();
       var semH = 0, semK = 0, semD = 0, qH = 0;
-      // Semana actual (lun-hoy)
-      for (var i = 0; i < 7; i++) {
-        var dt = new Date(lunes); dt.setDate(lunes.getDate() + i);
+      // Semana tacógrafo en curso (desde último descanso semanal)
+      var diff = Math.round((hoy - inicio) / 86400000);
+      for (var i = 0; i <= diff; i++) {
+        var dt = new Date(inicio); dt.setDate(inicio.getDate() + i);
         if (dt > hoy) break;
         var d = diasT[dt.toLocaleDateString('en-CA')];
         if (d) { semH += d.hCond || 0; semK += d.kmRec || 0; semD++; }
@@ -2767,7 +2904,7 @@
         initialView: 'dayGridMonth', locale: 'es', firstDay: 1, height: 'auto',
         headerToolbar: { left: 'prev,next', center: 'title', right: '' },
         dateClick: function (i) { currF = i.dateStr; showDayForm(i.dateStr); },
-        datesSet: updDietas,
+        datesSet: function() { updDietas(); setTimeout(repintarCal, 50); },
         dayCellDidMount: function (info) { pintarCelda(info.el, info.date.toLocaleDateString('en-CA')); },
         eventDidMount: function (info) { var el = info.el.closest('.fc-daygrid-day'); if (el) pintarCelda(el, info.event.startStr); }
       });
@@ -2978,13 +3115,13 @@
     /* ════════════════════════════════════════════
        STATS TAB
     ════════════════════════════════════════════ */
-    function updStats() { updDonut(); updLimBar(); updWkGrid(); updDietas(); }
+    function updStats() { updDonut(); updLimBar(); updWkGrid(); updDietas(); updStatsMonth(); updStatsBarChart(); updStatsGlobal(); }
     function updDonut() {
       var ds = new Date().toLocaleDateString('en-CA');
       var d = diasT[ds] || {};
       var hc = d.hCond || 0, jH = d.jornMin ? d.jornMin / 60 : 0;
       var pH = hc > 4.5 ? 0.75 : 0, oH = Math.max(0, jH - hc - pH), dH = Math.max(0, 24 - jH);
-      var tot = hc + pH + oH + dH || 1, c = 2 * Math.PI * 29, off = 0;
+      var tot = hc + pH + oH + dH || 1, c = 2 * Math.PI * 38, off = 0;
       [[hc, 'da1'], [dH, 'da2'], [pH, 'da3'], [oH, 'da4']].forEach(function (x) {
         var dash = (x[0] / tot) * c, el = document.getElementById(x[1]);
         el.setAttribute('stroke-dasharray', dash + ' ' + c); el.setAttribute('stroke-dashoffset', -off); off += dash;
@@ -2993,6 +3130,73 @@
       document.getElementById('dlR').textContent = hNum(dH);
       document.getElementById('dlB').textContent = hNum(pH);
       document.getElementById('dlW').textContent = hNum(oH);
+      document.getElementById('donutCenter').textContent = jH > 0 ? hNum(jH) : '—';
+    }
+    function updStatsMonth() {
+      var hoy = new Date(), y = hoy.getFullYear(), m = hoy.getMonth();
+      var totalH = 0, totalK = 0, totalJ = 0, dias = 0, maxH = 0, maxJ = 0, maxKday = 0;
+      for (var k in diasT) {
+        var dt = new Date(k + 'T12:00:00');
+        if (dt.getFullYear() === y && dt.getMonth() === m) {
+          var e = diasT[k];
+          var hc = e.hCond || 0, jm = e.jornMin || 0, km = e.kmRec || 0;
+          totalH += hc; totalK += km; totalJ += jm; dias++;
+          if (hc > maxH) maxH = hc;
+          if (jm > maxJ) maxJ = jm;
+          if (km > maxKday) maxKday = km;
+        }
+      }
+      var avgH = dias > 0 ? totalH / dias : 0;
+      var avgJ = dias > 0 ? (totalJ / dias / 60) : 0;
+      var html = '';
+      html += '<div class="stat-card accent"><div class="sc-label">Horas conducidas</div><div class="sc-value">' + hNum(totalH) + '</div><div class="sc-sub">en ' + dias + ' días registrados</div></div>';
+      html += '<div class="stat-card info"><div class="sc-label">KM recorridos</div><div class="sc-value">' + totalK.toLocaleString() + '</div><div class="sc-sub">este mes</div></div>';
+      html += '<div class="stat-card"><div class="sc-label">Media conducción/día</div><div class="sc-value">' + hNum(avgH) + '</div><div class="sc-sub">de ' + dias + ' días</div></div>';
+      html += '<div class="stat-card"><div class="sc-label">Media jornada/día</div><div class="sc-value">' + hNum(avgJ) + '</div><div class="sc-sub">de ' + dias + ' días</div></div>';
+      html += '<div class="stat-card warn"><div class="sc-label">Máx. conducción 1 día</div><div class="sc-value">' + hNum(maxH) + '</div><div class="sc-sub">récord del mes</div></div>';
+      html += '<div class="stat-card purple"><div class="sc-label">Máx. jornada 1 día</div><div class="sc-value">' + hNum(maxJ / 60) + '</div><div class="sc-sub">récord del mes</div></div>';
+      document.getElementById('statsMonth').innerHTML = html;
+    }
+    function updStatsBarChart() {
+      var html = '', maxV = 9;
+      for (var i = 29; i >= 0; i--) {
+        var dt = new Date(); dt.setDate(dt.getDate() - i);
+        var ds = dt.toLocaleDateString('en-CA');
+        var d = diasT[ds] || {};
+        var hc = d.hCond || 0;
+        if (hc > maxV) maxV = hc;
+      }
+      for (var j = 29; j >= 0; j--) {
+        var dt2 = new Date(); dt2.setDate(dt2.getDate() - j);
+        var ds2 = dt2.toLocaleDateString('en-CA');
+        var d2 = diasT[ds2] || {};
+        var hc2 = d2.hCond || 0;
+        var pct = maxV > 0 ? Math.max(hc2 > 0 ? 3 : 0, (hc2 / maxV) * 100) : 0;
+        var over = hc2 > 9 ? ' over' : '';
+        var tip = ds2.slice(5) + ': ' + hNum(hc2);
+        html += '<div class="sbc-bar' + over + '" style="height:' + pct + '%" data-tip="' + tip + '"></div>';
+      }
+      document.getElementById('statsBarChart').innerHTML = html;
+    }
+    function updStatsGlobal() {
+      var totalH = 0, totalK = 0, totalDias = 0, maxH = 0, maxK = 0, maxJorn = 0, fechaMax = '';
+      for (var k in diasT) {
+        var e = diasT[k];
+        var hc = e.hCond || 0, km = e.kmRec || 0, jm = e.jornMin || 0;
+        totalH += hc; totalK += km; totalDias++;
+        if (hc > maxH) { maxH = hc; fechaMax = k; }
+        if (km > maxK) maxK = km;
+        if (jm > maxJorn) maxJorn = jm;
+      }
+      var totalJornadas = datos.length;
+      var html = '';
+      html += '<div class="stat-card accent"><div class="sc-label">Total horas conducidas</div><div class="sc-value">' + hNum(totalH) + '</div><div class="sc-sub">histórico completo</div></div>';
+      html += '<div class="stat-card info"><div class="sc-label">Total KM</div><div class="sc-value">' + totalK.toLocaleString() + ' km</div><div class="sc-sub">' + totalDias + ' días con tacógrafo</div></div>';
+      html += '<div class="stat-card warn"><div class="sc-label">Récord conducción</div><div class="sc-value">' + hNum(maxH) + '</div><div class="sc-sub">' + (fechaMax ? fechaMax.split('-').reverse().join('/') : '—') + '</div></div>';
+      html += '<div class="stat-card purple"><div class="sc-label">Récord jornada</div><div class="sc-value">' + hNum(maxJorn / 60) + '</div><div class="sc-sub">jornada más larga</div></div>';
+      html += '<div class="stat-card"><div class="sc-label">Récord KM en 1 día</div><div class="sc-value">' + maxK.toLocaleString() + ' km</div><div class="sc-sub">distancia máxima</div></div>';
+      html += '<div class="stat-card"><div class="sc-label">Total jornadas</div><div class="sc-value">' + totalJornadas + '</div><div class="sc-sub">registradas en calendario</div></div>';
+      document.getElementById('statsGlobal').innerHTML = html;
     }
     function updLimBar() {
       var ds = new Date().toLocaleDateString('en-CA');
@@ -3007,18 +3211,24 @@
     }
     function updWkGrid() {
       var dn = ['D', 'L', 'M', 'X', 'J', 'V', 'S'], html = '';
-      for (var i = 6; i >= 0; i--) {
-        var dt = new Date(); dt.setDate(dt.getDate() - i);
+      var inicio = getInicioSemTaco();
+      var hoy = new Date(); hoy.setHours(12,0,0,0);
+      var dias = Math.round((hoy - inicio) / 86400000) + 1;
+      if (dias < 1) dias = 1;
+      if (dias > 7) dias = 7;
+      for (var i = 0; i < dias; i++) {
+        var dt = new Date(inicio); dt.setDate(inicio.getDate() + i);
         var d = diasT[dt.toLocaleDateString('en-CA')] || {};
         var hc = d.hCond || 0, jH = d.jornMin ? d.jornMin / 60 : 0, pH = hc > 4.5 ? 0.75 : 0, oH = Math.max(0, jH - hc - pH), mx = 13;
         function mkS(v, c) { return v > 0 ? '<div class="wds" style="height:' + Math.round(v / mx * 40) + 'px;background:' + c + '"></div>' : ''; }
-        html += '<div class="wday"><div class="wdn">' + dn[dt.getDay()] + '</div><div class="wdbs">' + mkS(oH, 'var(--cw)') + mkS(pH, 'var(--cb)') + mkS(hc, 'var(--cd)') + '</div><div class="wdt">' + (jH > 0 ? hNum(jH) : '-') + '</div></div>';
+        html += '<div class="wday"><div class="wdn">' + dn[dt.getDay()] + ' ' + dt.getDate() + '</div><div class="wdbs">' + mkS(oH, 'var(--cw)') + mkS(pH, 'var(--cb)') + mkS(hc, 'var(--cd)') + '</div><div class="wdt">' + (jH > 0 ? hNum(jH) : '-') + '</div></div>';
       }
       document.getElementById('wkGrid').innerHTML = html;
     }
     function getSemH() {
-      var hoy = new Date(), l = getLunes(), total = 0;
-      for (var i = 0; i < 7; i++) { var dt = new Date(l); dt.setDate(l.getDate() + i); if (dt > hoy) break; var d = diasT[dt.toLocaleDateString('en-CA')]; if (d) total += d.hCond || 0; }
+      var hoy = new Date(), inicio = getInicioSemTaco(), total = 0;
+      var diff = Math.round((hoy - inicio) / 86400000);
+      for (var i = 0; i <= diff; i++) { var dt = new Date(inicio); dt.setDate(inicio.getDate() + i); if (dt > hoy) break; var d = diasT[dt.toLocaleDateString('en-CA')]; if (d) total += d.hCond || 0; }
       return total;
     }
 
@@ -3219,6 +3429,18 @@
         input.value = ""; // reset
       };
       reader.readAsDataURL(f);
+    }
+
+    function procesarFotosMultiple(input) {
+      if(!input.files || !input.files.length) return;
+      for(var i = 0; i < input.files.length; i++) {
+        (function(file) {
+          var reader = new FileReader();
+          reader.onload = function(e) { guardarFotoDB(window.diaActual, e.target.result); };
+          reader.readAsDataURL(file);
+        })(input.files[i]);
+      }
+      input.value = "";
     }
 
     function guardarFotoDB(fecha, dataUrl) {
