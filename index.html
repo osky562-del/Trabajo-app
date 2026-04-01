@@ -1964,6 +1964,9 @@
   </style>
 </head>
 
+  </style>
+</head>
+
 <body>
   <script src="config.js"></script>
   <script>
@@ -1972,8 +1975,11 @@
 
   <!-- LOGIN -->
   <div id="login-screen">
-    <div class="login-brand"><span class="ft">FURGO</span><span class="tr">TRAYLER</span><span class="sub">TACÓGRAFO ·
-        JORNADAS · NUBE</span></div>
+    <div class="login-brand">
+      <div style="line-height:1;"><span class="ft">FURGO</span><span class="tr">TRAYLER</span></div>
+      <div style="font-size: 0.85rem; color: var(--brand2); letter-spacing: 8px; margin-top: 5px; font-weight: bold;">ASTORGA</div>
+      <span class="sub">TACÓGRAFO · JORNADAS · NUBE</span>
+    </div>
     <div class="login-deco">
       <div class="ld"><span class="ld-i">🚛</span>TACÓ</div>
       <div class="ld"><span class="ld-i">📅</span>JORNADAS</div>
@@ -2015,12 +2021,17 @@
         <div class="pin-hint" id="pinHint"></div>
       </div>
     </div>
+    <div style="margin-top: 20px; font-size: 0.65rem; color: var(--text2); font-family: 'Share Tech Mono', monospace; opacity: 0.6;">by OSKY</div>
   </div>
 
   <!-- APP -->
   <div id="app">
     <header>
-      <div class="h-brand"><span class="ft">FURGO</span><span class="tr">TRAYLER</span><span class="pro">PRO</span>
+      <div class="h-brand" style="display: flex; flex-direction: column; align-items: flex-start; gap: 0;">
+        <div style="display: flex; align-items: center; gap: 2px;">
+          <span class="ft">FURGO</span><span class="tr">TRAYLER</span><span class="pro">PRO</span>
+        </div>
+        <div style="font-size: 0.55rem; color: var(--brand2); letter-spacing: 3px; font-family: 'Share Tech Mono', monospace; margin-top: -2px;">ASTORGA</div>
       </div>
       <div class="h-right">
         <div class="h-clk">
@@ -2078,50 +2089,22 @@
 
       <!-- SECCIÓN FOTOS (LOCAL) -->
       <div class="tcard">
-        <button class="toggle-photos-btn" onclick="togglePhotosSec(this)">
-          <div class="tcard-title" style="margin-bottom:0">📸 Fotos de la jornada (Local)</div>
-          <span class="arrow">▼</span>
+        <div class="tcard-title">📸 Fotos de la jornada (Local)</div>
+        <input type="file" id="fotoInput" accept="image/*" capture="camera" style="display:none" onchange="procesarFoto(this)">
+        <button class="btn-primary" style="background: linear-gradient(135deg, var(--cr), #0288d1); margin-bottom:10px;" onclick="document.getElementById('fotoInput').click()">
+        📷 HACER / AÑADIR FOTO
         </button>
-        <div id="photoGridContainer">
-          <input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="procesarFoto(this)">
-          <div style="display: flex; gap: 8px; margin: 12px 0;">
-            <button class="btn-primary" style="background: linear-gradient(135deg, var(--cr), #0288d1); flex: 1;" onclick="document.getElementById('fotoInput').setAttribute('capture', 'camera'); document.getElementById('fotoInput').click()">
-              📷 CÁMARA
-            </button>
-            <button class="btn-primary" style="background: linear-gradient(135deg, var(--cb), #f57c00); flex: 1;" onclick="document.getElementById('fotoInput').removeAttribute('capture'); document.getElementById('fotoInput').click()">
-              🖼️ GALERÍA
-            </button>
-          </div>
-          <div class="photo-grid" id="photoGrid"></div>
-        </div>
+        <div class="photo-grid" id="photoGrid"></div>
       </div>
 
       <!-- Resultados calculados -->
       <div class="res-grid" id="resGrid">
-        <div class="res-card b">
-          <div class="rc-lbl">Jornada total</div>
-          <div class="rc-val b" id="rJorn">—</div>
-        </div>
-        <div class="res-card g">
-          <div class="rc-lbl">Conducción</div>
-          <div class="rc-val g" id="rCond">—</div>
-        </div>
-        <div class="res-card">
-          <div class="rc-lbl">Pausa reglam.</div>
-          <div class="rc-val" id="rPausa">—</div>
-        </div>
-        <div class="res-card">
-          <div class="rc-lbl">Otro trabajo</div>
-          <div class="rc-val" id="rOtro">—</div>
-        </div>
-        <div class="res-card b">
-          <div class="rc-lbl">Descanso diario</div>
-          <div class="rc-val b" id="rDesc">—</div>
-        </div>
-        <div class="res-card g">
-          <div class="rc-lbl">KM recorridos</div>
-          <div class="rc-val g" id="rKm">—</div>
-        </div>
+        <div class="res-card b"><div class="rc-lbl">Jornada total</div><div class="rc-val b" id="rJorn">—</div></div>
+        <div class="res-card g"><div class="rc-lbl">Conducción</div><div class="rc-val g" id="rCond">—</div></div>
+        <div class="res-card"><div class="rc-lbl">Pausa reglam.</div><div class="rc-val" id="rPausa">—</div></div>
+        <div class="res-card"><div class="rc-lbl">Otro trabajo</div><div class="rc-val" id="rOtro">—</div></div>
+        <div class="res-card b"><div class="rc-lbl">Descanso diario</div><div class="rc-val b" id="rDesc">—</div></div>
+        <div class="res-card g"><div class="rc-lbl">KM recorridos</div><div class="rc-val g" id="rKm">—</div></div>
       </div>
 
       <!-- Alertas -->
@@ -2131,32 +2114,13 @@
       <div class="tcard">
         <div class="tcard-title">📊 Semana actual</div>
         <div class="pb-group">
-          <div>
-            <div class="pb-head"><span>Conducción semanal</span><span id="pbSLbl">0h / 56h</span></div>
-            <div class="pb-track">
-              <div class="pb-fill l0" id="pbS" style="width:0%"></div>
-            </div>
-          </div>
-          <div>
-            <div class="pb-head"><span>Conducción quincenal</span><span id="pbQLbl">0h / 90h</span></div>
-            <div class="pb-track">
-              <div class="pb-fill bl" id="pbQ" style="width:0%"></div>
-            </div>
-          </div>
+          <div><div class="pb-head"><span>Conducción semanal</span><span id="pbSLbl">0h / 56h</span></div><div class="pb-track"><div class="pb-fill l0" id="pbS" style="width:0%"></div></div></div>
+          <div><div class="pb-head"><span>Conducción quincenal</span><span id="pbQLbl">0h / 90h</span></div><div class="pb-track"><div class="pb-fill bl" id="pbQ" style="width:0%"></div></div></div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;">
-          <div class="res-card g">
-            <div class="rc-lbl">H. conducción</div>
-            <div class="rc-val g" id="rSH">—</div>
-          </div>
-          <div class="res-card g">
-            <div class="rc-lbl">KM semana</div>
-            <div class="rc-val g" id="rSK">—</div>
-          </div>
-          <div class="res-card">
-            <div class="rc-lbl">Días trab.</div>
-            <div class="rc-val" id="rSD">—</div>
-          </div>
+          <div class="res-card g"><div class="rc-lbl">H. conducción</div><div class="rc-val g" id="rSH">—</div></div>
+          <div class="res-card g"><div class="rc-lbl">KM semana</div><div class="rc-val g" id="rSK">—</div></div>
+          <div class="res-card"><div class="rc-lbl">Días trab.</div><div class="rc-val" id="rSD">—</div></div>
         </div>
       </div>
 
@@ -2164,25 +2128,13 @@
       <div class="tcard">
         <div class="tcard-title">📅 Mes actual</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;">
-          <div class="res-card g">
-            <div class="rc-lbl">H. conducción</div>
-            <div class="rc-val g" id="rMH">—</div>
-          </div>
-          <div class="res-card g">
-            <div class="rc-lbl">KM mes</div>
-            <div class="rc-val g" id="rMK">—</div>
-          </div>
-          <div class="res-card">
-            <div class="rc-lbl">Días trab.</div>
-            <div class="rc-val" id="rMD">—</div>
-          </div>
+          <div class="res-card g"><div class="rc-lbl">H. conducción</div><div class="rc-val g" id="rMH">—</div></div>
+          <div class="res-card g"><div class="rc-lbl">KM mes</div><div class="rc-val g" id="rMK">—</div></div>
+          <div class="res-card"><div class="rc-lbl">Días trab.</div><div class="rc-val" id="rMD">—</div></div>
         </div>
       </div>
 
-      <div class="sm-row">
-        <button class="sm-btn" onclick="xCSV()">📥 CSV tacógrafo</button>
-        <button class="sm-btn" onclick="xPDF()">📄 PDF tacógrafo</button>
-      </div>
+      <div class="sm-row"><button class="sm-btn" onclick="xCSV()">📥 CSV tacógrafo</button><button class="sm-btn" onclick="xPDF()">📄 PDF tacógrafo</button></div>
     </div>
 
     <!-- ══ TAB JORNADAS ══ -->
@@ -2190,16 +2142,11 @@
       <div class="dpl">
         <div class="prd" id="prdLbl">Periodo: —</div>
         <div class="dsts">
-          <div class="dst"><span class="dst-i">☀️</span><span class="dst-v" id="cDia">0</span><span
-              class="dst-l">DÍA</span></div>
-          <div class="dst"><span class="dst-i">🌙</span><span class="dst-v" id="cNoche">0</span><span
-              class="dst-l">NOCHE</span></div>
-          <div class="dst"><span class="dst-i">🏨</span><span class="dst-v" id="cFuera">0</span><span
-              class="dst-l">FUERA</span></div>
-          <div class="dst"><span class="dst-i">🌴</span><span class="dst-v" id="cVacas">0</span><span
-              class="dst-l">VACAS</span></div>
-          <div class="dst eur"><span class="dst-i">💶</span><span class="dst-v" id="cEuros">0</span><span
-              class="dst-l">EUROS</span></div>
+          <div class="dst"><span class="dst-i">☀️</span><span class="dst-v" id="cDia">0</span><span class="dst-l">DÍA</span></div>
+          <div class="dst"><span class="dst-i">🌙</span><span class="dst-v" id="cNoche">0</span><span class="dst-l">NOCHE</span></div>
+          <div class="dst"><span class="dst-i">🏨</span><span class="dst-v" id="cFuera">0</span><span class="dst-l">FUERA</span></div>
+          <div class="dst"><span class="dst-i">🌴</span><span class="dst-v" id="cVacas">0</span><span class="dst-l">VACAS</span></div>
+          <div class="dst eur"><span class="dst-i">💶</span><span class="dst-v" id="cEuros">0</span><span class="dst-l">EUROS</span></div>
         </div>
       </div>
       <div id="calendar"></div>
@@ -2219,9 +2166,7 @@
           <div><label class="flbl">R1</label><input type="text" id="fR1"></div>
           <div><label class="flbl">R2</label><input type="text" id="fR2"></div>
         </div>
-
-        <div class="fgrp"><label class="flbl">Observaciones</label><textarea id="fObs" rows="2"
-            placeholder="Notas..."></textarea></div>
+        <div class="fgrp"><label class="flbl">Observaciones</label><textarea id="fObs" rows="2" placeholder="Notas..."></textarea></div>
         <button class="btn-primary" onclick="guardarJ()">☁️ GUARDAR EN LA NUBE</button>
       </div>
     </div>
@@ -2232,9 +2177,7 @@
         <button class="sm-btn" onclick="xHistCSV()">📥 CSV jornadas</button>
         <button class="sm-btn" onclick="xHistPDF()">📄 PDF jornadas</button>
       </div>
-      <div id="histLista">
-        <div class="empty-msg">Sin registros</div>
-      </div>
+      <div id="histLista"><div class="empty-msg">Sin registros</div></div>
     </div>
 
     <!-- ══ TAB STATS ══ -->
@@ -2249,49 +2192,29 @@
           <div class="dw">
             <svg width="74" height="74" viewBox="0 0 74 74">
               <circle cx="37" cy="37" r="29" fill="none" stroke="var(--bg4)" stroke-width="11" />
-              <circle id="da1" cx="37" cy="37" r="29" fill="none" stroke="var(--cd)" stroke-width="11"
-                stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
-              <circle id="da2" cx="37" cy="37" r="29" fill="none" stroke="var(--cr)" stroke-width="11"
-                stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
-              <circle id="da3" cx="37" cy="37" r="29" fill="none" stroke="var(--cb)" stroke-width="11"
-                stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
-              <circle id="da4" cx="37" cy="37" r="29" fill="none" stroke="var(--cw)" stroke-width="11"
-                stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
+              <circle id="da1" cx="37" cy="37" r="29" fill="none" stroke="var(--cd)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
+              <circle id="da2" cx="37" cy="37" r="29" fill="none" stroke="var(--cr)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
+              <circle id="da3" cx="37" cy="37" r="29" fill="none" stroke="var(--cb)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
+              <circle id="da4" cx="37" cy="37" r="29" fill="none" stroke="var(--cw)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
             </svg>
             <div class="dl">
-              <div class="dli">
-                <div class="dld" style="background:var(--cd)"></div>Cond.<span class="dlv" id="dlD">—</span>
-              </div>
-              <div class="dli">
-                <div class="dld" style="background:var(--cr)"></div>Desc.<span class="dlv" id="dlR">—</span>
-              </div>
-              <div class="dli">
-                <div class="dld" style="background:var(--cb)"></div>Pausa<span class="dlv" id="dlB">—</span>
-              </div>
-              <div class="dli">
-                <div class="dld" style="background:var(--cw)"></div>Otro<span class="dlv" id="dlW">—</span>
-              </div>
+              <div class="dli"><div class="dld" style="background:var(--cd)"></div>Cond.<span class="dlv" id="dlD">—</span></div>
+              <div class="dli"><div class="dld" style="background:var(--cr)"></div>Desc.<span class="dlv" id="dlR">—</span></div>
+              <div class="dli"><div class="dld" style="background:var(--cb)"></div>Pausa<span class="dlv" id="dlB">—</span></div>
+              <div class="dli"><div class="dld" style="background:var(--cw)"></div>Otro<span class="dlv" id="dlW">—</span></div>
             </div>
           </div>
         </div>
-        <div class="cbox">
-          <div class="ctit">Límites legales %</div>
-          <div id="limBar"></div>
-        </div>
+        <div class="cbox"><div class="ctit">Límites legales %</div><div id="limBar"></div></div>
       </div>
       <div class="panel">
         <div class="panel-hd">🗓 Jornadas del periodo</div>
         <div class="dsts">
-          <div class="dst"><span class="dst-i">☀️</span><span class="dst-v" id="stDia">0</span><span
-              class="dst-l">DÍA</span></div>
-          <div class="dst"><span class="dst-i">🌙</span><span class="dst-v" id="stNoche">0</span><span
-              class="dst-l">NOCHE</span></div>
-          <div class="dst"><span class="dst-i">🏨</span><span class="dst-v" id="stFuera">0</span><span
-              class="dst-l">FUERA</span></div>
-          <div class="dst"><span class="dst-i">🌴</span><span class="dst-v" id="stVacas">0</span><span
-              class="dst-l">VACAS</span></div>
-          <div class="dst eur"><span class="dst-i">💶</span><span class="dst-v" id="stEuros">0</span><span
-              class="dst-l">DOM€</span></div>
+          <div class="dst"><span class="dst-i">☀️</span><span class="dst-v" id="stDia">0</span><span class="dst-l">DÍA</span></div>
+          <div class="dst"><span class="dst-i">🌙</span><span class="dst-v" id="stNoche">0</span><span class="dst-l">NOCHE</span></div>
+          <div class="dst"><span class="dst-i">🏨</span><span class="dst-v" id="stFuera">0</span><span class="dst-l">FUERA</span></div>
+          <div class="dst"><span class="dst-i">🌴</span><span class="dst-v" id="stVacas">0</span><span class="dst-l">VACAS</span></div>
+          <div class="dst eur"><span class="dst-i">💶</span><span class="dst-v" id="stEuros">0</span><span class="dst-l">DOM€</span></div>
         </div>
       </div>
     </div>
@@ -2300,59 +2223,34 @@
     <div class="tab-content" id="tab-conf">
       <div class="panel">
         <div class="panel-hd">🛣 Mis rutas</div>
-        <div class="add-row"><input type="text" id="nri" placeholder="Nueva ruta..."><button class="btn-add"
-            onclick="addRuta()">+</button></div>
+        <div class="add-row"><input type="text" id="nri" placeholder="Nueva ruta..."><button class="btn-add" onclick="addRuta()">+</button></div>
         <div id="rutasL"></div>
       </div>
       <div class="panel">
         <div class="panel-hd">👤 Datos del conductor</div>
         <div class="form-grid" style="gap:7px;">
-          <div><label class="flbl" style="display:block;margin-bottom:4px;">Nombre</label><input type="text" id="cfgN"
-              placeholder="Tu nombre" oninput="saveCfg()"></div>
-          <div><label class="flbl" style="display:block;margin-bottom:4px;">Empresa</label><input type="text" id="cfgC"
-              placeholder="Empresa" oninput="saveCfg()"></div>
+          <div><label class="flbl" style="display:block;margin-bottom:4px;">Nombre</label><input type="text" id="cfgN" placeholder="Tu nombre" oninput="saveCfg()"></div>
+          <div><label class="flbl" style="display:block;margin-bottom:4px;">Empresa</label><input type="text" id="cfgC" placeholder="Empresa" oninput="saveCfg()"></div>
         </div>
-        <p style="font-size:.65rem;color:var(--text2);margin-top:6px;">La matrícula y ruta se registran cada día en la
-          jornada.</p>
+        <p style="font-size:.65rem;color:var(--text2);margin-top:6px;">La matrícula y ruta se registran cada día en la jornada.</p>
       </div>
       <div class="panel">
         <div class="panel-hd">📐 Normativa CE 561/2006</div>
         <div class="lc-grid">
-          <div class="lc">
-            <div class="lc-l">Cond. continua máx.</div>
-            <div class="lc-v">4h 30min <small>→ pausa 45min</small></div>
-          </div>
-          <div class="lc">
-            <div class="lc-l">Pausa fraccionada</div>
-            <div class="lc-v">15+30min <small>o seguidos</small></div>
-          </div>
-          <div class="lc">
-            <div class="lc-l">Cond. diaria máx.</div>
-            <div class="lc-v">9h <small>10h 2×/sem.</small></div>
-          </div>
-          <div class="lc">
-            <div class="lc-l">Cond. semanal máx.</div>
-            <div class="lc-v">56h <small>/90h quinc.</small></div>
-          </div>
-          <div class="lc">
-            <div class="lc-l">Descanso diario</div>
-            <div class="lc-v">11h <small>mínimo</small></div>
-          </div>
-          <div class="lc">
-            <div class="lc-l">Desc. reducido</div>
-            <div class="lc-v">9h <small>máx. 3×/sem.</small></div>
-          </div>
-          <div class="lc">
-            <div class="lc-l">Jornada diaria máx.</div>
-            <div class="lc-v">13h <small>autón. 10h</small></div>
-          </div>
-          <div class="lc">
-            <div class="lc-l">Multa muy grave</div>
-            <div class="lc-v">4.601€ <small>+ inmov.</small></div>
-          </div>
+          <div class="lc"><div class="lc-l">Cond. continua máx.</div><div class="lc-v">4h 30min <small>→ pausa 45min</small></div></div>
+          <div class="lc"><div class="lc-l">Pausa fraccionada</div><div class="lc-v">15+30min <small>o seguidos</small></div></div>
+          <div class="lc"><div class="lc-l">Cond. diaria máx.</div><div class="lc-v">9h <small>10h 2×/sem.</small></div></div>
+          <div class="lc"><div class="lc-l">Cond. semanal máx.</div><div class="lc-v">56h <small>/90h quinc.</small></div></div>
+          <div class="lc"><div class="lc-l">Descanso diario</div><div class="lc-v">11h <small>mínimo</small></div></div>
+          <div class="lc"><div class="lc-l">Desc. reducido</div><div class="lc-v">9h <small>máx. 3×/sem.</small></div></div>
+          <div class="lc"><div class="lc-l">Jornada diaria máx.</div><div class="lc-v">13h <small>autón. 10h</small></div></div>
+          <div class="lc"><div class="lc-l">Multa muy grave</div><div class="lc-v">4.601€ <small>+ inmov.</small></div></div>
         </div>
       </div>
       <button class="btn-out" onclick="logout()">↩ Cerrar sesión / Cambiar conductor</button>
+      <div style="text-align: center; margin-top: 25px; font-size: 0.7rem; color: var(--text2); font-family: 'Share Tech Mono', monospace; opacity: 0.5;">
+        Design & Development by <span style="color: var(--brand2);">OSKY</span>
+      </div>
     </div>
   </div>
 
@@ -2383,7 +2281,6 @@
       n = n.trim().toUpperCase();
 
       // 1. Unificaciones Específicas (Alias Prioritarios)
-      // Se devuelven los nombres canónicos exactos para coincidir con la base de datos existente.
       if (n === "GUSTAVO" || n === "GUSTAVO TERENTE") return "GUSTAVO TERENTE";
       if (n === "AGUSTIN" || n === "AGUSTÍN") return "AGUSTÍN";
       if (n === "BRAÑA" || n === "BRANA") return "BRANA";
@@ -2394,6 +2291,7 @@
         .replace(/Á/g, 'A').replace(/á/g, 'A')
         .replace(/É/g, 'E').replace(/é/g, 'E')
         .replace(/Í/g, 'I').replace(/í/g, 'I')
+
         .replace(/Ó/g, 'O').replace(/ó/g, 'O')
         .replace(/Ú/g, 'U').replace(/ú/g, 'U')
         .replace(/Ü/g, 'U').replace(/ü/g, 'U')
@@ -3396,67 +3294,16 @@
       };
     }
 
-    function togglePhotosSec(btn) {
-      btn.classList.toggle('open');
-      document.getElementById('photoGridContainer').classList.toggle('open');
-    }
-
-    var isZoomed = false;
     function verFotoGrande(src) {
-      var v = document.getElementById("photo-viewer");
-      var i = document.getElementById("viewer-img");
-      i.src = src;
-      v.classList.remove("zoomed");
-      isZoomed = false;
-      v.style.display = "flex";
-      v.scrollTop = 0; v.scrollLeft = 0;
-      document.body.style.overflow = "hidden"; // Evitar scroll de fondo
-    }
-
-    function toggleZoom(e) {
-      var v = document.getElementById("photo-viewer");
-      if (isZoomed) {
-        v.classList.remove("zoomed");
-        isZoomed = false;
-      } else {
-        v.classList.add("zoomed");
-        isZoomed = true;
-        // Intentar centrar el scroll donde se ha pulsado
-        setTimeout(function(){
-            v.scrollTop = (v.scrollHeight / 2) - (v.clientHeight / 2);
-            v.scrollLeft = (v.scrollWidth / 2) - (v.clientWidth / 2);
-        }, 10);
-      }
-    }
-
-    function cerrarVisor() {
-      document.getElementById("photo-viewer").style.display = "none";
-      document.body.style.overflow = "";
+      var v = document.createElement("div");
+      v.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px;";
+      var i = document.createElement("img"); i.src=src; i.style.cssText = "max-width:100%;max-height:85%;object-fit:contain;border-radius:10px;";
+      var b = document.createElement("button"); b.className="btn-primary"; b.style.marginTop="20px"; b.innerHTML="CERRAR FOTO"; b.style.width="200px";
+      b.onclick=function(){ document.body.removeChild(v); };
+      v.appendChild(i); v.appendChild(b);
+      document.body.appendChild(v);
     }
   </script>
-
-  <!-- VISOR DE FOTOS -->
-  <style>
-    #photo-viewer { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.97); z-index:10000; display:none; flex-direction:column; align-items:center; justify-content:center; overflow: auto; }
-    #photo-viewer img { max-width:100%; max-height:100%; object-fit:contain; transition: transform 0.3s ease, width 0.3s ease; cursor: zoom-in; }
-    #photo-viewer.zoomed { justify-content: flex-start; align-items: flex-start; }
-    #photo-viewer.zoomed img { max-width: none; max-height: none; width: 250%; object-fit: initial; cursor: zoom-out; transition: none; }
-    #photo-viewer .viewer-close { position:fixed; top:20px; right:20px; width:44px; height:44px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:white; font-size:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index: 10001; }
-    #photo-viewer .viewer-info { position:fixed; bottom:20px; left: 50%; transform: translateX(-50%); color:rgba(255,255,255,0.6); font-size:12px; pointer-events:none; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 10px; z-index: 10001; }
-    
-    .toggle-photos-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; padding: 0; cursor: pointer; color: inherit; }
-    .toggle-photos-btn .arrow { transition: transform 0.3s; color: var(--text2); }
-    .toggle-photos-btn.open .arrow { transform: rotate(180deg); }
-    #photoGridContainer { display: none; margin-top: 10px; }
-    #photoGridContainer.open { display: block; }
-  </style>
-
-  <div id="photo-viewer" onclick="cerrarVisor()">
-    <div class="viewer-close" onclick="cerrarVisor()">×</div>
-    <img id="viewer-img" src="" onclick="event.stopPropagation(); toggleZoom(event)">
-    <div class="viewer-info">Toca para ampliar · Pulsa fuera para cerrar</div>
-  </div>
 </body>
-
 
 </html>
