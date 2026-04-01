@@ -1338,6 +1338,29 @@
       line-height: 1.4
     }
 
+    .hist-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 7px;
+    }
+    .hist-btn {
+      flex: 1;
+      padding: 5px 8px;
+      font-size: .6rem;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      background: var(--bg3);
+      color: var(--text2);
+      cursor: pointer;
+      font-family: inherit;
+      transition: background .2s, color .2s;
+    }
+    .hist-btn:hover, .hist-btn:active {
+      background: var(--brand2);
+      color: var(--bg1);
+      border-color: var(--brand2);
+    }
+
     /* STATS */
     .chart-grid {
       display: grid;
@@ -2125,9 +2148,11 @@
     <!-- ══ TAB TACÓGRAFO ══ -->
     <div class="tab-content active" id="tab-taco">
       <div class="date-nav">
-        <button class="nav-btn-d" onclick="navDia(-1)">◀ Anterior</button>
-        <span class="date-lbl" id="dateLbl">HOY</span>
-        <button class="nav-btn-d" id="btnNext" onclick="navDia(1)">Siguiente ▶</button>
+        <button class="nav-btn-d" onclick="navDia(-1)">◀</button>
+        <span class="date-lbl" id="dateLbl" onclick="document.getElementById('dateJump').showPicker()" style="cursor:pointer;">HOY</span>
+        <input type="date" id="dateJump" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0;" onchange="saltarADia(this.value)">
+        <button class="nav-btn-d" id="btnNext" onclick="navDia(1)">▶</button>
+        <button class="nav-btn-d" onclick="irAHoy()" style="font-size:.65rem;padding:6px 10px;margin-left:4px;">HOY</button>
       </div>
       <div class="week-strip" id="weekStrip"></div>
 
@@ -2597,6 +2622,35 @@
       diaActual = ds;
       buildWeekStrip();
       loadDiaForm(ds);
+    }
+    function saltarADia(ds) {
+      if (!ds) return;
+      var hoy = new Date().toLocaleDateString('en-CA');
+      if (ds > hoy) ds = hoy;
+      diaActual = ds;
+      buildWeekStrip();
+      loadDiaForm(ds);
+    }
+    function irAHoy() {
+      diaActual = new Date().toLocaleDateString('en-CA');
+      buildWeekStrip();
+      loadDiaForm(diaActual);
+    }
+    function irAJornada(ds) {
+      // Ir al calendario y abrir el formulario de ese día
+      var tabBtn = document.querySelectorAll('.tab-btn')[1]; // tab calendario
+      openTab('cal', tabBtn);
+      setTimeout(function() {
+        if (cal) { cal.gotoDate(ds); }
+        currF = ds;
+        showDayForm(ds);
+      }, 100);
+    }
+    function irATaco(ds) {
+      // Ir al tacógrafo y cargar ese día
+      var tabBtn = document.querySelectorAll('.tab-btn')[0]; // tab tacógrafo
+      openTab('taco', tabBtn);
+      saltarADia(ds);
     }
 
     /* ════════════════════════════════════════════
@@ -3106,6 +3160,10 @@
               + (p.ruta ? '<div class="c-ru">📍 ' + p.ruta + '</div>' : '')
               + ([p.t1, p.t2, p.r1, p.r2].filter(Boolean).length ? '<div class="c-ti">' + [p.t1, p.t2, p.r1, p.r2].filter(Boolean).join(' · ') + '</div>' : '')
               + (p.obs ? '<div class="c-ob">💬 ' + p.obs + '</div>' : '')
+              + '<div class="hist-actions">'
+              + '<button class="hist-btn" onclick="irAJornada(\'' + e.start + '\')">📋 Jornada</button>'
+              + '<button class="hist-btn" onclick="irATaco(\'' + e.start + '\')">🚛 Tacógrafo</button>'
+              + '</div>'
               + '</div>';
           }).join('')
           + '</div></div></div>';
