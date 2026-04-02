@@ -3653,7 +3653,9 @@
       var btnCerrar = document.createElement("button");
       btnCerrar.innerHTML = "✕";
       btnCerrar.style.cssText = "position:absolute;top:14px;right:14px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.3);color:#fff;font-size:1.3rem;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center;";
-      btnCerrar.onclick = function() { document.body.removeChild(v); };
+      function cerrarVisor(e) { e.stopPropagation(); e.preventDefault(); document.body.removeChild(v); }
+      btnCerrar.addEventListener("touchend", cerrarVisor, { passive: false });
+      btnCerrar.addEventListener("click", cerrarVisor);
       v.appendChild(btnCerrar);
 
       // Pista de uso
