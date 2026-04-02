@@ -2181,10 +2181,8 @@
           <div class="tfield"><label>KM final</label><input type="number" id="tKF" placeholder="0" min="0"
               oninput="calcTaco()"></div>
         </div>
-        <div class="g2" style="margin-bottom:9px;">
-          <div class="tfield"><label>🚛 Matrícula camión</label><input type="text" id="tMat" placeholder="ej: 1234 ABC" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
-          <div class="tfield"><label>Observaciones</label><input type="text" id="tObs" placeholder="Notas opcionales..."></div>
-        </div>
+        <div class="tfield" style="margin-bottom:10px;"><label>Observaciones</label><input type="text" id="tObs"
+            placeholder="Notas opcionales..."></div>
         <button class="btn-primary" onclick="guardarDia()">☁️ GUARDAR DÍA</button>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;">
           <button class="sm-btn" onclick="limpiarForm()"
@@ -2728,7 +2726,6 @@
       document.getElementById('tKI').value = d.kmIni || '';
       document.getElementById('tKF').value = d.kmFin || '';
       document.getElementById('tObs').value = d.obs || '';
-      document.getElementById('tMat').value = d.mat || '';
       calcTaco();
       if(typeof cargarFotos === "function") cargarFotos(ds);
     }
@@ -2894,11 +2891,10 @@
       var ki = parseInt(document.getElementById('tKI').value) || 0;
       var kf = parseInt(document.getElementById('tKF').value) || 0;
       var obs = document.getElementById('tObs').value;
-      var mat = document.getElementById('tMat').value.trim().toUpperCase();
       if (!ini && !fin && !hc) { toast('⚠️ Introduce al menos hora entrada/salida o horas conducidas'); return; }
       var jornMin = 0;
       if (ini && fin) { var a = tMin(ini), b = tMin(fin); if (b < a) b += 1440; jornMin = b - a; }
-      var rec = { horaIni: ini, horaFin: fin, hCond: hc, jornMin: jornMin, kmIni: ki, kmFin: kf, kmRec: kf > ki ? kf - ki : 0, obs: obs, mat: mat, ts: Date.now() };
+      var rec = { horaIni: ini, horaFin: fin, hCond: hc, jornMin: jornMin, kmIni: ki, kmFin: kf, kmRec: kf > ki ? kf - ki : 0, obs: obs, ts: Date.now() };
       diasT[diaActual] = rec;
       tacoRef.child(diaActual).set(rec).then(function () { document.getElementById('syncDot').textContent = '☁️'; }).catch(function () { document.getElementById('syncDot').textContent = '⚠️'; });
       localStorage.setItem('ftp_backup', JSON.stringify(diasT));
@@ -3098,7 +3094,7 @@
     }
     function limpiarForm() {
       // Solo limpia los campos del formulario, NO toca lo guardado en la nube
-      ['tIni', 'tFin', 'tHCh', 'tHCm', 'tKI', 'tKF', 'tObs', 'tMat'].forEach(function (id) {
+      ['tIni', 'tFin', 'tHCh', 'tHCm', 'tKI', 'tKF', 'tObs'].forEach(function (id) {
         document.getElementById(id).value = '';
       });
       calcTaco();
@@ -3226,71 +3222,100 @@
     function updStats() { updDonut(); updLimBar(); updWkGrid(); updDietas(); updStatsMonth(); updStatsBarChart(); updStatsGlobal(); updStatsMatriculas(); }
 
     function updStatsMatriculas() {
-      var mats = {}; // { matricula: { dias, km, horas, ultimaFecha } }
-      for (var k in diasT) {
-        var d = diasT[k];
-        var mat = (d.mat || '').trim().toUpperCase();
-        if (!mat) continue;
-        if (!mats[mat]) mats[mat] = { dias: 0, km: 0, horas: 0, ultimaFecha: '' };
-        mats[mat].dias++;
-        mats[mat].km += d.kmRec || 0;
-        mats[mat].horas += d.hCond || 0;
-        if (k > mats[mat].ultimaFecha) mats[mat].ultimaFecha = k;
-      }
-
-      var lista = Object.keys(mats).map(function(m) {
-        return { mat: m, dias: mats[m].dias, km: mats[m].km, horas: mats[m].horas, ultimaFecha: mats[m].ultimaFecha };
-      });
-
       var elResumen = document.getElementById('statsMatResumen');
-      var elTabla = document.getElementById('statsMatTabla');
+      var elTabla   = document.getElementById('statsMatTabla');
       if (!elResumen || !elTabla) return;
 
-      if (lista.length === 0) {
-        elResumen.innerHTML = '<div style="color:var(--text2);font-size:.75rem;grid-column:1/-1;text-align:center;padding:10px;">Sin datos de matrícula aún. Rellena el campo matrícula al guardar un día.</div>';
+      // Acumula datos por matrícula leyendo de las jornadas (datos[])
+      // Los km y horas se cruzan con el tacógrafo del mismo día (diasT)
+      function acumular(store, mat, fecha) {
+        mat = (mat || '').trim().toUpperCase();
+        if (!mat) return;
+        if (!store[mat]) store[mat] = { dias: 0, km: 0, horas: 0, ultimaFecha: '' };
+        var dTaco = diasT[fecha] || {};
+        store[mat].dias++;
+        store[mat].km    += dTaco.kmRec || 0;
+        store[mat].horas += dTaco.hCond || 0;
+        if (fecha > store[mat].ultimaFecha) store[mat].ultimaFecha = fecha;
+      }
+
+      var tractoras = {}, remolques = {};
+      datos.forEach(function(j) {
+        var p = j.extendedProps || {}, f = j.start;
+        acumular(tractoras, p.t1, f);
+        acumular(tractoras, p.t2, f);
+        acumular(remolques, p.r1, f);
+        acumular(remolques, p.r2, f);
+      });
+
+      var listT = Object.keys(tractoras).map(function(m){ return Object.assign({mat:m}, tractoras[m]); }).sort(function(a,b){return b.dias-a.dias;});
+      var listR = Object.keys(remolques).map(function(m){ return Object.assign({mat:m}, remolques[m]); }).sort(function(a,b){return b.dias-a.dias;});
+
+      if (listT.length === 0 && listR.length === 0) {
+        elResumen.innerHTML = '<div style="color:var(--text2);font-size:.75rem;grid-column:1/-1;text-align:center;padding:10px;">Sin matrículas registradas en las jornadas (campos T1/T2/R1/R2).</div>';
         elTabla.innerHTML = '';
         return;
       }
 
-      // Ordenar por días descendente
-      lista.sort(function(a, b) { return b.dias - a.dias; });
-
-      var masDias  = lista[0];
-      var masKm    = lista.slice().sort(function(a,b){ return b.km - a.km; })[0];
-      var masHoras = lista.slice().sort(function(a,b){ return b.horas - a.horas; })[0];
-      var ultima   = lista.slice().sort(function(a,b){ return b.ultimaFecha.localeCompare(a.ultimaFecha); })[0];
+      // — Tarjetas resumen —
+      function masUsada(list)  { return list.length ? list[0] : null; }
+      function masKmFn(list)   { return list.length ? list.slice().sort(function(a,b){return b.km-a.km;})[0] : null; }
+      function masHorasFn(list){ return list.length ? list.slice().sort(function(a,b){return b.horas-a.horas;})[0] : null; }
+      function ultimaFn(list)  { return list.length ? list.slice().sort(function(a,b){return b.ultimaFecha.localeCompare(a.ultimaFecha);})[0] : null; }
 
       var resHtml = '';
-      resHtml += '<div class="stat-card accent"><div class="sc-label">Matrículas distintas</div><div class="sc-value">' + lista.length + '</div><div class="sc-sub">camiones diferentes</div></div>';
-      resHtml += '<div class="stat-card"><div class="sc-label">Más usada (días)</div><div class="sc-value" style="font-size:.9rem;">' + masDias.mat + '</div><div class="sc-sub">' + masDias.dias + ' días trabajados</div></div>';
-      resHtml += '<div class="stat-card warn"><div class="sc-label">Más km recorridos</div><div class="sc-value" style="font-size:.9rem;">' + masKm.mat + '</div><div class="sc-sub">' + masKm.km.toLocaleString('es-ES') + ' km</div></div>';
-      resHtml += '<div class="stat-card info"><div class="sc-label">Más horas conducción</div><div class="sc-value" style="font-size:.9rem;">' + masHoras.mat + '</div><div class="sc-sub">' + hNum(masHoras.horas) + ' conducidas</div></div>';
-      resHtml += '<div class="stat-card purple"><div class="sc-label">Último camión usado</div><div class="sc-value" style="font-size:.9rem;">' + ultima.mat + '</div><div class="sc-sub">' + new Date(ultima.ultimaFecha + 'T12:00:00').toLocaleDateString('es-ES', {day:'numeric',month:'short',year:'numeric'}) + '</div></div>';
+      resHtml += '<div class="stat-card accent"><div class="sc-label">Tractoras distintas</div><div class="sc-value">' + listT.length + '</div><div class="sc-sub">cabezas tractoras</div></div>';
+      resHtml += '<div class="stat-card accent"><div class="sc-label">Remolques distintos</div><div class="sc-value">' + listR.length + '</div><div class="sc-sub">semirremolques</div></div>';
 
-      var totalKmTodos = lista.reduce(function(s,x){ return s + x.km; }, 0);
-      var totalDiasTodos = lista.reduce(function(s,x){ return s + x.dias; }, 0);
-      resHtml += '<div class="stat-card"><div class="sc-label">KM totales (todos)</div><div class="sc-value">' + totalKmTodos.toLocaleString('es-ES') + '</div><div class="sc-sub">entre ' + lista.length + ' matrículas</div></div>';
-      resHtml += '<div class="stat-card"><div class="sc-label">Total días con camión</div><div class="sc-value">' + totalDiasTodos + '</div><div class="sc-sub">días con matrícula registrada</div></div>';
+      var mt = masUsada(listT);
+      if (mt) resHtml += '<div class="stat-card"><div class="sc-label">Tractora más usada</div><div class="sc-value" style="font-size:.85rem;">' + mt.mat + '</div><div class="sc-sub">' + mt.dias + ' días trabajados</div></div>';
+      var mr = masUsada(listR);
+      if (mr) resHtml += '<div class="stat-card"><div class="sc-label">Remolque más usado</div><div class="sc-value" style="font-size:.85rem;">' + mr.mat + '</div><div class="sc-sub">' + mr.dias + ' días enganchado</div></div>';
+
+      var ktmax = masKmFn(listT);
+      if (ktmax && ktmax.km > 0) resHtml += '<div class="stat-card warn"><div class="sc-label">Tractora más km</div><div class="sc-value" style="font-size:.85rem;">' + ktmax.mat + '</div><div class="sc-sub">' + ktmax.km.toLocaleString('es-ES') + ' km acumulados</div></div>';
+      var krmax = masKmFn(listR);
+      if (krmax && krmax.km > 0) resHtml += '<div class="stat-card warn"><div class="sc-label">Remolque más km</div><div class="sc-value" style="font-size:.85rem;">' + krmax.mat + '</div><div class="sc-sub">' + krmax.km.toLocaleString('es-ES') + ' km acumulados</div></div>';
+
+      var htmax = masHorasFn(listT);
+      if (htmax && htmax.horas > 0) resHtml += '<div class="stat-card info"><div class="sc-label">Tractora más horas</div><div class="sc-value" style="font-size:.85rem;">' + htmax.mat + '</div><div class="sc-sub">' + hNum(htmax.horas) + ' de conducción</div></div>';
+
+      var ut = ultimaFn(listT);
+      if (ut) resHtml += '<div class="stat-card purple"><div class="sc-label">Última tractora usada</div><div class="sc-value" style="font-size:.85rem;">' + ut.mat + '</div><div class="sc-sub">' + new Date(ut.ultimaFecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'}) + '</div></div>';
+      var ur = ultimaFn(listR);
+      if (ur) resHtml += '<div class="stat-card purple"><div class="sc-label">Último remolque usado</div><div class="sc-value" style="font-size:.85rem;">' + ur.mat + '</div><div class="sc-sub">' + new Date(ur.ultimaFecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'}) + '</div></div>';
+
+      var kmTotalT = listT.reduce(function(s,x){return s+x.km;},0);
+      var kmTotalR = listR.reduce(function(s,x){return s+x.km;},0);
+      if (kmTotalT > 0) resHtml += '<div class="stat-card"><div class="sc-label">KM totales tractoras</div><div class="sc-value">' + kmTotalT.toLocaleString('es-ES') + '</div><div class="sc-sub">entre ' + listT.length + ' vehículos</div></div>';
+      if (kmTotalR > 0) resHtml += '<div class="stat-card"><div class="sc-label">KM totales remolques</div><div class="sc-value">' + kmTotalR.toLocaleString('es-ES') + '</div><div class="sc-sub">entre ' + listR.length + ' vehículos</div></div>';
+
       elResumen.innerHTML = resHtml;
 
-      // Tabla detalle por matrícula con mini barra de km
-      var maxKm = Math.max.apply(null, lista.map(function(x){ return x.km; })) || 1;
-      var tabHtml = '<div style="overflow-x:auto;"><table class="mat-table"><thead><tr><th>Matrícula</th><th>Días</th><th>KM totales</th><th>H. cond.</th><th>Media KM/día</th><th>Último uso</th></tr></thead><tbody>';
-      lista.forEach(function(r) {
-        var pct = Math.round(r.km / maxKm * 100);
-        var media = r.dias > 0 ? Math.round(r.km / r.dias) : 0;
-        var fechaStr = r.ultimaFecha ? new Date(r.ultimaFecha + 'T12:00:00').toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
-        tabHtml += '<tr>'
-          + '<td><strong style="font-family:\'Share Tech Mono\',monospace;color:var(--cd);">' + r.mat + '</strong></td>'
-          + '<td style="text-align:center;">' + r.dias + '</td>'
-          + '<td><div style="display:flex;align-items:center;gap:5px;"><div style="flex:1;background:var(--bg4);border-radius:3px;height:6px;"><div style="width:' + pct + '%;background:var(--cd);border-radius:3px;height:6px;"></div></div><span style="min-width:50px;text-align:right;font-family:\'Share Tech Mono\',monospace;font-size:.72rem;">' + r.km.toLocaleString('es-ES') + '</span></div></td>'
-          + '<td style="text-align:center;font-family:\'Share Tech Mono\',monospace;">' + hNum(r.horas) + '</td>'
-          + '<td style="text-align:center;">' + media + ' km</td>'
-          + '<td style="text-align:center;font-size:.65rem;color:var(--text2);">' + fechaStr + '</td>'
-          + '</tr>';
-      });
-      tabHtml += '</tbody></table></div>';
-      elTabla.innerHTML = tabHtml;
+      // — Tabla detallada —
+      function buildTabla(lista, titulo, color) {
+        if (!lista.length) return '';
+        var maxKm = Math.max.apply(null, lista.map(function(x){return x.km;})) || 1;
+        var h = '<div style="margin-top:12px;margin-bottom:4px;font-size:.63rem;color:' + color + ';letter-spacing:1px;text-transform:uppercase;font-weight:700;">' + titulo + '</div>';
+        h += '<div style="overflow-x:auto;"><table class="mat-table"><thead><tr><th>Matrícula</th><th>Días</th><th>KM totales</th><th>H. cond.</th><th>Media km/día</th><th>Último uso</th></tr></thead><tbody>';
+        lista.forEach(function(r) {
+          var pct = Math.round(r.km / maxKm * 100);
+          var media = r.dias > 0 ? Math.round(r.km / r.dias) : 0;
+          var fechaStr = r.ultimaFecha ? new Date(r.ultimaFecha+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
+          h += '<tr>'
+            + '<td><strong style="font-family:\'Share Tech Mono\',monospace;color:' + color + ';">' + r.mat + '</strong></td>'
+            + '<td style="text-align:center;">' + r.dias + '</td>'
+            + '<td><div style="display:flex;align-items:center;gap:5px;"><div style="flex:1;background:var(--bg4);border-radius:3px;height:6px;"><div style="width:' + pct + '%;background:' + color + ';border-radius:3px;height:6px;"></div></div><span style="min-width:48px;text-align:right;font-family:\'Share Tech Mono\',monospace;font-size:.7rem;">' + (r.km > 0 ? r.km.toLocaleString('es-ES') : '—') + '</span></div></td>'
+            + '<td style="text-align:center;font-family:\'Share Tech Mono\',monospace;">' + (r.horas > 0 ? hNum(r.horas) : '—') + '</td>'
+            + '<td style="text-align:center;">' + (media > 0 ? media + ' km' : '—') + '</td>'
+            + '<td style="text-align:center;font-size:.65rem;color:var(--text2);">' + fechaStr + '</td>'
+            + '</tr>';
+        });
+        h += '</tbody></table></div>';
+        return h;
+      }
+
+      elTabla.innerHTML = buildTabla(listT, '🚛 Tractoras', 'var(--cd)') + buildTabla(listR, '🔗 Remolques', 'var(--cb)');
     }
     function updDonut() {
       var ds = new Date().toLocaleDateString('en-CA');
