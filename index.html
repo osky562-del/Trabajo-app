@@ -2667,7 +2667,8 @@
       var hoyStr = hoy.toLocaleDateString('en-CA');
       var inicio = getInicioSemTaco();
       var html = '';
-      // Mostrar siempre los 7 días de la semana (Lun–Dom), días futuros en gris
+      // Mostrar días desde el inicio de la semana en curso hasta hoy (máx 7)
+      // Los días restantes hasta completar 7 se muestran en gris (futuros)
       for (var i = 0; i < 7; i++) {
         var dt = new Date(inicio); dt.setDate(inicio.getDate() + i);
         var ds = dt.toLocaleDateString('en-CA');
@@ -2900,17 +2901,46 @@
       l.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
       return l;
     }
-    /* Semana tacógrafo: semana laboral de lunes a domingo según CE 561/2006.
-       La semana de trabajo va del lunes 00:00 al domingo 24:00 (descanso fin de semana
-       a descanso fin de semana), conforme a la normativa española de tacógrafo. */
+    /* Semana tacógrafo: empieza el día en que el conductor retoma la actividad
+       tras su descanso semanal de fin de semana (≥2 días consecutivos sin registro,
+       equivalente al descanso semanal de ≥45h del CE 561/2006).
+       Si sólo hay 1 día de descanso (descanso reducido), también se acepta.
+       Esto permite que la semana empiece en domingo si el conductor trabaja ese día. */
     function getInicioSemTaco() {
       var hoy = new Date();
       hoy.setHours(12, 0, 0, 0);
-      var dow = hoy.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
-      var diasDesdeL = (dow === 0) ? 6 : dow - 1; // días desde el lunes
-      var lunes = new Date(hoy);
-      lunes.setDate(hoy.getDate() - diasDesdeL);
-      return lunes;
+
+      function sinActividad(ds) {
+        var d = diasT[ds];
+        return !d || (!d.hCond && !d.jornMin);
+      }
+
+      // Buscar hacia atrás hasta 14 días: 2 días consecutivos sin actividad (descanso completo)
+      for (var i = 1; i <= 13; i++) {
+        var dt1 = new Date(hoy); dt1.setDate(hoy.getDate() - i);
+        var dt2 = new Date(hoy); dt2.setDate(hoy.getDate() - i - 1);
+        var ds1 = dt1.toLocaleDateString('en-CA');
+        var ds2 = dt2.toLocaleDateString('en-CA');
+        if (sinActividad(ds1) && sinActividad(ds2)) {
+          // Encontrado descanso de 2+ días; la semana empieza el día siguiente al último día de descanso
+          var inicio = new Date(dt1); inicio.setDate(dt1.getDate() + 1);
+          return inicio;
+        }
+      }
+
+      // Si no hay 2 días consecutivos, buscar 1 solo día de descanso (descanso reducido)
+      for (var j = 1; j <= 14; j++) {
+        var dt = new Date(hoy); dt.setDate(hoy.getDate() - j);
+        var ds = dt.toLocaleDateString('en-CA');
+        if (sinActividad(ds)) {
+          var inicio2 = new Date(dt); inicio2.setDate(dt.getDate() + 1);
+          return inicio2;
+        }
+      }
+
+      // Fallback: hace 6 días
+      var fb = new Date(hoy); fb.setDate(hoy.getDate() - 6);
+      return fb;
     }
     function updSemana() {
       var hoy = new Date();
@@ -3475,11 +3505,39 @@
         fdb.createObjectStore("fechas", { keyPath: "fecha" }); // para puntos del calendario
       }
     };
-    fdbReq.onsuccess = function(e) { 
-      fdb = e.target.result; 
-      if(typeof diaActual !== "undefined" && diaActual) cargarFotos(diaActual); 
+    fdbReq.onsuccess = function(e) {
+      fdb = e.target.result;
+      limpiarFotosAntiguas();
+      if(typeof diaActual !== "undefined" && diaActual) cargarFotos(diaActual);
     };
     fdbReq.onerror = function(e) { console.error("Error IndexedDB", e); };
+
+    // Borra automáticamente fotos con más de 1 mes de antigüedad
+    function limpiarFotosAntiguas() {
+      if (!fdb) return;
+      var corte = new Date();
+      corte.setMonth(corte.getMonth() - 1);
+      var corteStr = corte.toLocaleDateString('en-CA'); // YYYY-MM-DD hace 1 mes exacto
+
+      var tx = fdb.transaction(["fotos", "fechas"], "readwrite");
+      var fStore = tx.objectStore("fotos");
+      var dStore = tx.objectStore("fechas");
+
+      fStore.openCursor().onsuccess = function(e) {
+        var c = e.target.result;
+        if (c) {
+          if (c.value.fecha < corteStr) c.delete();
+          c.continue();
+        }
+      };
+      dStore.openCursor().onsuccess = function(e) {
+        var c = e.target.result;
+        if (c) {
+          if (c.key < corteStr) c.delete();
+          c.continue();
+        }
+      };
+    }
 
     function procesarFoto(input) {
       if(!input.files || !input.files[0]) return;
