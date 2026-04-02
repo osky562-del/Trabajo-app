@@ -3505,11 +3505,39 @@
         fdb.createObjectStore("fechas", { keyPath: "fecha" }); // para puntos del calendario
       }
     };
-    fdbReq.onsuccess = function(e) { 
-      fdb = e.target.result; 
-      if(typeof diaActual !== "undefined" && diaActual) cargarFotos(diaActual); 
+    fdbReq.onsuccess = function(e) {
+      fdb = e.target.result;
+      limpiarFotosAntiguas();
+      if(typeof diaActual !== "undefined" && diaActual) cargarFotos(diaActual);
     };
     fdbReq.onerror = function(e) { console.error("Error IndexedDB", e); };
+
+    // Borra automáticamente fotos con más de 1 mes de antigüedad
+    function limpiarFotosAntiguas() {
+      if (!fdb) return;
+      var corte = new Date();
+      corte.setMonth(corte.getMonth() - 1);
+      var corteStr = corte.toLocaleDateString('en-CA'); // YYYY-MM-DD hace 1 mes exacto
+
+      var tx = fdb.transaction(["fotos", "fechas"], "readwrite");
+      var fStore = tx.objectStore("fotos");
+      var dStore = tx.objectStore("fechas");
+
+      fStore.openCursor().onsuccess = function(e) {
+        var c = e.target.result;
+        if (c) {
+          if (c.value.fecha < corteStr) c.delete();
+          c.continue();
+        }
+      };
+      dStore.openCursor().onsuccess = function(e) {
+        var c = e.target.result;
+        if (c) {
+          if (c.key < corteStr) c.delete();
+          c.continue();
+        }
+      };
+    }
 
     function procesarFoto(input) {
       if(!input.files || !input.files[0]) return;
