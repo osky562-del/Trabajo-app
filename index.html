@@ -400,6 +400,26 @@
       background: var(--border);
     }
 
+    /* Paneles desplegables en Stats */
+    details.panel > summary.panel-hd {
+      cursor: pointer;
+      margin-bottom: 0;
+      list-style: none;
+      user-select: none;
+    }
+    details.panel > summary.panel-hd::-webkit-details-marker { display: none; }
+    details.panel > summary.panel-hd::before {
+      content: '▶';
+      font-size: .55rem;
+      color: var(--text2);
+      transition: transform .2s;
+      flex-shrink: 0;
+      margin-right: 2px;
+    }
+    details.panel[open] > summary.panel-hd::before {
+      transform: rotate(90deg);
+    }
+
     input,
     select,
     textarea {
@@ -2299,9 +2319,9 @@
     <div class="tab-content" id="tab-stats">
 
       <!-- Resumen rápido del día -->
-      <div class="panel">
-        <div class="panel-hd">📊 Distribución de hoy</div>
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <details class="panel" open>
+        <summary class="panel-hd">📊 Distribución de hoy</summary>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:10px;">
           <svg width="100" height="100" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="38" fill="none" stroke="var(--bg4)" stroke-width="14" />
             <circle id="da1" cx="50" cy="50" r="38" fill="none" stroke="var(--cd)" stroke-width="14" stroke-dasharray="0 239" transform="rotate(-90 50 50)" />
@@ -2317,56 +2337,56 @@
             <div class="dli"><div class="dld" style="background:var(--cw)"></div>Otro trabajo<span class="dlv" id="dlW">—</span></div>
           </div>
         </div>
-      </div>
+      </details>
 
       <!-- Límites legales -->
-      <div class="panel">
-        <div class="panel-hd">⚖️ Límites legales</div>
-        <div id="limBar"></div>
-      </div>
+      <details class="panel" open>
+        <summary class="panel-hd">⚖️ Límites legales</summary>
+        <div id="limBar" style="margin-top:10px;"></div>
+      </details>
 
       <!-- Semana tacógrafo -->
-      <div class="panel">
-        <div class="panel-hd">📅 Semana (tacógrafo)</div>
-        <div class="wk-grid" id="wkGrid"></div>
-      </div>
+      <details class="panel" open>
+        <summary class="panel-hd">📅 Semana (tacógrafo)</summary>
+        <div class="wk-grid" id="wkGrid" style="margin-top:10px;"></div>
+      </details>
 
       <!-- Estadísticas del mes -->
-      <div class="panel">
-        <div class="panel-hd">📈 Estadísticas del mes</div>
-        <div class="stats-grid" id="statsMonth"></div>
-      </div>
+      <details class="panel">
+        <summary class="panel-hd">📈 Estadísticas del mes</summary>
+        <div class="stats-grid" id="statsMonth" style="margin-top:10px;"></div>
+      </details>
 
       <!-- Gráfico barras mensual -->
-      <div class="panel">
-        <div class="panel-hd">📊 Últimos 30 días — Conducción diaria</div>
-        <div class="stats-barchart" id="statsBarChart"></div>
-      </div>
+      <details class="panel">
+        <summary class="panel-hd">📊 Últimos 30 días — Conducción diaria</summary>
+        <div class="stats-barchart" id="statsBarChart" style="margin-top:10px;"></div>
+      </details>
 
       <!-- Jornadas del periodo -->
-      <div class="panel">
-        <div class="panel-hd">🗓 Jornadas del periodo</div>
-        <div class="dsts">
+      <details class="panel">
+        <summary class="panel-hd">🗓 Jornadas del periodo</summary>
+        <div class="dsts" style="margin-top:10px;">
           <div class="dst"><span class="dst-i">☀️</span><span class="dst-v" id="stDia">0</span><span class="dst-l">DÍA</span></div>
           <div class="dst"><span class="dst-i">🌙</span><span class="dst-v" id="stNoche">0</span><span class="dst-l">NOCHE</span></div>
           <div class="dst"><span class="dst-i">🏨</span><span class="dst-v" id="stFuera">0</span><span class="dst-l">FUERA</span></div>
           <div class="dst"><span class="dst-i">🌴</span><span class="dst-v" id="stVacas">0</span><span class="dst-l">VACAS</span></div>
           <div class="dst eur"><span class="dst-i">💶</span><span class="dst-v" id="stEuros">0</span><span class="dst-l">DOM€</span></div>
         </div>
-      </div>
+      </details>
 
       <!-- Histórico global -->
-      <div class="panel">
-        <div class="panel-hd">🏆 Récords y acumulados</div>
-        <div class="stats-grid" id="statsGlobal"></div>
-      </div>
+      <details class="panel">
+        <summary class="panel-hd">🏆 Récords y acumulados</summary>
+        <div class="stats-grid" id="statsGlobal" style="margin-top:10px;"></div>
+      </details>
 
       <!-- Estadísticas matrículas -->
-      <div class="panel">
-        <div class="panel-hd">🚛 Estadísticas por matrícula</div>
-        <div id="statsMatResumen" class="stats-grid" style="margin-bottom:10px;"></div>
+      <details class="panel">
+        <summary class="panel-hd">🚛 Estadísticas por matrícula</summary>
+        <div id="statsMatResumen" class="stats-grid" style="margin-bottom:10px;margin-top:10px;"></div>
         <div id="statsMatTabla"></div>
-      </div>
+      </details>
 
     </div>
 
