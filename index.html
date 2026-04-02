@@ -691,6 +691,11 @@
       font-family: 'Share Tech Mono', monospace;
     }
 
+    .wsd.future-d {
+      opacity: .35;
+      cursor: default;
+    }
+
     .tcard {
       background: var(--bg2);
       border: 1px solid var(--border);
@@ -2217,7 +2222,7 @@
 
       <!-- Resumen semana -->
       <div class="tcard">
-        <div class="tcard-title">📊 Semana actual</div>
+        <div class="tcard-title">📊 Semana actual <span id="semanaRango" style="font-weight:400;font-size:.6rem;opacity:.7;"></span></div>
         <div class="pb-group">
           <div><div class="pb-head"><span>Conducción semanal</span><span id="pbSLbl">0h / 56h</span></div><div class="pb-track"><div class="pb-fill l0" id="pbS" style="width:0%"></div></div></div>
           <div><div class="pb-head"><span>Conducción quincenal</span><span id="pbQLbl">0h / 90h</span></div><div class="pb-track"><div class="pb-fill bl" id="pbQ" style="width:0%"></div></div></div>
@@ -2661,27 +2666,36 @@
       var hoy = new Date(); hoy.setHours(12,0,0,0);
       var hoyStr = hoy.toLocaleDateString('en-CA');
       var inicio = getInicioSemTaco();
-      var dias = Math.round((hoy - inicio) / 86400000) + 1;
-      if (dias < 1) dias = 1;
-      if (dias > 7) dias = 7;
       var html = '';
-      for (var i = 0; i < dias; i++) {
+      // Mostrar siempre los 7 días de la semana (Lun–Dom), días futuros en gris
+      for (var i = 0; i < 7; i++) {
         var dt = new Date(inicio); dt.setDate(inicio.getDate() + i);
         var ds = dt.toLocaleDateString('en-CA');
         var d = diasT[ds];
-        var cls = 'wsd' + (ds === diaActual ? ' sel' : '') + (d ? ' saved' : '') + (ds === hoyStr ? ' today-d' : '');
+        var esFuturo = ds > hoyStr;
+        var cls = 'wsd'
+          + (ds === diaActual ? ' sel' : '')
+          + (d ? ' saved' : '')
+          + (ds === hoyStr ? ' today-d' : '')
+          + (esFuturo ? ' future-d' : '');
         var hStr = d && d.hCond ? hNum(d.hCond) : '—';
-        html += '<div class="' + cls + '" onclick="selDia(\'' + ds + '\')">'
+        html += '<div class="' + cls + '"' + (!esFuturo ? ' onclick="selDia(\'' + ds + '\')"' : '') + '>'
           + '<div class="wsd-n">' + dn[dt.getDay()] + '</div>'
           + '<div class="wsd-d">' + dt.getDate() + '</div>'
           + '<div class="wsd-h">' + hStr + '</div>'
           + '</div>';
       }
       document.getElementById('weekStrip').innerHTML = html;
-      var hoy = new Date().toLocaleDateString('en-CA');
+      // Rango de semana en el título
+      var fin = new Date(inicio); fin.setDate(inicio.getDate() + 6);
+      var optsShort = { day: 'numeric', month: 'short' };
+      var rangoTxt = inicio.toLocaleDateString('es-ES', optsShort) + ' – ' + fin.toLocaleDateString('es-ES', optsShort);
+      var lblSem = document.getElementById('semanaRango');
+      if (lblSem) lblSem.textContent = rangoTxt;
+      var hoyS = new Date().toLocaleDateString('en-CA');
       var selDt = new Date(diaActual + 'T12:00:00');
-      document.getElementById('dateLbl').textContent = diaActual === hoy ? 'HOY' : selDt.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
-      document.getElementById('btnNext').disabled = (diaActual >= hoy);
+      document.getElementById('dateLbl').textContent = diaActual === hoyS ? 'HOY' : selDt.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+      document.getElementById('btnNext').disabled = (diaActual >= hoyS);
     }
 
     /* ════════════════════════════════════════════
@@ -2886,27 +2900,17 @@
       l.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
       return l;
     }
-    /* Semana tacógrafo: busca hacia atrás el inicio de la semana en curso.
-       La semana empieza tras el último descanso semanal (>=24h sin actividad registrada).
-       Se buscan días consecutivos sin registro hacia atrás; al encontrar un hueco de
-       al menos 1 día completo sin datos (descanso semanal), el día siguiente es el inicio. */
+    /* Semana tacógrafo: semana laboral de lunes a domingo según CE 561/2006.
+       La semana de trabajo va del lunes 00:00 al domingo 24:00 (descanso fin de semana
+       a descanso fin de semana), conforme a la normativa española de tacógrafo. */
     function getInicioSemTaco() {
       var hoy = new Date();
       hoy.setHours(12, 0, 0, 0);
-      // Buscar hacia atrás hasta 14 días máx.
-      for (var i = 1; i <= 14; i++) {
-        var dt = new Date(hoy); dt.setDate(hoy.getDate() - i);
-        var ds = dt.toLocaleDateString('en-CA');
-        var d = diasT[ds];
-        // Un día sin registro = descanso. La semana en curso empieza el día siguiente.
-        if (!d || (!d.hCond && !d.jornMin)) {
-          var inicio = new Date(dt); inicio.setDate(dt.getDate() + 1);
-          return inicio;
-        }
-      }
-      // Si no se encontró descanso en 14 días, usar hace 6 días como fallback
-      var fb = new Date(hoy); fb.setDate(hoy.getDate() - 6);
-      return fb;
+      var dow = hoy.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+      var diasDesdeL = (dow === 0) ? 6 : dow - 1; // días desde el lunes
+      var lunes = new Date(hoy);
+      lunes.setDate(hoy.getDate() - diasDesdeL);
+      return lunes;
     }
     function updSemana() {
       var hoy = new Date();
@@ -3575,12 +3579,89 @@
     }
 
     function verFotoGrande(src) {
+      var escala = 1, escalaBase = 1;
+      var tx = 0, ty = 0, txBase = 0, tyBase = 0;
+      var distInicial = 0;
+      var arrastrando = false, startX = 0, startY = 0;
+      var ultimoTap = 0;
+
       var v = document.createElement("div");
-      v.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px;";
-      var i = document.createElement("img"); i.src=src; i.style.cssText = "max-width:100%;max-height:85%;object-fit:contain;border-radius:10px;";
-      var b = document.createElement("button"); b.className="btn-primary"; b.style.marginTop="20px"; b.innerHTML="CERRAR FOTO"; b.style.width="200px";
-      b.onclick=function(){ document.body.removeChild(v); };
-      v.appendChild(i); v.appendChild(b);
+      v.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.96);z-index:9999;overflow:hidden;touch-action:none;";
+
+      var img = document.createElement("img");
+      img.src = src;
+      img.style.cssText = "position:absolute;top:50%;left:50%;max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;user-select:none;pointer-events:none;transform:translate(-50%,-50%);";
+      v.appendChild(img);
+
+      function aplicarTransform() {
+        img.style.transform = "translate(calc(-50% + " + tx + "px), calc(-50% + " + ty + "px)) scale(" + escala + ")";
+      }
+
+      function distancia(t1, t2) {
+        var dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      v.addEventListener("touchstart", function(e) {
+        e.preventDefault();
+        if (e.touches.length === 2) {
+          distInicial = distancia(e.touches[0], e.touches[1]);
+          escalaBase = escala;
+          txBase = tx; tyBase = ty;
+          arrastrando = false;
+        } else if (e.touches.length === 1) {
+          var ahora = Date.now();
+          if (ahora - ultimoTap < 280) {
+            // Doble toque: resetear zoom y posición
+            escala = 1; tx = 0; ty = 0;
+            aplicarTransform();
+            ultimoTap = 0;
+            return;
+          }
+          ultimoTap = ahora;
+          arrastrando = true;
+          startX = e.touches[0].clientX - tx;
+          startY = e.touches[0].clientY - ty;
+        }
+      }, { passive: false });
+
+      v.addEventListener("touchmove", function(e) {
+        e.preventDefault();
+        if (e.touches.length === 2) {
+          var dist = distancia(e.touches[0], e.touches[1]);
+          escala = Math.max(1, Math.min(6, escalaBase * dist / distInicial));
+          if (escala <= 1) { tx = 0; ty = 0; }
+          aplicarTransform();
+        } else if (e.touches.length === 1 && arrastrando) {
+          if (escala > 1) {
+            tx = e.touches[0].clientX - startX;
+            ty = e.touches[0].clientY - startY;
+            aplicarTransform();
+          }
+        }
+      }, { passive: false });
+
+      v.addEventListener("touchend", function(e) {
+        if (e.touches.length < 2) escalaBase = escala;
+        if (e.touches.length === 0) {
+          arrastrando = false;
+          if (escala <= 1) { tx = 0; ty = 0; aplicarTransform(); }
+        }
+      });
+
+      // Botón cerrar
+      var btnCerrar = document.createElement("button");
+      btnCerrar.innerHTML = "✕";
+      btnCerrar.style.cssText = "position:absolute;top:14px;right:14px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.3);color:#fff;font-size:1.3rem;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center;";
+      btnCerrar.onclick = function() { document.body.removeChild(v); };
+      v.appendChild(btnCerrar);
+
+      // Pista de uso
+      var hint = document.createElement("div");
+      hint.style.cssText = "position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.45);font-size:.7rem;white-space:nowrap;pointer-events:none;text-align:center;";
+      hint.textContent = "Pellizca para zoom · Arrastra para mover · Doble toque para resetear";
+      v.appendChild(hint);
+
       document.body.appendChild(v);
     }
   </script>
