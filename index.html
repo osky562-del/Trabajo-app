@@ -7,6 +7,7 @@
   <title>FurgoTrayler Pro</title>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link
@@ -2094,7 +2095,8 @@
   <script src="config.js"></script>
   <script>
     firebase.initializeApp(firebaseConfig);
-    var db = firebase.database();</script>
+    var db = firebase.database();
+    var auth = firebase.auth();</script>
 
   <!-- LOGIN -->
   <div id="login-screen">
@@ -2482,12 +2484,29 @@
 
       pendingUser = n;
       pendingKey = sanitizeKey(n);
-      
-      document.getElementById('pinTitle').textContent = "HOLA " + n + ", INTRODUCE TU CLAVE";
+
+      document.getElementById('pinTitle').textContent = "HOLA " + n + ", CONECTANDO...";
       pinBuffer = '';
       updatePinDots();
 
-      db.ref('usuarios/' + pendingKey + '/pin').once('value').then(function (snap) {
+      // 1. Autenticar anónimamente con Firebase Auth
+      var authPromise = auth.currentUser ? Promise.resolve() : auth.signInAnonymously();
+      authPromise.then(function () {
+        // 2. Vincular auth UID con el usuario en userMap (solo primera vez)
+        var uid = auth.currentUser.uid;
+        var mapRef = db.ref('userMap/' + uid);
+        return mapRef.once('value').then(function (mapSnap) {
+          if (!mapSnap.exists()) {
+            return mapRef.set(pendingKey);
+          } else if (mapSnap.val() !== pendingKey) {
+            // Este dispositivo ya está vinculado a otro usuario, desvincular y revincular
+            return mapRef.set(pendingKey);
+          }
+        });
+      }).then(function () {
+        // 3. Ahora sí leer el PIN (con auth activo, las reglas lo permiten)
+        return db.ref('usuarios/' + pendingKey + '/pin').once('value');
+      }).then(function (snap) {
         if (snap.exists()) {
           pinMode = 'check';
           document.getElementById('pinTitle').textContent = 'INTRODUCE TU CLAVE';
@@ -2499,6 +2518,9 @@
         }
         document.getElementById('step1').style.display = 'none';
         document.getElementById('step2').style.display = 'block';
+      }).catch(function (err) {
+        console.error('Error auth/login:', err);
+        toast('⚠️ Error de conexión. Reintenta.');
       });
     }
 
@@ -2586,7 +2608,7 @@
     function logout() {
       localStorage.removeItem('FTP_USER');
       localStorage.removeItem('FTP_KEY');
-      location.reload();
+      auth.signOut().finally(function () { location.reload(); });
     }
 
     // Auto-login: si el usuario ya estaba, saltar al paso del PIN directamente
