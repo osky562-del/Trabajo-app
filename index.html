@@ -2418,6 +2418,26 @@
         <p style="font-size:.65rem;color:var(--text2);margin-top:6px;">La matrícula y ruta se registran cada día en la jornada.</p>
       </div>
       <div class="panel">
+        <div class="panel-hd">💾 Copia de seguridad</div>
+        <p style="font-size:.65rem;color:var(--text2);margin-bottom:8px;">Guarda todos tus datos (tacógrafo, jornadas, rutas, config) por si algo falla.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;">
+          <button class="btn-primary" onclick="descargarBackup()" style="font-size:.7rem;">💾 Descargar backup</button>
+          <button class="btn-primary" onclick="document.getElementById('bkpFile').click()" style="font-size:.7rem;background:var(--info);">📂 Restaurar backup</button>
+          <input type="file" id="bkpFile" accept=".json" style="display:none;" onchange="restaurarBackup(this)">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <label class="flbl" style="white-space:nowrap;">Auto-backup:</label>
+          <select id="bkpInterval" onchange="setBkpInterval(this.value)" style="flex:1;">
+            <option value="0">Desactivado</option>
+            <option value="1">Cada 1 hora</option>
+            <option value="6">Cada 6 horas</option>
+            <option value="12">Cada 12 horas</option>
+            <option value="24">Cada 24 horas</option>
+          </select>
+        </div>
+        <div id="bkpStatus" style="font-size:.6rem;color:var(--text2);"></div>
+      </div>
+      <div class="panel">
         <div class="panel-hd">📐 Normativa CE 561/2006</div>
         <div class="lc-grid">
           <div class="lc"><div class="lc-l">Cond. continua máx.</div><div class="lc-v">4h 30min <small>→ pausa 45min</small></div></div>
@@ -2605,6 +2625,7 @@
         document.getElementById('hUser').textContent = pendingUser;
         initCal();
         loadUser();
+        initBkpTimer();
       }).catch(function (err) {
         console.error('Error vinculando usuario:', err);
         toast('⚠️ Error al entrar. Reintenta.');
@@ -2669,6 +2690,120 @@
     function loadCfg() {
       document.getElementById('cfgN').value = cfg.name || '';
       document.getElementById('cfgC').value = cfg.company || '';
+    }
+
+    /* ════════════════════════════════════════════
+       COPIA DE SEGURIDAD
+    ════════════════════════════════════════════ */
+    var bkpTimer = null;
+
+    function crearBackupData() {
+      var viajesObj = {};
+      datos.forEach(function (v) { if (v.start) viajesObj[v.start] = v; });
+      return {
+        version: 1,
+        fecha: new Date().toISOString(),
+        usuario: currentUser,
+        tacoDias: diasT,
+        viajes: viajesObj,
+        rutas: misRutas,
+        cfg: cfg
+      };
+    }
+
+    function guardarBackupLocal() {
+      var bkp = crearBackupData();
+      try {
+        localStorage.setItem('FTP_FULL_BACKUP', JSON.stringify(bkp));
+        localStorage.setItem('FTP_BACKUP_TIME', bkp.fecha);
+      } catch (e) { console.warn('Backup localStorage lleno', e); }
+      updBkpStatus();
+    }
+
+    function descargarBackup() {
+      guardarBackupLocal();
+      var bkp = localStorage.getItem('FTP_FULL_BACKUP');
+      var blob = new Blob([bkp], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'furgotrayler_backup.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('💾 Backup descargado');
+    }
+
+    function restaurarBackup(input) {
+      var file = input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          var bkp = JSON.parse(e.target.result);
+          if (!bkp.tacoDias && !bkp.viajes) { toast('⚠️ Archivo no válido'); return; }
+          var fechaTxt = bkp.fecha ? new Date(bkp.fecha).toLocaleString('es-ES') : 'desconocida';
+          if (!confirm('⚠️ Esto REEMPLAZARÁ todos tus datos actuales con los del backup (' + fechaTxt + '). ¿Continuar?')) { input.value = ''; return; }
+          var ref = db.ref('usuarios/' + currentUser);
+          var updates = {};
+          if (bkp.tacoDias) updates['/tacoDias'] = bkp.tacoDias;
+          if (bkp.viajes) {
+            var vObj = {};
+            if (Array.isArray(bkp.viajes)) {
+              bkp.viajes.forEach(function (v) { if (v.start) vObj[v.start] = v; });
+            } else { vObj = bkp.viajes; }
+            updates['/viajes'] = vObj;
+          }
+          if (bkp.rutas) updates['/rutas'] = bkp.rutas;
+          if (bkp.cfg) updates['/cfg'] = bkp.cfg;
+          ref.update(updates).then(function () {
+            toast('✅ Backup restaurado correctamente');
+          }).catch(function (err) {
+            console.error(err);
+            toast('⚠️ Error al restaurar: ' + err.message);
+          });
+        } catch (err) { toast('⚠️ Error leyendo el archivo'); }
+        input.value = '';
+      };
+      reader.readAsText(file);
+    }
+
+    function setBkpInterval(hours) {
+      localStorage.setItem('FTP_BACKUP_INTERVAL', hours);
+      initBkpTimer();
+      if (parseInt(hours) > 0) {
+        guardarBackupLocal();
+        toast('💾 Auto-backup activado — cada ' + hours + 'h');
+      } else {
+        toast('Auto-backup desactivado');
+      }
+    }
+
+    function initBkpTimer() {
+      if (bkpTimer) { clearInterval(bkpTimer); bkpTimer = null; }
+      var hours = parseInt(localStorage.getItem('FTP_BACKUP_INTERVAL')) || 0;
+      var sel = document.getElementById('bkpInterval');
+      if (sel) sel.value = hours;
+      if (hours > 0) {
+        bkpTimer = setInterval(function () {
+          guardarBackupLocal();
+        }, hours * 3600000);
+      }
+      updBkpStatus();
+    }
+
+    function updBkpStatus() {
+      var el = document.getElementById('bkpStatus');
+      if (!el) return;
+      var lastTime = localStorage.getItem('FTP_BACKUP_TIME');
+      var interval = parseInt(localStorage.getItem('FTP_BACKUP_INTERVAL')) || 0;
+      var html = '';
+      if (lastTime) {
+        html += '✅ Última copia: ' + new Date(lastTime).toLocaleString('es-ES');
+      } else {
+        html += '⚠️ Sin copia de seguridad aún';
+      }
+      if (interval > 0) html += ' · Auto: cada ' + interval + 'h';
+      el.innerHTML = html;
     }
 
     /* ════════════════════════════════════════════
