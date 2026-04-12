@@ -2203,6 +2203,16 @@
           <div class="tfield"><label>KM final</label><input type="number" id="tKF" placeholder="0" min="0"
               oninput="calcTaco()"></div>
         </div>
+        <div style="text-align:right;margin-top:2px;">
+          <a href="#" id="togKm2" onclick="event.preventDefault();var r=document.getElementById('km2Row');var v=r.style.display==='none';r.style.display=v?'grid':'none';this.textContent=v?'▲ Ocultar 2º camión':'▼ 2º camión (noche)'" style="font-size:.65rem;color:var(--text2);text-decoration:none;">▼ 2º camión (noche)</a>
+        </div>
+        <div class="g3" id="km2Row" style="display:none;">
+          <div class="tfield" style="visibility:hidden;"></div>
+          <div class="tfield"><label>KM inicio (2º)</label><input type="number" id="tKI2" placeholder="0" min="0"
+              oninput="calcTaco()"></div>
+          <div class="tfield"><label>KM final (2º)</label><input type="number" id="tKF2" placeholder="0" min="0"
+              oninput="calcTaco()"></div>
+        </div>
         <div class="tfield" style="margin-bottom:10px;"><label>Observaciones</label><input type="text" id="tObs"
             placeholder="Notas opcionales..."></div>
         <button class="btn-primary" onclick="guardarDia()">☁️ GUARDAR DÍA</button>
@@ -2492,19 +2502,7 @@
       // 1. Autenticar anónimamente con Firebase Auth
       var authPromise = auth.currentUser ? Promise.resolve() : auth.signInAnonymously();
       authPromise.then(function () {
-        // 2. Vincular auth UID con el usuario en userMap (solo primera vez)
-        var uid = auth.currentUser.uid;
-        var mapRef = db.ref('userMap/' + uid);
-        return mapRef.once('value').then(function (mapSnap) {
-          if (!mapSnap.exists()) {
-            return mapRef.set(pendingKey);
-          } else if (mapSnap.val() !== pendingKey) {
-            // Este dispositivo ya está vinculado a otro usuario, desvincular y revincular
-            return mapRef.set(pendingKey);
-          }
-        });
-      }).then(function () {
-        // 3. Ahora sí leer el PIN (con auth activo, las reglas lo permiten)
+        // 2. Leer el PIN (las reglas permiten leer pin con solo auth)
         return db.ref('usuarios/' + pendingKey + '/pin').once('value');
       }).then(function (snap) {
         if (snap.exists()) {
@@ -2596,13 +2594,21 @@
 
     function entrarApp() {
       currentUser = pendingKey;
-      localStorage.setItem('FTP_USER', pendingUser);
-      localStorage.setItem('FTP_KEY', pendingKey);
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-      document.getElementById('hUser').textContent = pendingUser;
-      initCal();
-      loadUser();
+      // Vincular auth UID con el usuario en userMap (después de verificar PIN)
+      var uid = auth.currentUser.uid;
+      var mapRef = db.ref('userMap/' + uid);
+      mapRef.set(pendingKey).then(function () {
+        localStorage.setItem('FTP_USER', pendingUser);
+        localStorage.setItem('FTP_KEY', pendingKey);
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('hUser').textContent = pendingUser;
+        initCal();
+        loadUser();
+      }).catch(function (err) {
+        console.error('Error vinculando usuario:', err);
+        toast('⚠️ Error al entrar. Reintenta.');
+      });
     }
 
     function logout() {
@@ -2767,6 +2773,11 @@
       document.getElementById('tHCm').value = mm || '';
       document.getElementById('tKI').value = d.kmIni || '';
       document.getElementById('tKF').value = d.kmFin || '';
+      document.getElementById('tKI2').value = d.kmIni2 || '';
+      document.getElementById('tKF2').value = d.kmFin2 || '';
+      var tiene2 = d.kmIni2 || d.kmFin2;
+      document.getElementById('km2Row').style.display = tiene2 ? 'grid' : 'none';
+      document.getElementById('togKm2').textContent = tiene2 ? '▲ Ocultar 2º camión' : '▼ 2º camión (noche)';
       document.getElementById('tObs').value = d.obs || '';
       calcTaco();
       if(typeof cargarFotos === "function") cargarFotos(ds);
@@ -2778,6 +2789,8 @@
       var hch=parseInt(document.getElementById('tHCh').value)||0, hcm=parseInt(document.getElementById('tHCm').value)||0, hcRaw=hch+(hcm/60);
       var ki = parseInt(document.getElementById('tKI').value) || 0;
       var kf = parseInt(document.getElementById('tKF').value) || 0;
+      var ki2 = parseInt(document.getElementById('tKI2').value) || 0;
+      var kf2 = parseInt(document.getElementById('tKF2').value) || 0;
 
       // Jornada
       var jornMin = 0;
@@ -2801,6 +2814,8 @@
 
       // KM
       var kmRec = kf > ki ? kf - ki : 0;
+      var kmRec2 = kf2 > ki2 ? kf2 - ki2 : 0;
+      var kmTotal = kmRec + kmRec2;
 
       // Analizar descansos semanales
       var turnos = [];
@@ -2853,7 +2868,7 @@
       sv('rPausa', pausaMin > 0 ? pausaMin + 'min' : 'No nec.', '');
       sv('rOtro', otroH > 0 ? hNum(otroH) : '—', '');
       sv('rDesc', jornMin > 0 ? hNum(descH) : '—', descH < 9 ? 'r' : descH < 11 ? 'w' : 'b');
-      sv('rKm', kmRec > 0 ? kmRec + ' km' : '—', kmRec > 0 ? 'g' : '');
+      sv('rKm', kmTotal > 0 ? kmTotal + ' km' + (kmRec2 > 0 ? ' (' + kmRec + '+' + kmRec2 + ')' : '') : '—', kmTotal > 0 ? 'g' : '');
 
       // Alertas (ley de tacógrafo de España - CE 561/2006)
       var al = [];
@@ -2932,11 +2947,14 @@
       var hc = hch + (hcm / 60);
       var ki = parseInt(document.getElementById('tKI').value) || 0;
       var kf = parseInt(document.getElementById('tKF').value) || 0;
+      var ki2 = parseInt(document.getElementById('tKI2').value) || 0;
+      var kf2 = parseInt(document.getElementById('tKF2').value) || 0;
       var obs = document.getElementById('tObs').value;
       if (!ini && !fin && !hc) { toast('⚠️ Introduce al menos hora entrada/salida o horas conducidas'); return; }
       var jornMin = 0;
       if (ini && fin) { var a = tMin(ini), b = tMin(fin); if (b < a) b += 1440; jornMin = b - a; }
       var rec = { horaIni: ini, horaFin: fin, hCond: hc, jornMin: jornMin, kmIni: ki, kmFin: kf, kmRec: kf > ki ? kf - ki : 0, obs: obs, ts: Date.now() };
+      if (ki2 || kf2) { rec.kmIni2 = ki2; rec.kmFin2 = kf2; rec.kmRec2 = kf2 > ki2 ? kf2 - ki2 : 0; }
       diasT[diaActual] = rec;
       tacoRef.child(diaActual).set(rec).then(function () { document.getElementById('syncDot').textContent = '☁️'; }).catch(function () { document.getElementById('syncDot').textContent = '⚠️'; });
       localStorage.setItem('ftp_backup', JSON.stringify(diasT));
@@ -3006,7 +3024,7 @@
         var dt = new Date(inicio); dt.setDate(inicio.getDate() + i);
         if (dt > hoy) break;
         var d = diasT[dt.toLocaleDateString('en-CA')];
-        if (d) { semH += d.hCond || 0; semK += d.kmRec || 0; semD++; }
+        if (d) { semH += d.hCond || 0; semK += (d.kmRec || 0) + (d.kmRec2 || 0); semD++; }
       }
       // Quincena (últimos 14 días)
       for (var j = 0; j < 14; j++) {
@@ -3029,7 +3047,7 @@
       for (var k in diasT) {
         var dt = new Date(k + 'T12:00:00');
         if (dt.getFullYear() === hoy.getFullYear() && dt.getMonth() === hoy.getMonth()) {
-          mesH += diasT[k].hCond || 0; mesK += diasT[k].kmRec || 0; mesD++;
+          mesH += diasT[k].hCond || 0; mesK += (diasT[k].kmRec || 0) + (diasT[k].kmRec2 || 0); mesD++;
         }
       }
       document.getElementById('rMH').textContent = hNum(mesH);
@@ -3136,7 +3154,7 @@
     }
     function limpiarForm() {
       // Solo limpia los campos del formulario, NO toca lo guardado en la nube
-      ['tIni', 'tFin', 'tHCh', 'tHCm', 'tKI', 'tKF', 'tObs'].forEach(function (id) {
+      ['tIni', 'tFin', 'tHCh', 'tHCm', 'tKI', 'tKF', 'tKI2', 'tKF2', 'tObs'].forEach(function (id) {
         document.getElementById(id).value = '';
       });
       calcTaco();
@@ -3270,13 +3288,13 @@
 
       // Acumula datos por matrícula leyendo de las jornadas (datos[])
       // Los km y horas se cruzan con el tacógrafo del mismo día (diasT)
-      function acumular(store, mat, fecha) {
+      function acumular(store, mat, fecha, kmVal) {
         mat = (mat || '').trim().toUpperCase();
         if (!mat) return;
         if (!store[mat]) store[mat] = { dias: 0, km: 0, horas: 0, ultimaFecha: '' };
         var dTaco = diasT[fecha] || {};
         store[mat].dias++;
-        store[mat].km    += dTaco.kmRec || 0;
+        store[mat].km    += kmVal;
         store[mat].horas += dTaco.hCond || 0;
         if (fecha > store[mat].ultimaFecha) store[mat].ultimaFecha = fecha;
       }
@@ -3284,10 +3302,12 @@
       var tractoras = {}, remolques = {};
       datos.forEach(function(j) {
         var p = j.extendedProps || {}, f = j.start;
-        acumular(tractoras, p.t1, f);
-        acumular(tractoras, p.t2, f);
-        acumular(remolques, p.r1, f);
-        acumular(remolques, p.r2, f);
+        var dTaco = diasT[f] || {};
+        var km1 = dTaco.kmRec || 0, km2 = dTaco.kmRec2 || 0;
+        acumular(tractoras, p.t1, f, km1);
+        acumular(tractoras, p.t2, f, km2);
+        acumular(remolques, p.r1, f, km1);
+        acumular(remolques, p.r2, f, km2);
       });
 
       var listT = Object.keys(tractoras).map(function(m){ return Object.assign({mat:m}, tractoras[m]); }).sort(function(a,b){return b.dias-a.dias;});
@@ -3382,7 +3402,7 @@
         var dt = new Date(k + 'T12:00:00');
         if (dt.getFullYear() === y && dt.getMonth() === m) {
           var e = diasT[k];
-          var hc = e.hCond || 0, jm = e.jornMin || 0, km = e.kmRec || 0;
+          var hc = e.hCond || 0, jm = e.jornMin || 0, km = (e.kmRec || 0) + (e.kmRec2 || 0);
           totalH += hc; totalK += km; totalJ += jm; dias++;
           if (hc > maxH) maxH = hc;
           if (jm > maxJ) maxJ = jm;
@@ -3425,7 +3445,7 @@
       var totalH = 0, totalK = 0, totalDias = 0, maxH = 0, maxK = 0, maxJorn = 0, fechaMax = '';
       for (var k in diasT) {
         var e = diasT[k];
-        var hc = e.hCond || 0, km = e.kmRec || 0, jm = e.jornMin || 0;
+        var hc = e.hCond || 0, km = (e.kmRec || 0) + (e.kmRec2 || 0), jm = e.jornMin || 0;
         totalH += hc; totalK += km; totalDias++;
         if (hc > maxH) { maxH = hc; fechaMax = k; }
         if (km > maxK) maxK = km;
@@ -3481,10 +3501,10 @@
     function xCSV() {
       var keys = Object.keys(diasT);
       if (!keys.length) { toast('⚠️ Sin datos del tacógrafo'); return; }
-      var lines = ['# FurgoTrayler Pro - Tacógrafo', '# Conductor: ' + (cfg.name || currentUser || '-'), '# Empresa: ' + (cfg.company || '-'), '# Exportado: ' + new Date().toLocaleDateString('es-ES'), '', 'Fecha,Entrada,Salida,H.Conduccion,Jornada,KM Ini,KM Fin,KM Rec,Obs'];
+      var lines = ['# FurgoTrayler Pro - Tacógrafo', '# Conductor: ' + (cfg.name || currentUser || '-'), '# Empresa: ' + (cfg.company || '-'), '# Exportado: ' + new Date().toLocaleDateString('es-ES'), '', 'Fecha,Entrada,Salida,H.Conduccion,Jornada,KM Ini,KM Fin,KM Rec,KM Ini 2,KM Fin 2,KM Rec 2,Obs'];
       keys.sort().reverse().forEach(function (ds) {
         var d = diasT[ds];
-        lines.push([ds.split('-').reverse().join('/'), d.horaIni || '', d.horaFin || '', d.hCond || 0, d.jornMin ? hNum(d.jornMin / 60) : '', d.kmIni || '', d.kmFin || '', d.kmRec || '', (d.obs || '').replace(/,/g, ';')].join(','));
+        lines.push([ds.split('-').reverse().join('/'), d.horaIni || '', d.horaFin || '', d.hCond || 0, d.jornMin ? hNum(d.jornMin / 60) : '', d.kmIni || '', d.kmFin || '', d.kmRec || '', d.kmIni2 || '', d.kmFin2 || '', d.kmRec2 || '', (d.obs || '').replace(/,/g, ';')].join(','));
       });
       dlCSV(lines.join('\n'), 'tacografo_' + new Date().toISOString().slice(0, 10) + '.csv');
       toast('✅ CSV exportado');
@@ -3534,7 +3554,7 @@
           doc.text(String(d.hCond || 0) + 'h', 86, y);
           doc.setTextColor(200, 215, 235); doc.setFont('helvetica', 'normal');
           doc.text(d.jornMin ? hNum(d.jornMin / 60) : '—', 108, y);
-          doc.text(d.kmRec ? d.kmRec + ' km' : '—', 132, y);
+          var kmTxt = (d.kmRec || 0) + (d.kmRec2 || 0); doc.text(kmTxt > 0 ? kmTxt + ' km' : '—', 132, y);
           doc.text((d.obs || '').substring(0, 22), 152, y);
           y += 7;
         });
