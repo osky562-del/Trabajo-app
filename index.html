@@ -2720,15 +2720,26 @@
       updBkpStatus();
     }
 
-    function descargarBackup() {
+    async function descargarBackup() {
       guardarBackupLocal();
       var bkp = localStorage.getItem('FTP_FULL_BACKUP');
       var blob = new Blob([bkp], { type: 'application/json' });
+      if (window.showSaveFilePicker) {
+        try {
+          var handle = await showSaveFilePicker({
+            suggestedName: 'furgotrayler_backup.json',
+            types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+          });
+          var writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          toast('💾 Backup guardado');
+          return;
+        } catch (e) { if (e.name === 'AbortError') return; }
+      }
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
-      a.href = url;
-      a.download = 'furgotrayler_backup.json';
-      a.click();
+      a.href = url; a.download = 'furgotrayler_backup.json'; a.click();
       URL.revokeObjectURL(url);
       toast('💾 Backup descargado');
     }
