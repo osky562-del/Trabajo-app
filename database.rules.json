@@ -1,0 +1,74 @@
+{
+  "rules": {
+    "usuarios": {
+      "$uid": {
+        ".read": "auth != null && root.child('userMap').child(auth.uid).val() == $uid",
+        ".write": "auth != null && root.child('userMap').child(auth.uid).val() == $uid",
+
+        "pin": {
+          ".read": "auth != null",
+          ".write": "auth != null && (!data.exists() || root.child('userMap').child(auth.uid).val() == $uid)",
+          ".validate": "newData.isString() && newData.val().length == 4 && newData.val().matches(/^[0-9]{4}$/)"
+        },
+        "tacoDias": {
+          "$fecha": {
+            ".validate": "newData.hasChildren(['horaIni','horaFin','ts']) && $fecha.matches(/^\\d{4}-\\d{2}-\\d{2}$/)",
+            "horaIni": { ".validate": "newData.isString() && newData.val().length <= 5" },
+            "horaFin": { ".validate": "newData.isString() && newData.val().length <= 5" },
+            "hCond":   { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 24" },
+            "jornMin": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1440" },
+            "kmIni":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "kmFin":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "kmRec":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "kmIni2":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "kmFin2":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "kmRec2":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "obs":     { ".validate": "newData.isString() && newData.val().length <= 500" },
+            "ts":      { ".validate": "newData.isNumber()" },
+            "$other":  { ".validate": false }
+          }
+        },
+        "viajes": {
+          "$fecha": {
+            ".validate": "newData.hasChildren(['title','start']) && $fecha.matches(/^\\d{4}-\\d{2}-\\d{2}$/)",
+            "title":           { ".validate": "newData.isString() && newData.val().length <= 50" },
+            "start":           { ".validate": "newData.isString() && newData.val().length <= 10" },
+            "backgroundColor": { ".validate": "newData.isString() && newData.val().length <= 20" },
+            "borderColor":     { ".validate": "newData.isString() && newData.val().length <= 20" },
+            "extendedProps": {
+              "tipo":   { ".validate": "newData.isString() && newData.val().matches(/^(dia|noche|fuera|vacas)$/)" },
+              "ruta":   { ".validate": "newData.isString() && newData.val().length <= 100" },
+              "t1":     { ".validate": "newData.isString() && newData.val().length <= 10" },
+              "t2":     { ".validate": "newData.isString() && newData.val().length <= 10" },
+              "r1":     { ".validate": "newData.isString() && newData.val().length <= 100" },
+              "r2":     { ".validate": "newData.isString() && newData.val().length <= 100" },
+              "obs":    { ".validate": "newData.isString() && newData.val().length <= 500" },
+              "$other": { ".validate": false }
+            },
+            "$other": { ".validate": false }
+          }
+        },
+        "rutas": {
+          "$idx": {
+            ".validate": "newData.isString() && newData.val().length <= 100"
+          }
+        },
+        "cfg": {
+          "name":    { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "company": { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "$other":  { ".validate": false }
+        },
+        "$other": { ".validate": false }
+      }
+    },
+    "userMap": {
+      "$authUid": {
+        ".read": "auth != null && auth.uid == $authUid",
+        ".write": "auth != null && auth.uid == $authUid",
+        ".validate": "newData.isString() && newData.val().length <= 50"
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}
