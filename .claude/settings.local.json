@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(find \"L:/mis app/proyectos/app dietas proyectos\" -type f \\\\\\( -name \"*.js\" -o -name \"*.html\" \\\\\\) -exec wc -l {} \\\\;)",
-      "Bash(gh auth:*)",
-      "Bash(git --version)"
-    ]
-  }
-}
