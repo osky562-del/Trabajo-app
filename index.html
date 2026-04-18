@@ -1969,6 +1969,85 @@
       font-size: .78rem;
     }
 
+    /* ── TAMAÑOS EXTRA (gente mayor) ─────────────────── */
+    body.sz-3xl { font-size: 32px; }
+    body.sz-3xl .rc-val        { font-size: 1.8rem; }
+    body.sz-3xl .wsd-d         { font-size: 1.2rem; }
+    body.sz-3xl .tfield input  { font-size: 1.6rem; padding: 17px; }
+    body.sz-3xl input,
+    body.sz-3xl select,
+    body.sz-3xl textarea       { font-size: 1.4rem; padding: 18px; }
+    body.sz-3xl .btn-primary   { font-size: 1.4rem; padding: 20px; }
+    body.sz-3xl .bturno        { font-size: 1.2rem; padding: 17px 4px; }
+    body.sz-3xl .tab-btn       { font-size: .95rem; }
+    body.sz-3xl .tab-btn .ti   { font-size: 1.4rem; }
+    body.sz-3xl .panel-hd,
+    .sz-3xl .tcard-title       { font-size: 1.1rem; }
+    body.sz-3xl .date-lbl      { font-size: 1.5rem; }
+    body.sz-3xl .rc-lbl        { font-size: .9rem; }
+    body.sz-3xl .alrt          { font-size: 1.1rem; }
+    body.sz-3xl .card          { font-size: 1.2rem; }
+    body.sz-3xl .sm-btn        { font-size: 1.05rem; padding: 16px 10px; }
+    body.sz-3xl .nav-btn-d     { font-size: 1rem; padding: 12px 18px; }
+    body.sz-3xl .pin-key       { font-size: 2rem; padding: 20px; }
+    body.sz-3xl .h-clk-t       { font-size: 1.3rem; }
+    body.sz-3xl .pb-head       { font-size: .82rem; }
+    body.sz-3xl .flbl,
+    .sz-3xl .tfield label      { font-size: .82rem; }
+
+    body.sz-4xl { font-size: 38px; }
+    body.sz-4xl .rc-val        { font-size: 2rem; }
+    body.sz-4xl .wsd-d         { font-size: 1.3rem; }
+    body.sz-4xl .tfield input  { font-size: 1.8rem; padding: 19px; }
+    body.sz-4xl input,
+    body.sz-4xl select,
+    body.sz-4xl textarea       { font-size: 1.5rem; padding: 20px; }
+    body.sz-4xl .btn-primary   { font-size: 1.5rem; padding: 22px; }
+    body.sz-4xl .bturno        { font-size: 1.3rem; padding: 19px 4px; }
+    body.sz-4xl .tab-btn       { font-size: 1rem; }
+    body.sz-4xl .tab-btn .ti   { font-size: 1.5rem; }
+    body.sz-4xl .panel-hd,
+    .sz-4xl .tcard-title       { font-size: 1.2rem; }
+    body.sz-4xl .date-lbl      { font-size: 1.6rem; }
+    body.sz-4xl .rc-lbl        { font-size: .95rem; }
+    body.sz-4xl .alrt          { font-size: 1.2rem; }
+    body.sz-4xl .card          { font-size: 1.3rem; }
+    body.sz-4xl .sm-btn        { font-size: 1.1rem; padding: 18px 12px; }
+    body.sz-4xl .nav-btn-d     { font-size: 1.05rem; padding: 14px 20px; }
+    body.sz-4xl .pin-key       { font-size: 2.2rem; padding: 22px; }
+    body.sz-4xl .h-clk-t       { font-size: 1.4rem; }
+    body.sz-4xl .pb-head       { font-size: .85rem; }
+    body.sz-4xl .flbl,
+    .sz-4xl .tfield label      { font-size: .85rem; }
+
+    /* ── MODO CLARO ──────────────────────────────────── */
+    body.light {
+      --bg:      #f5f7fa;
+      --bg2:     #edf0f5;
+      --bg3:     #e2e7ef;
+      --bg4:     #d4dce8;
+      --border:  rgba(0,0,0,.09);
+      --border2: rgba(0,0,0,.16);
+      --text:    #0d1b2a;
+      --text2:   #4a6280;
+      --text3:   #5a7090;
+      --brand2:  #00a872;
+      --ok:      #009955;
+    }
+    body.light header {
+      background: rgba(237,240,245,.96);
+    }
+    body.light .tab-bar {
+      background: var(--bg2);
+      border-color: var(--border2);
+    }
+    body.light .tab-btn {
+      color: var(--text2);
+    }
+    body.light .tab-btn.active {
+      color: var(--text);
+    }
+
     /* CLAVE */
     .pin-dots {
       display: flex;
@@ -2164,6 +2243,7 @@
           <div class="h-clk-d" id="hDt">—</div>
         </div>
         <div class="h-user" id="hUser">—</div>
+        <button class="size-btn" onclick="cycleTheme()" id="themeBtn" title="Modo claro / oscuro">☀️</button>
         <button class="size-btn" onclick="cycleSize()" id="sizeBtn" title="Cambiar tamaño de letra">A+</button>
         <div id="syncDot" style="font-size:.85rem;cursor:default;" title="Nube">☁️</div>
       </div>
@@ -3782,31 +3862,47 @@
     updClk(); setInterval(updClk, 1000);
 
     /* ══ TAMAÑO DE LETRA ══ */
-    var sizes = ['', 'sz-m', 'sz-l', 'sz-xl', 'sz-xxl'];
-    var sizeLabels = ['A', 'A+', 'A++', 'A+++', 'A++++'];
+    var sizes = ['', 'sz-m', 'sz-l', 'sz-xl', 'sz-xxl', 'sz-3xl', 'sz-4xl'];
+    var sizeLabels = ['A', 'A+', 'A++', 'A+++', 'A++++', 'MAYOR', 'MÁXIMO'];
     var sizeIdx = 0;
 
     function cycleSize() {
-      // Quitar clase actual
-      document.body.classList.remove('sz-m', 'sz-l', 'sz-xl', 'sz-xxl');
-      // Avanzar al siguiente
+      sizes.forEach(function (s) { if (s) document.body.classList.remove(s); });
       sizeIdx = (sizeIdx + 1) % sizes.length;
       if (sizes[sizeIdx]) document.body.classList.add(sizes[sizeIdx]);
       document.getElementById('sizeBtn').textContent = sizeLabels[sizeIdx];
-      // Guardar preferencia
       localStorage.setItem('FTP_SIZE', String(sizeIdx));
     }
 
-    // Recuperar tamaño guardado al cargar
+    // ── Tema claro / oscuro ──────────────────────────
+    var themeLight = false;
+
+    function cycleTheme() {
+      themeLight = !themeLight;
+      document.body.classList.toggle('light', themeLight);
+      document.getElementById('themeBtn').textContent = themeLight ? '🌙' : '☀️';
+      localStorage.setItem('FTP_THEME', themeLight ? '1' : '0');
+    }
+
+    // Recuperar preferencias guardadas al cargar
     (function () {
+      // Tamaño
       var saved = parseInt(localStorage.getItem('FTP_SIZE') || '0');
       if (saved > 0 && saved < sizes.length) {
         sizeIdx = saved;
         document.body.classList.add(sizes[sizeIdx]);
-        // El botón se actualiza cuando aparezca el app
         setTimeout(function () {
           var btn = document.getElementById('sizeBtn');
           if (btn) btn.textContent = sizeLabels[sizeIdx];
+        }, 200);
+      }
+      // Tema
+      if (localStorage.getItem('FTP_THEME') === '1') {
+        themeLight = true;
+        document.body.classList.add('light');
+        setTimeout(function () {
+          var btn = document.getElementById('themeBtn');
+          if (btn) btn.textContent = '🌙';
         }, 200);
       }
     })();
