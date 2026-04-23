@@ -2970,10 +2970,10 @@
           + '</div>';
       }
       document.getElementById('weekStrip').innerHTML = html;
-      // Rango de semana en el título
-      var fin = new Date(inicio); fin.setDate(inicio.getDate() + 6);
+      // Rango: los 7 días que se muestran (hace 6 días → hoy)
+      var rangoIni = new Date(hoy); rangoIni.setDate(hoy.getDate() - 6);
       var optsShort = { day: 'numeric', month: 'short' };
-      var rangoTxt = inicio.toLocaleDateString('es-ES', optsShort) + ' – ' + fin.toLocaleDateString('es-ES', optsShort);
+      var rangoTxt = rangoIni.toLocaleDateString('es-ES', optsShort) + ' – ' + hoy.toLocaleDateString('es-ES', optsShort);
       var lblSem = document.getElementById('semanaRango');
       if (lblSem) lblSem.textContent = rangoTxt;
       var hoyS = new Date().toLocaleDateString('en-CA');
