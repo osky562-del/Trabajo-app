@@ -2952,22 +2952,18 @@
       var dn = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
       var hoy = new Date(); hoy.setHours(12,0,0,0);
       var hoyStr = hoy.toLocaleDateString('en-CA');
-      var inicio = getInicioSemTaco();
       var html = '';
-      // Mostrar días desde el inicio de la semana en curso hasta hoy (máx 7)
-      // Los días restantes hasta completar 7 se muestran en gris (futuros)
-      for (var i = 0; i < 7; i++) {
-        var dt = new Date(inicio); dt.setDate(inicio.getDate() + i);
+      // Siempre mostrar los 7 días que terminan en hoy: hoy siempre es el último (derecha)
+      for (var i = 6; i >= 0; i--) {
+        var dt = new Date(hoy); dt.setDate(hoy.getDate() - i);
         var ds = dt.toLocaleDateString('en-CA');
         var d = diasT[ds];
-        var esFuturo = ds > hoyStr;
         var cls = 'wsd'
           + (ds === diaActual ? ' sel' : '')
           + (d ? ' saved' : '')
-          + (ds === hoyStr ? ' today-d' : '')
-          + (esFuturo ? ' future-d' : '');
+          + (ds === hoyStr ? ' today-d' : '');
         var hStr = d && d.hCond ? hNum(d.hCond) : '—';
-        html += '<div class="' + cls + '"' + (!esFuturo ? ' onclick="selDia(\'' + ds + '\')"' : '') + '>'
+        html += '<div class="' + cls + '" onclick="selDia(\'' + ds + '\')">'
           + '<div class="wsd-n">' + dn[dt.getDay()] + '</div>'
           + '<div class="wsd-d">' + dt.getDate() + '</div>'
           + '<div class="wsd-h">' + hStr + '</div>'
