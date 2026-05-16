@@ -7,11 +7,10 @@
   <title>FurgoTrayler Pro</title>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link
-    href="https://fonts.googleapis.com/css2?family=Russo+One&family=Share+Tech+Mono&family=Inter:wght@400;500;600;700;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Russo+One&family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500;600&display=swap"
     rel="stylesheet">
   <style>
     :root {
@@ -52,8 +51,7 @@
     }
 
     body {
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -232,8 +230,8 @@
 
     .h-brand {
       font-family: 'Russo One', sans-serif;
-      letter-spacing: 1px;
-      font-size: 0.58rem;
+      letter-spacing: 2px;
+      font-size: 1.05rem;
       display: flex;
       align-items: center;
       gap: 2px;
@@ -248,14 +246,14 @@
     }
 
     .h-brand .pro {
-      font-size: .38rem;
+      font-size: .5rem;
       color: var(--brand2);
       letter-spacing: 1px;
       background: rgba(0, 229, 160, .1);
       border: 1px solid rgba(0, 229, 160, .3);
       border-radius: 3px;
-      padding: 1px 3px;
-      margin-left: 3px;
+      padding: 1px 4px;
+      margin-left: 4px;
       font-family: 'Share Tech Mono', monospace;
     }
 
@@ -400,26 +398,6 @@
       flex: 1;
       height: 1px;
       background: var(--border);
-    }
-
-    /* Paneles desplegables en Stats */
-    details.panel > summary.panel-hd {
-      cursor: pointer;
-      margin-bottom: 0;
-      list-style: none;
-      user-select: none;
-    }
-    details.panel > summary.panel-hd::-webkit-details-marker { display: none; }
-    details.panel > summary.panel-hd::before {
-      content: '▶';
-      font-size: .55rem;
-      color: var(--text2);
-      transition: transform .2s;
-      flex-shrink: 0;
-      margin-right: 2px;
-    }
-    details.panel[open] > summary.panel-hd::before {
-      transform: rotate(90deg);
     }
 
     input,
@@ -711,11 +689,6 @@
       color: var(--cd);
       margin-top: 2px;
       font-family: 'Share Tech Mono', monospace;
-    }
-
-    .wsd.future-d {
-      opacity: .35;
-      cursor: default;
     }
 
     .tcard {
@@ -1365,29 +1338,6 @@
       line-height: 1.4
     }
 
-    .hist-actions {
-      display: flex;
-      gap: 6px;
-      margin-top: 7px;
-    }
-    .hist-btn {
-      flex: 1;
-      padding: 5px 8px;
-      font-size: .6rem;
-      border: 1px solid var(--border2);
-      border-radius: 5px;
-      background: var(--bg3);
-      color: var(--text2);
-      cursor: pointer;
-      font-family: inherit;
-      transition: background .2s, color .2s;
-    }
-    .hist-btn:hover, .hist-btn:active {
-      background: var(--brand2);
-      color: var(--bg1);
-      border-color: var(--brand2);
-    }
-
     /* STATS */
     .chart-grid {
       display: grid;
@@ -1513,76 +1463,6 @@
       font-size: .52rem;
       color: var(--text2);
       margin-top: 3px
-    }
-
-    /* STATS GRID */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .stat-card {
-      background: var(--bg3);
-      border-radius: 8px;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .stat-card .sc-label {
-      font-size: .58rem;
-      color: var(--text2);
-      text-transform: uppercase;
-      letter-spacing: .5px;
-    }
-    .stat-card .sc-value {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .stat-card .sc-sub {
-      font-size: .55rem;
-      color: var(--text2);
-    }
-    .stat-card.accent .sc-value { color: var(--cd); }
-    .stat-card.warn .sc-value { color: var(--cb); }
-    .stat-card.info .sc-value { color: var(--cr); }
-    .stat-card.purple .sc-value { color: var(--cw); }
-
-    /* BAR CHART 30 días */
-    .stats-barchart {
-      display: flex;
-      align-items: flex-end;
-      gap: 2px;
-      height: 90px;
-      padding: 4px 0;
-    }
-    .sbc-bar {
-      flex: 1;
-      min-width: 0;
-      border-radius: 3px 3px 0 0;
-      background: var(--cd);
-      position: relative;
-      transition: height .4s ease;
-      cursor: default;
-    }
-    .sbc-bar.over { background: var(--danger); }
-    .sbc-bar:hover::after {
-      content: attr(data-tip);
-      position: absolute;
-      bottom: calc(100% + 4px);
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--bg1);
-      color: var(--text);
-      font-size: .55rem;
-      font-family: 'Share Tech Mono', monospace;
-      padding: 3px 6px;
-      border-radius: 4px;
-      white-space: nowrap;
-      border: 1px solid var(--border);
-      z-index: 10;
     }
 
     /* CONFIG */
@@ -1970,85 +1850,6 @@
       font-size: .78rem;
     }
 
-    /* ── TAMAÑOS EXTRA (gente mayor) ─────────────────── */
-    body.sz-3xl { font-size: 32px; }
-    body.sz-3xl .rc-val        { font-size: 1.8rem; }
-    body.sz-3xl .wsd-d         { font-size: 1.2rem; }
-    body.sz-3xl .tfield input  { font-size: 1.6rem; padding: 17px; }
-    body.sz-3xl input,
-    body.sz-3xl select,
-    body.sz-3xl textarea       { font-size: 1.4rem; padding: 18px; }
-    body.sz-3xl .btn-primary   { font-size: 1.4rem; padding: 20px; }
-    body.sz-3xl .bturno        { font-size: 1.2rem; padding: 17px 4px; }
-    body.sz-3xl .tab-btn       { font-size: .95rem; }
-    body.sz-3xl .tab-btn .ti   { font-size: 1.4rem; }
-    body.sz-3xl .panel-hd,
-    .sz-3xl .tcard-title       { font-size: 1.1rem; }
-    body.sz-3xl .date-lbl      { font-size: 1.5rem; }
-    body.sz-3xl .rc-lbl        { font-size: .9rem; }
-    body.sz-3xl .alrt          { font-size: 1.1rem; }
-    body.sz-3xl .card          { font-size: 1.2rem; }
-    body.sz-3xl .sm-btn        { font-size: 1.05rem; padding: 16px 10px; }
-    body.sz-3xl .nav-btn-d     { font-size: 1rem; padding: 12px 18px; }
-    body.sz-3xl .pin-key       { font-size: 2rem; padding: 20px; }
-    body.sz-3xl .h-clk-t       { font-size: 1.3rem; }
-    body.sz-3xl .pb-head       { font-size: .82rem; }
-    body.sz-3xl .flbl,
-    .sz-3xl .tfield label      { font-size: .82rem; }
-
-    body.sz-4xl { font-size: 38px; }
-    body.sz-4xl .rc-val        { font-size: 2rem; }
-    body.sz-4xl .wsd-d         { font-size: 1.3rem; }
-    body.sz-4xl .tfield input  { font-size: 1.8rem; padding: 19px; }
-    body.sz-4xl input,
-    body.sz-4xl select,
-    body.sz-4xl textarea       { font-size: 1.5rem; padding: 20px; }
-    body.sz-4xl .btn-primary   { font-size: 1.5rem; padding: 22px; }
-    body.sz-4xl .bturno        { font-size: 1.3rem; padding: 19px 4px; }
-    body.sz-4xl .tab-btn       { font-size: 1rem; }
-    body.sz-4xl .tab-btn .ti   { font-size: 1.5rem; }
-    body.sz-4xl .panel-hd,
-    .sz-4xl .tcard-title       { font-size: 1.2rem; }
-    body.sz-4xl .date-lbl      { font-size: 1.6rem; }
-    body.sz-4xl .rc-lbl        { font-size: .95rem; }
-    body.sz-4xl .alrt          { font-size: 1.2rem; }
-    body.sz-4xl .card          { font-size: 1.3rem; }
-    body.sz-4xl .sm-btn        { font-size: 1.1rem; padding: 18px 12px; }
-    body.sz-4xl .nav-btn-d     { font-size: 1.05rem; padding: 14px 20px; }
-    body.sz-4xl .pin-key       { font-size: 2.2rem; padding: 22px; }
-    body.sz-4xl .h-clk-t       { font-size: 1.4rem; }
-    body.sz-4xl .pb-head       { font-size: .85rem; }
-    body.sz-4xl .flbl,
-    .sz-4xl .tfield label      { font-size: .85rem; }
-
-    /* ── MODO CLARO ──────────────────────────────────── */
-    body.light {
-      --bg:      #f5f7fa;
-      --bg2:     #edf0f5;
-      --bg3:     #e2e7ef;
-      --bg4:     #d4dce8;
-      --border:  rgba(0,0,0,.09);
-      --border2: rgba(0,0,0,.16);
-      --text:    #0d1b2a;
-      --text2:   #4a6280;
-      --text3:   #5a7090;
-      --brand2:  #00a872;
-      --ok:      #009955;
-    }
-    body.light header {
-      background: rgba(237,240,245,.96);
-    }
-    body.light .tab-bar {
-      background: var(--bg2);
-      border-color: var(--border2);
-    }
-    body.light .tab-btn {
-      color: var(--text2);
-    }
-    body.light .tab-btn.active {
-      color: var(--text);
-    }
-
     /* CLAVE */
     .pin-dots {
       display: flex;
@@ -2160,11 +1961,6 @@
     .photo-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
     .photo-del { position: absolute; top: 2px; right: 2px; background: rgba(255, 82, 82, 0.8); color: white; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
     .camera-dot { background: #00ff00; border-radius: 50%; width: 8px; height: 8px; position: absolute; left: 18px; top: 4px; box-shadow: 0 0 8px #00ff00; z-index: 5; pointer-events: none; }
-    .mat-table { width: 100%; border-collapse: collapse; font-size: .7rem; }
-    .mat-table th { color: var(--text2); font-size: .58rem; letter-spacing: .5px; text-transform: uppercase; padding: 5px 6px; text-align: left; border-bottom: 1px solid var(--border); }
-    .mat-table td { padding: 7px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-    .mat-table tr:last-child td { border-bottom: none; }
-    .mat-table tr:hover td { background: var(--bg3); }
   </style>
 </head>
 
@@ -2176,7 +1972,15 @@
   <script>
     firebase.initializeApp(firebaseConfig);
     var db = firebase.database();
-    var auth = firebase.auth();</script>
+    
+    // Global error handler for debugging
+    window.onerror = function(msg, url, line, col, error) {
+      var fullMsg = '❌ Error: ' + msg + ' (L' + line + ')';
+      if (typeof toast === 'function') toast(fullMsg);
+      console.error(fullMsg, error);
+      return false;
+    };
+  </script>
 
   <!-- LOGIN -->
   <div id="login-screen">
@@ -2232,11 +2036,11 @@
   <!-- APP -->
   <div id="app">
     <header>
-      <div class="h-brand" style="display: flex; flex-direction: column; align-items: center; gap: 0;">
+      <div class="h-brand" style="display: flex; flex-direction: column; align-items: flex-start; gap: 0;">
         <div style="display: flex; align-items: center; gap: 2px;">
           <span class="ft">FURGO</span><span class="tr">TRAYLER</span><span class="pro">PRO</span>
         </div>
-        <div style="font-size: 0.58rem; color: var(--brand2); letter-spacing: 5px; font-family: 'Inter', sans-serif; font-weight: 800; margin-top: 1px; width: 100%; text-align: center;">ASTORGA</div>
+        <div style="font-size: 0.55rem; color: var(--brand2); letter-spacing: 3px; font-family: 'Share Tech Mono', monospace; margin-top: -2px;">ASTORGA</div>
       </div>
       <div class="h-right">
         <div class="h-clk">
@@ -2244,7 +2048,6 @@
           <div class="h-clk-d" id="hDt">—</div>
         </div>
         <div class="h-user" id="hUser">—</div>
-        <button class="size-btn" onclick="cycleTheme()" id="themeBtn" title="Modo claro / oscuro">☀️</button>
         <button class="size-btn" onclick="cycleSize()" id="sizeBtn" title="Cambiar tamaño de letra">A+</button>
         <div id="syncDot" style="font-size:.85rem;cursor:default;" title="Nube">☁️</div>
       </div>
@@ -2261,11 +2064,9 @@
     <!-- ══ TAB TACÓGRAFO ══ -->
     <div class="tab-content active" id="tab-taco">
       <div class="date-nav">
-        <button class="nav-btn-d" onclick="navDia(-1)">◀</button>
-        <span class="date-lbl" id="dateLbl" onclick="document.getElementById('dateJump').showPicker()" style="cursor:pointer;">HOY</span>
-        <input type="date" id="dateJump" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0;" onchange="saltarADia(this.value)">
-        <button class="nav-btn-d" id="btnNext" onclick="navDia(1)">▶</button>
-        <button class="nav-btn-d" onclick="irAHoy()" style="font-size:.65rem;padding:6px 10px;margin-left:4px;">HOY</button>
+        <button class="nav-btn-d" onclick="navDia(-1)">◀ Anterior</button>
+        <span class="date-lbl" id="dateLbl">HOY</span>
+        <button class="nav-btn-d" id="btnNext" onclick="navDia(1)">Siguiente ▶</button>
       </div>
       <div class="week-strip" id="weekStrip"></div>
 
@@ -2282,16 +2083,6 @@
           <div class="tfield"><label>KM inicio</label><input type="number" id="tKI" placeholder="0" min="0"
               oninput="calcTaco()"></div>
           <div class="tfield"><label>KM final</label><input type="number" id="tKF" placeholder="0" min="0"
-              oninput="calcTaco()"></div>
-        </div>
-        <div style="text-align:right;margin-top:2px;">
-          <a href="#" id="togKm2" onclick="event.preventDefault();var r=document.getElementById('km2Row');var v=r.style.display==='none';r.style.display=v?'grid':'none';this.textContent=v?'▲ Ocultar 2º camión':'▼ 2º camión (noche)'" style="font-size:.65rem;color:var(--text2);text-decoration:none;">▼ 2º camión (noche)</a>
-        </div>
-        <div class="g3" id="km2Row" style="display:none;">
-          <div class="tfield" style="visibility:hidden;"></div>
-          <div class="tfield"><label>KM inicio (2º)</label><input type="number" id="tKI2" placeholder="0" min="0"
-              oninput="calcTaco()"></div>
-          <div class="tfield"><label>KM final (2º)</label><input type="number" id="tKF2" placeholder="0" min="0"
               oninput="calcTaco()"></div>
         </div>
         <div class="tfield" style="margin-bottom:10px;"><label>Observaciones</label><input type="text" id="tObs"
@@ -2340,7 +2131,7 @@
 
       <!-- Resumen semana -->
       <div class="tcard">
-        <div class="tcard-title">📊 Semana actual <span id="semanaRango" style="font-weight:400;font-size:.6rem;opacity:.7;"></span></div>
+        <div class="tcard-title">📊 Semana actual</div>
         <div class="pb-group">
           <div><div class="pb-head"><span>Conducción semanal</span><span id="pbSLbl">0h / 56h</span></div><div class="pb-track"><div class="pb-fill l0" id="pbS" style="width:0%"></div></div></div>
           <div><div class="pb-head"><span>Conducción quincenal</span><span id="pbQLbl">0h / 90h</span></div><div class="pb-track"><div class="pb-fill bl" id="pbQ" style="width:0%"></div></div></div>
@@ -2410,77 +2201,41 @@
 
     <!-- ══ TAB STATS ══ -->
     <div class="tab-content" id="tab-stats">
-
-      <!-- Resumen rápido del día -->
-      <details class="panel" open>
-        <summary class="panel-hd">📊 Distribución de hoy</summary>
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:10px;">
-          <svg width="100" height="100" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="38" fill="none" stroke="var(--bg4)" stroke-width="14" />
-            <circle id="da1" cx="50" cy="50" r="38" fill="none" stroke="var(--cd)" stroke-width="14" stroke-dasharray="0 239" transform="rotate(-90 50 50)" />
-            <circle id="da2" cx="50" cy="50" r="38" fill="none" stroke="var(--cr)" stroke-width="14" stroke-dasharray="0 239" transform="rotate(-90 50 50)" />
-            <circle id="da3" cx="50" cy="50" r="38" fill="none" stroke="var(--cb)" stroke-width="14" stroke-dasharray="0 239" transform="rotate(-90 50 50)" />
-            <circle id="da4" cx="50" cy="50" r="38" fill="none" stroke="var(--cw)" stroke-width="14" stroke-dasharray="0 239" transform="rotate(-90 50 50)" />
-            <text id="donutCenter" x="50" y="54" text-anchor="middle" fill="var(--text)" font-size="13" font-weight="700" font-family="Share Tech Mono, monospace">—</text>
-          </svg>
-          <div class="dl" style="flex:1;min-width:120px;">
-            <div class="dli"><div class="dld" style="background:var(--cd)"></div>Conducción<span class="dlv" id="dlD">—</span></div>
-            <div class="dli"><div class="dld" style="background:var(--cr)"></div>Descanso<span class="dlv" id="dlR">—</span></div>
-            <div class="dli"><div class="dld" style="background:var(--cb)"></div>Pausa<span class="dlv" id="dlB">—</span></div>
-            <div class="dli"><div class="dld" style="background:var(--cw)"></div>Otro trabajo<span class="dlv" id="dlW">—</span></div>
+      <div class="panel">
+        <div class="panel-hd">📅 Semana (tacógrafo)</div>
+        <div class="wk-grid" id="wkGrid"></div>
+      </div>
+      <div class="chart-grid">
+        <div class="cbox">
+          <div class="ctit">Distribución hoy</div>
+          <div class="dw">
+            <svg width="74" height="74" viewBox="0 0 74 74">
+              <circle cx="37" cy="37" r="29" fill="none" stroke="var(--bg4)" stroke-width="11" />
+              <circle id="da1" cx="37" cy="37" r="29" fill="none" stroke="var(--cd)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
+              <circle id="da2" cx="37" cy="37" r="29" fill="none" stroke="var(--cr)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
+              <circle id="da3" cx="37" cy="37" r="29" fill="none" stroke="var(--cb)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
+              <circle id="da4" cx="37" cy="37" r="29" fill="none" stroke="var(--cw)" stroke-width="11" stroke-dasharray="0 182" transform="rotate(-90 37 37)" />
+            </svg>
+            <div class="dl">
+              <div class="dli"><div class="dld" style="background:var(--cd)"></div>Cond.<span class="dlv" id="dlD">—</span></div>
+              <div class="dli"><div class="dld" style="background:var(--cr)"></div>Desc.<span class="dlv" id="dlR">—</span></div>
+              <div class="dli"><div class="dld" style="background:var(--cb)"></div>Pausa<span class="dlv" id="dlB">—</span></div>
+              <div class="dli"><div class="dld" style="background:var(--cw)"></div>Otro<span class="dlv" id="dlW">—</span></div>
+            </div>
           </div>
         </div>
-      </details>
-
-      <!-- Límites legales -->
-      <details class="panel" open>
-        <summary class="panel-hd">⚖️ Límites legales</summary>
-        <div id="limBar" style="margin-top:10px;"></div>
-      </details>
-
-      <!-- Semana tacógrafo -->
-      <details class="panel" open>
-        <summary class="panel-hd">📅 Semana (tacógrafo)</summary>
-        <div class="wk-grid" id="wkGrid" style="margin-top:10px;"></div>
-      </details>
-
-      <!-- Estadísticas del mes -->
-      <details class="panel">
-        <summary class="panel-hd">📈 Estadísticas del mes</summary>
-        <div class="stats-grid" id="statsMonth" style="margin-top:10px;"></div>
-      </details>
-
-      <!-- Gráfico barras mensual -->
-      <details class="panel">
-        <summary class="panel-hd">📊 Últimos 30 días — Conducción diaria</summary>
-        <div class="stats-barchart" id="statsBarChart" style="margin-top:10px;"></div>
-      </details>
-
-      <!-- Jornadas del periodo -->
-      <details class="panel">
-        <summary class="panel-hd">🗓 Jornadas del periodo</summary>
-        <div class="dsts" style="margin-top:10px;">
+        <div class="cbox"><div class="ctit">Límites legales %</div><div id="limBar"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd">🗓 Jornadas del periodo</div>
+        <div class="dsts">
           <div class="dst"><span class="dst-i">☀️</span><span class="dst-v" id="stDia">0</span><span class="dst-l">DÍA</span></div>
           <div class="dst"><span class="dst-i">🌙</span><span class="dst-v" id="stNoche">0</span><span class="dst-l">NOCHE</span></div>
           <div class="dst"><span class="dst-i">🏨</span><span class="dst-v" id="stFuera">0</span><span class="dst-l">FUERA</span></div>
           <div class="dst"><span class="dst-i">🌴</span><span class="dst-v" id="stVacas">0</span><span class="dst-l">VACAS</span></div>
           <div class="dst eur"><span class="dst-i">💶</span><span class="dst-v" id="stEuros">0</span><span class="dst-l">DOM€</span></div>
         </div>
-      </details>
-
-      <!-- Histórico global -->
-      <details class="panel">
-        <summary class="panel-hd">🏆 Récords y acumulados</summary>
-        <div class="stats-grid" id="statsGlobal" style="margin-top:10px;"></div>
-      </details>
-
-      <!-- Estadísticas matrículas -->
-      <details class="panel">
-        <summary class="panel-hd">🚛 Estadísticas por matrícula</summary>
-        <div id="statsMatResumen" class="stats-grid" style="margin-bottom:10px;margin-top:10px;"></div>
-        <div id="statsMatTabla"></div>
-      </details>
-
+      </div>
     </div>
 
     <!-- ══ TAB CONFIG ══ -->
@@ -2497,26 +2252,6 @@
           <div><label class="flbl" style="display:block;margin-bottom:4px;">Empresa</label><input type="text" id="cfgC" placeholder="Empresa" oninput="saveCfg()"></div>
         </div>
         <p style="font-size:.65rem;color:var(--text2);margin-top:6px;">La matrícula y ruta se registran cada día en la jornada.</p>
-      </div>
-      <div class="panel">
-        <div class="panel-hd">💾 Copia de seguridad</div>
-        <p style="font-size:.65rem;color:var(--text2);margin-bottom:8px;">Guarda todos tus datos (tacógrafo, jornadas, rutas, config) por si algo falla.</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;">
-          <button class="btn-primary" onclick="descargarBackup()" style="font-size:.7rem;">💾 Descargar backup</button>
-          <button class="btn-primary" onclick="document.getElementById('bkpFile').click()" style="font-size:.7rem;background:var(--info);">📂 Restaurar backup</button>
-          <input type="file" id="bkpFile" accept=".json" style="display:none;" onchange="restaurarBackup(this)">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          <label class="flbl" style="white-space:nowrap;">Auto-backup:</label>
-          <select id="bkpInterval" onchange="setBkpInterval(this.value)" style="flex:1;">
-            <option value="0">Desactivado</option>
-            <option value="1">Cada 1 hora</option>
-            <option value="6">Cada 6 horas</option>
-            <option value="12">Cada 12 horas</option>
-            <option value="24">Cada 24 horas</option>
-          </select>
-        </div>
-        <div id="bkpStatus" style="font-size:.6rem;color:var(--text2);"></div>
       </div>
       <div class="panel">
         <div class="panel-hd">📐 Normativa CE 561/2006</div>
@@ -2566,7 +2301,7 @@
 
       // 1. Unificaciones Específicas (Alias Prioritarios)
       if (n === "GUSTAVO" || n === "GUSTAVO TERENTE") return "GUSTAVO TERENTE";
-      if (n === "AGUSTIN" || n === "AGUSTÍN") return "AGUSTÍN";
+      if (n === "AGUSTIN" || n === "AGUSTÍN") return "AGUSTIN";
       if (n === "BRAÑA" || n === "BRANA") return "BRANA";
 
       // 2. Sanitización General para otros usuarios
@@ -2575,7 +2310,6 @@
         .replace(/Á/g, 'A').replace(/á/g, 'A')
         .replace(/É/g, 'E').replace(/é/g, 'E')
         .replace(/Í/g, 'I').replace(/í/g, 'I')
-
         .replace(/Ó/g, 'O').replace(/ó/g, 'O')
         .replace(/Ú/g, 'U').replace(/ú/g, 'U')
         .replace(/Ü/g, 'U').replace(/ü/g, 'U')
@@ -2587,25 +2321,21 @@
       if (!n) { toast('⚠️ Escribe tu nombre'); return; }
 
       // Lista Restrictiva de Usuarios Autorizados
-      var allowedUsers = ["BRANA", "BRAÑA", "OSCAR", "PEDRO", "IVAN", "GUSTAVO", "GUSTAVO TERENTE", "CHEMA", "AGUSTIN", "AGUSTÍN", "RIVERA"];
+      var allowedUsers = ["BRANA", "BRAÑA", "OSCAR", "OSKY", "PEDRO", "IVAN", "GUSTAVO", "GUSTAVO TERENTE", "CHEMA", "AGUSTIN", "AGUSTÍN"];
       if (!allowedUsers.includes(n)) {
         toast('⚠️ Usuario no autorizado');
+        console.warn('Usuario no autorizado:', n);
         return;
       }
 
       pendingUser = n;
       pendingKey = sanitizeKey(n);
-
-      document.getElementById('pinTitle').textContent = "HOLA " + n + ", CONECTANDO...";
+      
+      document.getElementById('pinTitle').textContent = "HOLA " + n + ", INTRODUCE TU CLAVE";
       pinBuffer = '';
       updatePinDots();
 
-      // 1. Autenticar anónimamente con Firebase Auth
-      var authPromise = auth.currentUser ? Promise.resolve() : auth.signInAnonymously();
-      authPromise.then(function () {
-        // 2. Leer el PIN (las reglas permiten leer pin con solo auth)
-        return db.ref('usuarios/' + pendingKey + '/pin').once('value');
-      }).then(function (snap) {
+      db.ref('usuarios/' + pendingKey + '/pin').once('value').then(function (snap) {
         if (snap.exists()) {
           pinMode = 'check';
           document.getElementById('pinTitle').textContent = 'INTRODUCE TU CLAVE';
@@ -2617,9 +2347,9 @@
         }
         document.getElementById('step1').style.display = 'none';
         document.getElementById('step2').style.display = 'block';
-      }).catch(function (err) {
-        console.error('Error auth/login:', err);
-        toast('⚠️ Error de conexión. Reintenta.');
+      }).catch(function(err) {
+        console.error("Error al conectar con la base de datos:", err);
+        toast('❌ Error de conexión: Revisa tu internet o contacta con soporte');
       });
     }
 
@@ -2669,6 +2399,11 @@
             document.getElementById('pinHint').textContent = 'Clave incorrecta. Inténtalo de nuevo.';
             pinBuffer = '';
           }
+        }, function(err) {
+          console.error("Error al verificar PIN:", err);
+          toast('❌ Error de validación: ' + err.message);
+          pinBuffer = '';
+          updatePinDots();
         });
       } else if (pinMode === 'set') {
         // Guardar primer PIN y pedir confirmación
@@ -2695,28 +2430,19 @@
 
     function entrarApp() {
       currentUser = pendingKey;
-      // Vincular auth UID con el usuario en userMap (después de verificar PIN)
-      var uid = auth.currentUser.uid;
-      var mapRef = db.ref('userMap/' + uid);
-      mapRef.set(pendingKey).then(function () {
-        localStorage.setItem('FTP_USER', pendingUser);
-        localStorage.setItem('FTP_KEY', pendingKey);
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-        document.getElementById('hUser').textContent = pendingUser;
-        initCal();
-        loadUser();
-        initBkpTimer();
-      }).catch(function (err) {
-        console.error('Error vinculando usuario:', err);
-        toast('⚠️ Error al entrar. Reintenta.');
-      });
+      localStorage.setItem('FTP_USER', pendingUser);
+      localStorage.setItem('FTP_KEY', pendingKey);
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('hUser').textContent = pendingUser;
+      initCal();
+      loadUser();
     }
 
     function logout() {
       localStorage.removeItem('FTP_USER');
       localStorage.removeItem('FTP_KEY');
-      auth.signOut().finally(function () { location.reload(); });
+      location.reload();
     }
 
     // Auto-login: si el usuario ya estaba, saltar al paso del PIN directamente
@@ -2741,6 +2467,10 @@
         updMes();
         if (document.getElementById('tab-stats').classList.contains('active')) updStats();
         document.getElementById('syncDot').textContent = '☁️';
+      }, function(err) {
+        console.error("Error en tacoRef:", err);
+        toast('⚠️ Error de sincronización (Tacógrafo)');
+        document.getElementById('syncDot').textContent = '❌';
       });
       // Jornadas calendario
       jornadasRef = db.ref('usuarios/' + currentUser + '/viajes');
@@ -2751,17 +2481,24 @@
         repintarCal();
         if (document.getElementById('tab-hist').classList.contains('active')) paintHist();
         if (document.getElementById('tab-stats').classList.contains('active')) updStats();
+      }, function(err) {
+        console.error("Error en jornadasRef:", err);
+        toast('⚠️ Error de sincronización (Jornadas)');
       });
       // Rutas
       db.ref('usuarios/' + currentUser + '/rutas').on('value', function (snap) {
         if (snap.val()) misRutas = snap.val();
         paintRutas(); buildSelR();
+      }, function(err) {
+        console.error("Error en rutas listener:", err);
       });
       // Config
       db.ref('usuarios/' + currentUser + '/cfg').on('value', function (snap) {
         if (snap.val()) cfg = snap.val();
         document.getElementById('cfgN').value = cfg.name || '';
         document.getElementById('cfgC').value = cfg.company || '';
+      }, function(err) {
+        console.error("Error en cfg listener:", err);
       });
     }
     function saveCfg() {
@@ -2771,131 +2508,6 @@
     function loadCfg() {
       document.getElementById('cfgN').value = cfg.name || '';
       document.getElementById('cfgC').value = cfg.company || '';
-    }
-
-    /* ════════════════════════════════════════════
-       COPIA DE SEGURIDAD
-    ════════════════════════════════════════════ */
-    var bkpTimer = null;
-
-    function crearBackupData() {
-      var viajesObj = {};
-      datos.forEach(function (v) { if (v.start) viajesObj[v.start] = v; });
-      return {
-        version: 1,
-        fecha: new Date().toISOString(),
-        usuario: currentUser,
-        tacoDias: diasT,
-        viajes: viajesObj,
-        rutas: misRutas,
-        cfg: cfg
-      };
-    }
-
-    function guardarBackupLocal() {
-      var bkp = crearBackupData();
-      try {
-        localStorage.setItem('FTP_FULL_BACKUP', JSON.stringify(bkp));
-        localStorage.setItem('FTP_BACKUP_TIME', bkp.fecha);
-      } catch (e) { console.warn('Backup localStorage lleno', e); }
-      updBkpStatus();
-    }
-
-    async function descargarBackup() {
-      guardarBackupLocal();
-      var bkp = localStorage.getItem('FTP_FULL_BACKUP');
-      var blob = new Blob([bkp], { type: 'application/json' });
-      if (window.showSaveFilePicker) {
-        try {
-          var handle = await showSaveFilePicker({
-            suggestedName: 'furgotrayler_backup.json',
-            types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
-          });
-          var writable = await handle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-          toast('💾 Backup guardado');
-          return;
-        } catch (e) { if (e.name === 'AbortError') return; }
-      }
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url; a.download = 'furgotrayler_backup.json'; a.click();
-      URL.revokeObjectURL(url);
-      toast('💾 Backup descargado');
-    }
-
-    function restaurarBackup(input) {
-      var file = input.files[0];
-      if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        try {
-          var bkp = JSON.parse(e.target.result);
-          if (!bkp.tacoDias && !bkp.viajes) { toast('⚠️ Archivo no válido'); return; }
-          var fechaTxt = bkp.fecha ? new Date(bkp.fecha).toLocaleString('es-ES') : 'desconocida';
-          if (!confirm('⚠️ Esto REEMPLAZARÁ todos tus datos actuales con los del backup (' + fechaTxt + '). ¿Continuar?')) { input.value = ''; return; }
-          var ref = db.ref('usuarios/' + currentUser);
-          var updates = {};
-          if (bkp.tacoDias) updates['/tacoDias'] = bkp.tacoDias;
-          if (bkp.viajes) {
-            var vObj = {};
-            if (Array.isArray(bkp.viajes)) {
-              bkp.viajes.forEach(function (v) { if (v.start) vObj[v.start] = v; });
-            } else { vObj = bkp.viajes; }
-            updates['/viajes'] = vObj;
-          }
-          if (bkp.rutas) updates['/rutas'] = bkp.rutas;
-          if (bkp.cfg) updates['/cfg'] = bkp.cfg;
-          ref.update(updates).then(function () {
-            toast('✅ Backup restaurado correctamente');
-          }).catch(function (err) {
-            console.error(err);
-            toast('⚠️ Error al restaurar: ' + err.message);
-          });
-        } catch (err) { toast('⚠️ Error leyendo el archivo'); }
-        input.value = '';
-      };
-      reader.readAsText(file);
-    }
-
-    function setBkpInterval(hours) {
-      localStorage.setItem('FTP_BACKUP_INTERVAL', hours);
-      initBkpTimer();
-      if (parseInt(hours) > 0) {
-        guardarBackupLocal();
-        toast('💾 Auto-backup activado — cada ' + hours + 'h');
-      } else {
-        toast('Auto-backup desactivado');
-      }
-    }
-
-    function initBkpTimer() {
-      if (bkpTimer) { clearInterval(bkpTimer); bkpTimer = null; }
-      var hours = parseInt(localStorage.getItem('FTP_BACKUP_INTERVAL')) || 0;
-      var sel = document.getElementById('bkpInterval');
-      if (sel) sel.value = hours;
-      if (hours > 0) {
-        bkpTimer = setInterval(function () {
-          guardarBackupLocal();
-        }, hours * 3600000);
-      }
-      updBkpStatus();
-    }
-
-    function updBkpStatus() {
-      var el = document.getElementById('bkpStatus');
-      if (!el) return;
-      var lastTime = localStorage.getItem('FTP_BACKUP_TIME');
-      var interval = parseInt(localStorage.getItem('FTP_BACKUP_INTERVAL')) || 0;
-      var html = '';
-      if (lastTime) {
-        html += '✅ Última copia: ' + new Date(lastTime).toLocaleString('es-ES');
-      } else {
-        html += '⚠️ Sin copia de seguridad aún';
-      }
-      if (interval > 0) html += ' · Auto: cada ' + interval + 'h';
-      el.innerHTML = html;
     }
 
     /* ════════════════════════════════════════════
@@ -2915,53 +2527,19 @@
       buildWeekStrip();
       loadDiaForm(ds);
     }
-    function saltarADia(ds) {
-      if (!ds) return;
-      var hoy = new Date().toLocaleDateString('en-CA');
-      if (ds > hoy) ds = hoy;
-      diaActual = ds;
-      buildWeekStrip();
-      loadDiaForm(ds);
-    }
-    function irAHoy() {
-      diaActual = new Date().toLocaleDateString('en-CA');
-      buildWeekStrip();
-      loadDiaForm(diaActual);
-    }
-    function irAJornada(ds) {
-      // Ir al calendario y abrir el formulario de ese día
-      var tabBtn = document.querySelectorAll('.tab-btn')[1]; // tab calendario
-      openTab('cal', tabBtn);
-      setTimeout(function() {
-        if (cal) { cal.gotoDate(ds); }
-        currF = ds;
-        showDayForm(ds);
-      }, 100);
-    }
-    function irATaco(ds) {
-      // Ir al tacógrafo y cargar ese día
-      var tabBtn = document.querySelectorAll('.tab-btn')[0]; // tab tacógrafo
-      openTab('taco', tabBtn);
-      saltarADia(ds);
-    }
 
     /* ════════════════════════════════════════════
        TACÓGRAFO — MINI SEMANA
     ════════════════════════════════════════════ */
     function buildWeekStrip() {
       var dn = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
-      var hoy = new Date(); hoy.setHours(12,0,0,0);
-      var hoyStr = hoy.toLocaleDateString('en-CA');
+      var hoy = new Date().toLocaleDateString('en-CA');
       var html = '';
-      // Siempre mostrar los 7 días que terminan en hoy: hoy siempre es el último (derecha)
       for (var i = 6; i >= 0; i--) {
-        var dt = new Date(hoy); dt.setDate(hoy.getDate() - i);
+        var dt = new Date(); dt.setDate(dt.getDate() - i);
         var ds = dt.toLocaleDateString('en-CA');
         var d = diasT[ds];
-        var cls = 'wsd'
-          + (ds === diaActual ? ' sel' : '')
-          + (d ? ' saved' : '')
-          + (ds === hoyStr ? ' today-d' : '');
+        var cls = 'wsd' + (ds === diaActual ? ' sel' : '') + (d ? ' saved' : '') + (ds === hoy ? ' today-d' : '');
         var hStr = d && d.hCond ? hNum(d.hCond) : '—';
         html += '<div class="' + cls + '" onclick="selDia(\'' + ds + '\')">'
           + '<div class="wsd-n">' + dn[dt.getDay()] + '</div>'
@@ -2970,16 +2548,10 @@
           + '</div>';
       }
       document.getElementById('weekStrip').innerHTML = html;
-      // Rango: los 7 días que se muestran (hace 6 días → hoy)
-      var rangoIni = new Date(hoy); rangoIni.setDate(hoy.getDate() - 6);
-      var optsShort = { day: 'numeric', month: 'short' };
-      var rangoTxt = rangoIni.toLocaleDateString('es-ES', optsShort) + ' – ' + hoy.toLocaleDateString('es-ES', optsShort);
-      var lblSem = document.getElementById('semanaRango');
-      if (lblSem) lblSem.textContent = rangoTxt;
-      var hoyS = new Date().toLocaleDateString('en-CA');
+      var hoy = new Date().toLocaleDateString('en-CA');
       var selDt = new Date(diaActual + 'T12:00:00');
-      document.getElementById('dateLbl').textContent = diaActual === hoyS ? 'HOY' : selDt.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
-      document.getElementById('btnNext').disabled = (diaActual >= hoyS);
+      document.getElementById('dateLbl').textContent = diaActual === hoy ? 'HOY' : selDt.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+      document.getElementById('btnNext').disabled = (diaActual >= hoy);
     }
 
     /* ════════════════════════════════════════════
@@ -2996,11 +2568,6 @@
       document.getElementById('tHCm').value = mm || '';
       document.getElementById('tKI').value = d.kmIni || '';
       document.getElementById('tKF').value = d.kmFin || '';
-      document.getElementById('tKI2').value = d.kmIni2 || '';
-      document.getElementById('tKF2').value = d.kmFin2 || '';
-      var tiene2 = d.kmIni2 || d.kmFin2;
-      document.getElementById('km2Row').style.display = tiene2 ? 'grid' : 'none';
-      document.getElementById('togKm2').textContent = tiene2 ? '▲ Ocultar 2º camión' : '▼ 2º camión (noche)';
       document.getElementById('tObs').value = d.obs || '';
       calcTaco();
       if(typeof cargarFotos === "function") cargarFotos(ds);
@@ -3012,8 +2579,6 @@
       var hch=parseInt(document.getElementById('tHCh').value)||0, hcm=parseInt(document.getElementById('tHCm').value)||0, hcRaw=hch+(hcm/60);
       var ki = parseInt(document.getElementById('tKI').value) || 0;
       var kf = parseInt(document.getElementById('tKF').value) || 0;
-      var ki2 = parseInt(document.getElementById('tKI2').value) || 0;
-      var kf2 = parseInt(document.getElementById('tKF2').value) || 0;
 
       // Jornada
       var jornMin = 0;
@@ -3037,8 +2602,6 @@
 
       // KM
       var kmRec = kf > ki ? kf - ki : 0;
-      var kmRec2 = kf2 > ki2 ? kf2 - ki2 : 0;
-      var kmTotal = kmRec + kmRec2;
 
       // Analizar descansos semanales
       var turnos = [];
@@ -3091,7 +2654,7 @@
       sv('rPausa', pausaMin > 0 ? pausaMin + 'min' : 'No nec.', '');
       sv('rOtro', otroH > 0 ? hNum(otroH) : '—', '');
       sv('rDesc', jornMin > 0 ? hNum(descH) : '—', descH < 9 ? 'r' : descH < 11 ? 'w' : 'b');
-      sv('rKm', kmTotal > 0 ? kmTotal + ' km' + (kmRec2 > 0 ? ' (' + kmRec + '+' + kmRec2 + ')' : '') : '—', kmTotal > 0 ? 'g' : '');
+      sv('rKm', kmRec > 0 ? kmRec + ' km' : '—', kmRec > 0 ? 'g' : '');
 
       // Alertas (ley de tacógrafo de España - CE 561/2006)
       var al = [];
@@ -3170,14 +2733,11 @@
       var hc = hch + (hcm / 60);
       var ki = parseInt(document.getElementById('tKI').value) || 0;
       var kf = parseInt(document.getElementById('tKF').value) || 0;
-      var ki2 = parseInt(document.getElementById('tKI2').value) || 0;
-      var kf2 = parseInt(document.getElementById('tKF2').value) || 0;
       var obs = document.getElementById('tObs').value;
       if (!ini && !fin && !hc) { toast('⚠️ Introduce al menos hora entrada/salida o horas conducidas'); return; }
       var jornMin = 0;
       if (ini && fin) { var a = tMin(ini), b = tMin(fin); if (b < a) b += 1440; jornMin = b - a; }
       var rec = { horaIni: ini, horaFin: fin, hCond: hc, jornMin: jornMin, kmIni: ki, kmFin: kf, kmRec: kf > ki ? kf - ki : 0, obs: obs, ts: Date.now() };
-      if (ki2 || kf2) { rec.kmIni2 = ki2; rec.kmFin2 = kf2; rec.kmRec2 = kf2 > ki2 ? kf2 - ki2 : 0; }
       diasT[diaActual] = rec;
       tacoRef.child(diaActual).set(rec).then(function () { document.getElementById('syncDot').textContent = '☁️'; }).catch(function () { document.getElementById('syncDot').textContent = '⚠️'; });
       localStorage.setItem('ftp_backup', JSON.stringify(diasT));
@@ -3196,58 +2756,16 @@
       l.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
       return l;
     }
-    /* Semana tacógrafo: empieza el día en que el conductor retoma la actividad
-       tras su descanso semanal de fin de semana (≥2 días consecutivos sin registro,
-       equivalente al descanso semanal de ≥45h del CE 561/2006).
-       Si sólo hay 1 día de descanso (descanso reducido), también se acepta.
-       Esto permite que la semana empiece en domingo si el conductor trabaja ese día. */
-    function getInicioSemTaco() {
-      var hoy = new Date();
-      hoy.setHours(12, 0, 0, 0);
-
-      function sinActividad(ds) {
-        var d = diasT[ds];
-        return !d || (!d.hCond && !d.jornMin);
-      }
-
-      // Buscar hacia atrás hasta 14 días: 2 días consecutivos sin actividad (descanso completo)
-      for (var i = 1; i <= 13; i++) {
-        var dt1 = new Date(hoy); dt1.setDate(hoy.getDate() - i);
-        var dt2 = new Date(hoy); dt2.setDate(hoy.getDate() - i - 1);
-        var ds1 = dt1.toLocaleDateString('en-CA');
-        var ds2 = dt2.toLocaleDateString('en-CA');
-        if (sinActividad(ds1) && sinActividad(ds2)) {
-          // Encontrado descanso de 2+ días; la semana empieza el día siguiente al último día de descanso
-          var inicio = new Date(dt1); inicio.setDate(dt1.getDate() + 1);
-          return inicio;
-        }
-      }
-
-      // Si no hay 2 días consecutivos, buscar 1 solo día de descanso (descanso reducido)
-      for (var j = 1; j <= 14; j++) {
-        var dt = new Date(hoy); dt.setDate(hoy.getDate() - j);
-        var ds = dt.toLocaleDateString('en-CA');
-        if (sinActividad(ds)) {
-          var inicio2 = new Date(dt); inicio2.setDate(dt.getDate() + 1);
-          return inicio2;
-        }
-      }
-
-      // Fallback: hace 6 días
-      var fb = new Date(hoy); fb.setDate(hoy.getDate() - 6);
-      return fb;
-    }
     function updSemana() {
       var hoy = new Date();
-      var inicio = getInicioSemTaco();
+      var lunes = getLunes();
       var semH = 0, semK = 0, semD = 0, qH = 0;
-      // Semana tacógrafo en curso (desde último descanso semanal)
-      var diff = Math.round((hoy - inicio) / 86400000);
-      for (var i = 0; i <= diff; i++) {
-        var dt = new Date(inicio); dt.setDate(inicio.getDate() + i);
+      // Semana actual (lun-hoy)
+      for (var i = 0; i < 7; i++) {
+        var dt = new Date(lunes); dt.setDate(lunes.getDate() + i);
         if (dt > hoy) break;
         var d = diasT[dt.toLocaleDateString('en-CA')];
-        if (d) { semH += d.hCond || 0; semK += (d.kmRec || 0) + (d.kmRec2 || 0); semD++; }
+        if (d) { semH += d.hCond || 0; semK += d.kmRec || 0; semD++; }
       }
       // Quincena (últimos 14 días)
       for (var j = 0; j < 14; j++) {
@@ -3270,7 +2788,7 @@
       for (var k in diasT) {
         var dt = new Date(k + 'T12:00:00');
         if (dt.getFullYear() === hoy.getFullYear() && dt.getMonth() === hoy.getMonth()) {
-          mesH += diasT[k].hCond || 0; mesK += (diasT[k].kmRec || 0) + (diasT[k].kmRec2 || 0); mesD++;
+          mesH += diasT[k].hCond || 0; mesK += diasT[k].kmRec || 0; mesD++;
         }
       }
       document.getElementById('rMH').textContent = hNum(mesH);
@@ -3287,7 +2805,7 @@
         initialView: 'dayGridMonth', locale: 'es', firstDay: 1, height: 'auto',
         headerToolbar: { left: 'prev,next', center: 'title', right: '' },
         dateClick: function (i) { currF = i.dateStr; showDayForm(i.dateStr); },
-        datesSet: function() { updDietas(); setTimeout(repintarCal, 50); },
+        datesSet: updDietas,
         dayCellDidMount: function (info) { pintarCelda(info.el, info.date.toLocaleDateString('en-CA')); },
         eventDidMount: function (info) { var el = info.el.closest('.fc-daygrid-day'); if (el) pintarCelda(el, info.event.startStr); }
       });
@@ -3377,7 +2895,7 @@
     }
     function limpiarForm() {
       // Solo limpia los campos del formulario, NO toca lo guardado en la nube
-      ['tIni', 'tFin', 'tHCh', 'tHCm', 'tKI', 'tKF', 'tKI2', 'tKF2', 'tObs'].forEach(function (id) {
+      ['tIni', 'tFin', 'tHCh', 'tHCm', 'tKI', 'tKF', 'tObs'].forEach(function (id) {
         document.getElementById(id).value = '';
       });
       calcTaco();
@@ -3489,10 +3007,6 @@
               + (p.ruta ? '<div class="c-ru">📍 ' + p.ruta + '</div>' : '')
               + ([p.t1, p.t2, p.r1, p.r2].filter(Boolean).length ? '<div class="c-ti">' + [p.t1, p.t2, p.r1, p.r2].filter(Boolean).join(' · ') + '</div>' : '')
               + (p.obs ? '<div class="c-ob">💬 ' + p.obs + '</div>' : '')
-              + '<div class="hist-actions">'
-              + '<button class="hist-btn" onclick="irAJornada(\'' + e.start + '\')">📋 Jornada</button>'
-              + '<button class="hist-btn" onclick="irATaco(\'' + e.start + '\')">🚛 Tacógrafo</button>'
-              + '</div>'
               + '</div>';
           }).join('')
           + '</div></div></div>';
@@ -3502,112 +3016,13 @@
     /* ════════════════════════════════════════════
        STATS TAB
     ════════════════════════════════════════════ */
-    function updStats() { updDonut(); updLimBar(); updWkGrid(); updDietas(); updStatsMonth(); updStatsBarChart(); updStatsGlobal(); updStatsMatriculas(); }
-
-    function updStatsMatriculas() {
-      var elResumen = document.getElementById('statsMatResumen');
-      var elTabla   = document.getElementById('statsMatTabla');
-      if (!elResumen || !elTabla) return;
-
-      // Acumula datos por matrícula leyendo de las jornadas (datos[])
-      // Los km y horas se cruzan con el tacógrafo del mismo día (diasT)
-      function acumular(store, mat, fecha, kmVal) {
-        mat = (mat || '').trim().toUpperCase();
-        if (!mat) return;
-        if (!store[mat]) store[mat] = { dias: 0, km: 0, horas: 0, ultimaFecha: '' };
-        var dTaco = diasT[fecha] || {};
-        store[mat].dias++;
-        store[mat].km    += kmVal;
-        store[mat].horas += dTaco.hCond || 0;
-        if (fecha > store[mat].ultimaFecha) store[mat].ultimaFecha = fecha;
-      }
-
-      var tractoras = {}, remolques = {};
-      datos.forEach(function(j) {
-        var p = j.extendedProps || {}, f = j.start;
-        var dTaco = diasT[f] || {};
-        var km1 = dTaco.kmRec || 0, km2 = dTaco.kmRec2 || 0;
-        acumular(tractoras, p.t1, f, km1);
-        acumular(tractoras, p.t2, f, km2);
-        acumular(remolques, p.r1, f, km1);
-        acumular(remolques, p.r2, f, km2);
-      });
-
-      var listT = Object.keys(tractoras).map(function(m){ return Object.assign({mat:m}, tractoras[m]); }).sort(function(a,b){return b.dias-a.dias;});
-      var listR = Object.keys(remolques).map(function(m){ return Object.assign({mat:m}, remolques[m]); }).sort(function(a,b){return b.dias-a.dias;});
-
-      if (listT.length === 0 && listR.length === 0) {
-        elResumen.innerHTML = '<div style="color:var(--text2);font-size:.75rem;grid-column:1/-1;text-align:center;padding:10px;">Sin matrículas registradas en las jornadas (campos T1/T2/R1/R2).</div>';
-        elTabla.innerHTML = '';
-        return;
-      }
-
-      // — Tarjetas resumen —
-      function masUsada(list)  { return list.length ? list[0] : null; }
-      function masKmFn(list)   { return list.length ? list.slice().sort(function(a,b){return b.km-a.km;})[0] : null; }
-      function masHorasFn(list){ return list.length ? list.slice().sort(function(a,b){return b.horas-a.horas;})[0] : null; }
-      function ultimaFn(list)  { return list.length ? list.slice().sort(function(a,b){return b.ultimaFecha.localeCompare(a.ultimaFecha);})[0] : null; }
-
-      var resHtml = '';
-      resHtml += '<div class="stat-card accent"><div class="sc-label">Tractoras distintas</div><div class="sc-value">' + listT.length + '</div><div class="sc-sub">cabezas tractoras</div></div>';
-      resHtml += '<div class="stat-card accent"><div class="sc-label">Remolques distintos</div><div class="sc-value">' + listR.length + '</div><div class="sc-sub">semirremolques</div></div>';
-
-      var mt = masUsada(listT);
-      if (mt) resHtml += '<div class="stat-card"><div class="sc-label">Tractora más usada</div><div class="sc-value" style="font-size:.85rem;">' + mt.mat + '</div><div class="sc-sub">' + mt.dias + ' días trabajados</div></div>';
-      var mr = masUsada(listR);
-      if (mr) resHtml += '<div class="stat-card"><div class="sc-label">Remolque más usado</div><div class="sc-value" style="font-size:.85rem;">' + mr.mat + '</div><div class="sc-sub">' + mr.dias + ' días enganchado</div></div>';
-
-      var ktmax = masKmFn(listT);
-      if (ktmax && ktmax.km > 0) resHtml += '<div class="stat-card warn"><div class="sc-label">Tractora más km</div><div class="sc-value" style="font-size:.85rem;">' + ktmax.mat + '</div><div class="sc-sub">' + ktmax.km.toLocaleString('es-ES') + ' km acumulados</div></div>';
-      var krmax = masKmFn(listR);
-      if (krmax && krmax.km > 0) resHtml += '<div class="stat-card warn"><div class="sc-label">Remolque más km</div><div class="sc-value" style="font-size:.85rem;">' + krmax.mat + '</div><div class="sc-sub">' + krmax.km.toLocaleString('es-ES') + ' km acumulados</div></div>';
-
-      var htmax = masHorasFn(listT);
-      if (htmax && htmax.horas > 0) resHtml += '<div class="stat-card info"><div class="sc-label">Tractora más horas</div><div class="sc-value" style="font-size:.85rem;">' + htmax.mat + '</div><div class="sc-sub">' + hNum(htmax.horas) + ' de conducción</div></div>';
-
-      var ut = ultimaFn(listT);
-      if (ut) resHtml += '<div class="stat-card purple"><div class="sc-label">Última tractora usada</div><div class="sc-value" style="font-size:.85rem;">' + ut.mat + '</div><div class="sc-sub">' + new Date(ut.ultimaFecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'}) + '</div></div>';
-      var ur = ultimaFn(listR);
-      if (ur) resHtml += '<div class="stat-card purple"><div class="sc-label">Último remolque usado</div><div class="sc-value" style="font-size:.85rem;">' + ur.mat + '</div><div class="sc-sub">' + new Date(ur.ultimaFecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'}) + '</div></div>';
-
-      var kmTotalT = listT.reduce(function(s,x){return s+x.km;},0);
-      var kmTotalR = listR.reduce(function(s,x){return s+x.km;},0);
-      if (kmTotalT > 0) resHtml += '<div class="stat-card"><div class="sc-label">KM totales tractoras</div><div class="sc-value">' + kmTotalT.toLocaleString('es-ES') + '</div><div class="sc-sub">entre ' + listT.length + ' vehículos</div></div>';
-      if (kmTotalR > 0) resHtml += '<div class="stat-card"><div class="sc-label">KM totales remolques</div><div class="sc-value">' + kmTotalR.toLocaleString('es-ES') + '</div><div class="sc-sub">entre ' + listR.length + ' vehículos</div></div>';
-
-      elResumen.innerHTML = resHtml;
-
-      // — Tabla detallada —
-      function buildTabla(lista, titulo, color) {
-        if (!lista.length) return '';
-        var maxKm = Math.max.apply(null, lista.map(function(x){return x.km;})) || 1;
-        var h = '<div style="margin-top:12px;margin-bottom:4px;font-size:.63rem;color:' + color + ';letter-spacing:1px;text-transform:uppercase;font-weight:700;">' + titulo + '</div>';
-        h += '<div style="overflow-x:auto;"><table class="mat-table"><thead><tr><th>Matrícula</th><th>Días</th><th>KM totales</th><th>H. cond.</th><th>Media km/día</th><th>Último uso</th></tr></thead><tbody>';
-        lista.forEach(function(r) {
-          var pct = Math.round(r.km / maxKm * 100);
-          var media = r.dias > 0 ? Math.round(r.km / r.dias) : 0;
-          var fechaStr = r.ultimaFecha ? new Date(r.ultimaFecha+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
-          h += '<tr>'
-            + '<td><strong style="font-family:\'Share Tech Mono\',monospace;color:' + color + ';">' + r.mat + '</strong></td>'
-            + '<td style="text-align:center;">' + r.dias + '</td>'
-            + '<td><div style="display:flex;align-items:center;gap:5px;"><div style="flex:1;background:var(--bg4);border-radius:3px;height:6px;"><div style="width:' + pct + '%;background:' + color + ';border-radius:3px;height:6px;"></div></div><span style="min-width:48px;text-align:right;font-family:\'Share Tech Mono\',monospace;font-size:.7rem;">' + (r.km > 0 ? r.km.toLocaleString('es-ES') : '—') + '</span></div></td>'
-            + '<td style="text-align:center;font-family:\'Share Tech Mono\',monospace;">' + (r.horas > 0 ? hNum(r.horas) : '—') + '</td>'
-            + '<td style="text-align:center;">' + (media > 0 ? media + ' km' : '—') + '</td>'
-            + '<td style="text-align:center;font-size:.65rem;color:var(--text2);">' + fechaStr + '</td>'
-            + '</tr>';
-        });
-        h += '</tbody></table></div>';
-        return h;
-      }
-
-      elTabla.innerHTML = buildTabla(listT, '🚛 Tractoras', 'var(--cd)') + buildTabla(listR, '🔗 Remolques', 'var(--cb)');
-    }
+    function updStats() { updDonut(); updLimBar(); updWkGrid(); updDietas(); }
     function updDonut() {
       var ds = new Date().toLocaleDateString('en-CA');
       var d = diasT[ds] || {};
       var hc = d.hCond || 0, jH = d.jornMin ? d.jornMin / 60 : 0;
       var pH = hc > 4.5 ? 0.75 : 0, oH = Math.max(0, jH - hc - pH), dH = Math.max(0, 24 - jH);
-      var tot = hc + pH + oH + dH || 1, c = 2 * Math.PI * 38, off = 0;
+      var tot = hc + pH + oH + dH || 1, c = 2 * Math.PI * 29, off = 0;
       [[hc, 'da1'], [dH, 'da2'], [pH, 'da3'], [oH, 'da4']].forEach(function (x) {
         var dash = (x[0] / tot) * c, el = document.getElementById(x[1]);
         el.setAttribute('stroke-dasharray', dash + ' ' + c); el.setAttribute('stroke-dashoffset', -off); off += dash;
@@ -3616,73 +3031,6 @@
       document.getElementById('dlR').textContent = hNum(dH);
       document.getElementById('dlB').textContent = hNum(pH);
       document.getElementById('dlW').textContent = hNum(oH);
-      document.getElementById('donutCenter').textContent = jH > 0 ? hNum(jH) : '—';
-    }
-    function updStatsMonth() {
-      var hoy = new Date(), y = hoy.getFullYear(), m = hoy.getMonth();
-      var totalH = 0, totalK = 0, totalJ = 0, dias = 0, maxH = 0, maxJ = 0, maxKday = 0;
-      for (var k in diasT) {
-        var dt = new Date(k + 'T12:00:00');
-        if (dt.getFullYear() === y && dt.getMonth() === m) {
-          var e = diasT[k];
-          var hc = e.hCond || 0, jm = e.jornMin || 0, km = (e.kmRec || 0) + (e.kmRec2 || 0);
-          totalH += hc; totalK += km; totalJ += jm; dias++;
-          if (hc > maxH) maxH = hc;
-          if (jm > maxJ) maxJ = jm;
-          if (km > maxKday) maxKday = km;
-        }
-      }
-      var avgH = dias > 0 ? totalH / dias : 0;
-      var avgJ = dias > 0 ? (totalJ / dias / 60) : 0;
-      var html = '';
-      html += '<div class="stat-card accent"><div class="sc-label">Horas conducidas</div><div class="sc-value">' + hNum(totalH) + '</div><div class="sc-sub">en ' + dias + ' días registrados</div></div>';
-      html += '<div class="stat-card info"><div class="sc-label">KM recorridos</div><div class="sc-value">' + totalK.toLocaleString() + '</div><div class="sc-sub">este mes</div></div>';
-      html += '<div class="stat-card"><div class="sc-label">Media conducción/día</div><div class="sc-value">' + hNum(avgH) + '</div><div class="sc-sub">de ' + dias + ' días</div></div>';
-      html += '<div class="stat-card"><div class="sc-label">Media jornada/día</div><div class="sc-value">' + hNum(avgJ) + '</div><div class="sc-sub">de ' + dias + ' días</div></div>';
-      html += '<div class="stat-card warn"><div class="sc-label">Máx. conducción 1 día</div><div class="sc-value">' + hNum(maxH) + '</div><div class="sc-sub">récord del mes</div></div>';
-      html += '<div class="stat-card purple"><div class="sc-label">Máx. jornada 1 día</div><div class="sc-value">' + hNum(maxJ / 60) + '</div><div class="sc-sub">récord del mes</div></div>';
-      document.getElementById('statsMonth').innerHTML = html;
-    }
-    function updStatsBarChart() {
-      var html = '', maxV = 9;
-      for (var i = 29; i >= 0; i--) {
-        var dt = new Date(); dt.setDate(dt.getDate() - i);
-        var ds = dt.toLocaleDateString('en-CA');
-        var d = diasT[ds] || {};
-        var hc = d.hCond || 0;
-        if (hc > maxV) maxV = hc;
-      }
-      for (var j = 29; j >= 0; j--) {
-        var dt2 = new Date(); dt2.setDate(dt2.getDate() - j);
-        var ds2 = dt2.toLocaleDateString('en-CA');
-        var d2 = diasT[ds2] || {};
-        var hc2 = d2.hCond || 0;
-        var pct = maxV > 0 ? Math.max(hc2 > 0 ? 3 : 0, (hc2 / maxV) * 100) : 0;
-        var over = hc2 > 9 ? ' over' : '';
-        var tip = ds2.slice(5) + ': ' + hNum(hc2);
-        html += '<div class="sbc-bar' + over + '" style="height:' + pct + '%" data-tip="' + tip + '"></div>';
-      }
-      document.getElementById('statsBarChart').innerHTML = html;
-    }
-    function updStatsGlobal() {
-      var totalH = 0, totalK = 0, totalDias = 0, maxH = 0, maxK = 0, maxJorn = 0, fechaMax = '';
-      for (var k in diasT) {
-        var e = diasT[k];
-        var hc = e.hCond || 0, km = (e.kmRec || 0) + (e.kmRec2 || 0), jm = e.jornMin || 0;
-        totalH += hc; totalK += km; totalDias++;
-        if (hc > maxH) { maxH = hc; fechaMax = k; }
-        if (km > maxK) maxK = km;
-        if (jm > maxJorn) maxJorn = jm;
-      }
-      var totalJornadas = datos.length;
-      var html = '';
-      html += '<div class="stat-card accent"><div class="sc-label">Total horas conducidas</div><div class="sc-value">' + hNum(totalH) + '</div><div class="sc-sub">histórico completo</div></div>';
-      html += '<div class="stat-card info"><div class="sc-label">Total KM</div><div class="sc-value">' + totalK.toLocaleString() + ' km</div><div class="sc-sub">' + totalDias + ' días con tacógrafo</div></div>';
-      html += '<div class="stat-card warn"><div class="sc-label">Récord conducción</div><div class="sc-value">' + hNum(maxH) + '</div><div class="sc-sub">' + (fechaMax ? fechaMax.split('-').reverse().join('/') : '—') + '</div></div>';
-      html += '<div class="stat-card purple"><div class="sc-label">Récord jornada</div><div class="sc-value">' + hNum(maxJorn / 60) + '</div><div class="sc-sub">jornada más larga</div></div>';
-      html += '<div class="stat-card"><div class="sc-label">Récord KM en 1 día</div><div class="sc-value">' + maxK.toLocaleString() + ' km</div><div class="sc-sub">distancia máxima</div></div>';
-      html += '<div class="stat-card"><div class="sc-label">Total jornadas</div><div class="sc-value">' + totalJornadas + '</div><div class="sc-sub">registradas en calendario</div></div>';
-      document.getElementById('statsGlobal').innerHTML = html;
     }
     function updLimBar() {
       var ds = new Date().toLocaleDateString('en-CA');
@@ -3697,24 +3045,18 @@
     }
     function updWkGrid() {
       var dn = ['D', 'L', 'M', 'X', 'J', 'V', 'S'], html = '';
-      var inicio = getInicioSemTaco();
-      var hoy = new Date(); hoy.setHours(12,0,0,0);
-      var dias = Math.round((hoy - inicio) / 86400000) + 1;
-      if (dias < 1) dias = 1;
-      if (dias > 7) dias = 7;
-      for (var i = 0; i < dias; i++) {
-        var dt = new Date(inicio); dt.setDate(inicio.getDate() + i);
+      for (var i = 6; i >= 0; i--) {
+        var dt = new Date(); dt.setDate(dt.getDate() - i);
         var d = diasT[dt.toLocaleDateString('en-CA')] || {};
         var hc = d.hCond || 0, jH = d.jornMin ? d.jornMin / 60 : 0, pH = hc > 4.5 ? 0.75 : 0, oH = Math.max(0, jH - hc - pH), mx = 13;
         function mkS(v, c) { return v > 0 ? '<div class="wds" style="height:' + Math.round(v / mx * 40) + 'px;background:' + c + '"></div>' : ''; }
-        html += '<div class="wday"><div class="wdn">' + dn[dt.getDay()] + ' ' + dt.getDate() + '</div><div class="wdbs">' + mkS(oH, 'var(--cw)') + mkS(pH, 'var(--cb)') + mkS(hc, 'var(--cd)') + '</div><div class="wdt">' + (jH > 0 ? hNum(jH) : '-') + '</div></div>';
+        html += '<div class="wday"><div class="wdn">' + dn[dt.getDay()] + '</div><div class="wdbs">' + mkS(oH, 'var(--cw)') + mkS(pH, 'var(--cb)') + mkS(hc, 'var(--cd)') + '</div><div class="wdt">' + (jH > 0 ? hNum(jH) : '-') + '</div></div>';
       }
       document.getElementById('wkGrid').innerHTML = html;
     }
     function getSemH() {
-      var hoy = new Date(), inicio = getInicioSemTaco(), total = 0;
-      var diff = Math.round((hoy - inicio) / 86400000);
-      for (var i = 0; i <= diff; i++) { var dt = new Date(inicio); dt.setDate(inicio.getDate() + i); if (dt > hoy) break; var d = diasT[dt.toLocaleDateString('en-CA')]; if (d) total += d.hCond || 0; }
+      var hoy = new Date(), l = getLunes(), total = 0;
+      for (var i = 0; i < 7; i++) { var dt = new Date(l); dt.setDate(l.getDate() + i); if (dt > hoy) break; var d = diasT[dt.toLocaleDateString('en-CA')]; if (d) total += d.hCond || 0; }
       return total;
     }
 
@@ -3724,10 +3066,10 @@
     function xCSV() {
       var keys = Object.keys(diasT);
       if (!keys.length) { toast('⚠️ Sin datos del tacógrafo'); return; }
-      var lines = ['# FurgoTrayler Pro - Tacógrafo', '# Conductor: ' + (cfg.name || currentUser || '-'), '# Empresa: ' + (cfg.company || '-'), '# Exportado: ' + new Date().toLocaleDateString('es-ES'), '', 'Fecha,Entrada,Salida,H.Conduccion,Jornada,KM Ini,KM Fin,KM Rec,KM Ini 2,KM Fin 2,KM Rec 2,Obs'];
+      var lines = ['# FurgoTrayler Pro - Tacógrafo', '# Conductor: ' + (cfg.name || currentUser || '-'), '# Empresa: ' + (cfg.company || '-'), '# Exportado: ' + new Date().toLocaleDateString('es-ES'), '', 'Fecha,Entrada,Salida,H.Conduccion,Jornada,KM Ini,KM Fin,KM Rec,Obs'];
       keys.sort().reverse().forEach(function (ds) {
         var d = diasT[ds];
-        lines.push([ds.split('-').reverse().join('/'), d.horaIni || '', d.horaFin || '', d.hCond || 0, d.jornMin ? hNum(d.jornMin / 60) : '', d.kmIni || '', d.kmFin || '', d.kmRec || '', d.kmIni2 || '', d.kmFin2 || '', d.kmRec2 || '', (d.obs || '').replace(/,/g, ';')].join(','));
+        lines.push([ds.split('-').reverse().join('/'), d.horaIni || '', d.horaFin || '', d.hCond || 0, d.jornMin ? hNum(d.jornMin / 60) : '', d.kmIni || '', d.kmFin || '', d.kmRec || '', (d.obs || '').replace(/,/g, ';')].join(','));
       });
       dlCSV(lines.join('\n'), 'tacografo_' + new Date().toISOString().slice(0, 10) + '.csv');
       toast('✅ CSV exportado');
@@ -3777,7 +3119,7 @@
           doc.text(String(d.hCond || 0) + 'h', 86, y);
           doc.setTextColor(200, 215, 235); doc.setFont('helvetica', 'normal');
           doc.text(d.jornMin ? hNum(d.jornMin / 60) : '—', 108, y);
-          var kmTxt = (d.kmRec || 0) + (d.kmRec2 || 0); doc.text(kmTxt > 0 ? kmTxt + ' km' : '—', 132, y);
+          doc.text(d.kmRec ? d.kmRec + ' km' : '—', 132, y);
           doc.text((d.obs || '').substring(0, 22), 152, y);
           y += 7;
         });
@@ -3859,47 +3201,31 @@
     updClk(); setInterval(updClk, 1000);
 
     /* ══ TAMAÑO DE LETRA ══ */
-    var sizes = ['', 'sz-m', 'sz-l', 'sz-xl', 'sz-xxl', 'sz-3xl', 'sz-4xl'];
-    var sizeLabels = ['A', 'A+', 'A++', 'A+++', 'A++++', 'MAYOR', 'MÁXIMO'];
+    var sizes = ['', 'sz-m', 'sz-l', 'sz-xl', 'sz-xxl'];
+    var sizeLabels = ['A', 'A+', 'A++', 'A+++', 'A++++'];
     var sizeIdx = 0;
 
     function cycleSize() {
-      sizes.forEach(function (s) { if (s) document.body.classList.remove(s); });
+      // Quitar clase actual
+      document.body.classList.remove('sz-m', 'sz-l', 'sz-xl', 'sz-xxl');
+      // Avanzar al siguiente
       sizeIdx = (sizeIdx + 1) % sizes.length;
       if (sizes[sizeIdx]) document.body.classList.add(sizes[sizeIdx]);
       document.getElementById('sizeBtn').textContent = sizeLabels[sizeIdx];
+      // Guardar preferencia
       localStorage.setItem('FTP_SIZE', String(sizeIdx));
     }
 
-    // ── Tema claro / oscuro ──────────────────────────
-    var themeLight = false;
-
-    function cycleTheme() {
-      themeLight = !themeLight;
-      document.body.classList.toggle('light', themeLight);
-      document.getElementById('themeBtn').textContent = themeLight ? '🌙' : '☀️';
-      localStorage.setItem('FTP_THEME', themeLight ? '1' : '0');
-    }
-
-    // Recuperar preferencias guardadas al cargar
+    // Recuperar tamaño guardado al cargar
     (function () {
-      // Tamaño
       var saved = parseInt(localStorage.getItem('FTP_SIZE') || '0');
       if (saved > 0 && saved < sizes.length) {
         sizeIdx = saved;
         document.body.classList.add(sizes[sizeIdx]);
+        // El botón se actualiza cuando aparezca el app
         setTimeout(function () {
           var btn = document.getElementById('sizeBtn');
           if (btn) btn.textContent = sizeLabels[sizeIdx];
-        }, 200);
-      }
-      // Tema
-      if (localStorage.getItem('FTP_THEME') === '1') {
-        themeLight = true;
-        document.body.classList.add('light');
-        setTimeout(function () {
-          var btn = document.getElementById('themeBtn');
-          if (btn) btn.textContent = '🌙';
         }, 200);
       }
     })();
@@ -3915,39 +3241,11 @@
         fdb.createObjectStore("fechas", { keyPath: "fecha" }); // para puntos del calendario
       }
     };
-    fdbReq.onsuccess = function(e) {
-      fdb = e.target.result;
-      limpiarFotosAntiguas();
-      if(typeof diaActual !== "undefined" && diaActual) cargarFotos(diaActual);
+    fdbReq.onsuccess = function(e) { 
+      fdb = e.target.result; 
+      if(typeof diaActual !== "undefined" && diaActual) cargarFotos(diaActual); 
     };
     fdbReq.onerror = function(e) { console.error("Error IndexedDB", e); };
-
-    // Borra automáticamente fotos con más de 1 mes de antigüedad
-    function limpiarFotosAntiguas() {
-      if (!fdb) return;
-      var corte = new Date();
-      corte.setMonth(corte.getMonth() - 1);
-      var corteStr = corte.toLocaleDateString('en-CA'); // YYYY-MM-DD hace 1 mes exacto
-
-      var tx = fdb.transaction(["fotos", "fechas"], "readwrite");
-      var fStore = tx.objectStore("fotos");
-      var dStore = tx.objectStore("fechas");
-
-      fStore.openCursor().onsuccess = function(e) {
-        var c = e.target.result;
-        if (c) {
-          if (c.value.fecha < corteStr) c.delete();
-          c.continue();
-        }
-      };
-      dStore.openCursor().onsuccess = function(e) {
-        var c = e.target.result;
-        if (c) {
-          if (c.key < corteStr) c.delete();
-          c.continue();
-        }
-      };
-    }
 
     function procesarFoto(input) {
       if(!input.files || !input.files[0]) return;
@@ -4047,91 +3345,12 @@
     }
 
     function verFotoGrande(src) {
-      var escala = 1, escalaBase = 1;
-      var tx = 0, ty = 0, txBase = 0, tyBase = 0;
-      var distInicial = 0;
-      var arrastrando = false, startX = 0, startY = 0;
-      var ultimoTap = 0;
-
       var v = document.createElement("div");
-      v.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.96);z-index:9999;overflow:hidden;touch-action:none;";
-
-      var img = document.createElement("img");
-      img.src = src;
-      img.style.cssText = "position:absolute;top:50%;left:50%;max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;user-select:none;pointer-events:none;transform:translate(-50%,-50%);";
-      v.appendChild(img);
-
-      function aplicarTransform() {
-        img.style.transform = "translate(calc(-50% + " + tx + "px), calc(-50% + " + ty + "px)) scale(" + escala + ")";
-      }
-
-      function distancia(t1, t2) {
-        var dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
-        return Math.sqrt(dx * dx + dy * dy);
-      }
-
-      v.addEventListener("touchstart", function(e) {
-        e.preventDefault();
-        if (e.touches.length === 2) {
-          distInicial = distancia(e.touches[0], e.touches[1]);
-          escalaBase = escala;
-          txBase = tx; tyBase = ty;
-          arrastrando = false;
-        } else if (e.touches.length === 1) {
-          var ahora = Date.now();
-          if (ahora - ultimoTap < 280) {
-            // Doble toque: resetear zoom y posición
-            escala = 1; tx = 0; ty = 0;
-            aplicarTransform();
-            ultimoTap = 0;
-            return;
-          }
-          ultimoTap = ahora;
-          arrastrando = true;
-          startX = e.touches[0].clientX - tx;
-          startY = e.touches[0].clientY - ty;
-        }
-      }, { passive: false });
-
-      v.addEventListener("touchmove", function(e) {
-        e.preventDefault();
-        if (e.touches.length === 2) {
-          var dist = distancia(e.touches[0], e.touches[1]);
-          escala = Math.max(1, Math.min(6, escalaBase * dist / distInicial));
-          if (escala <= 1) { tx = 0; ty = 0; }
-          aplicarTransform();
-        } else if (e.touches.length === 1 && arrastrando) {
-          if (escala > 1) {
-            tx = e.touches[0].clientX - startX;
-            ty = e.touches[0].clientY - startY;
-            aplicarTransform();
-          }
-        }
-      }, { passive: false });
-
-      v.addEventListener("touchend", function(e) {
-        if (e.touches.length < 2) escalaBase = escala;
-        if (e.touches.length === 0) {
-          arrastrando = false;
-          if (escala <= 1) { tx = 0; ty = 0; aplicarTransform(); }
-        }
-      });
-
-      // Botón cerrar — intercepta touchstart Y touchend para que no lleguen al overlay
-      var btnCerrar = document.createElement("button");
-      btnCerrar.innerHTML = "✕";
-      btnCerrar.style.cssText = "position:absolute;top:14px;right:14px;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.22);border:2px solid rgba(255,255,255,0.4);color:#fff;font-size:1.5rem;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center;";
-      btnCerrar.addEventListener("touchstart", function(e) { e.stopPropagation(); }, { passive: true });
-      btnCerrar.addEventListener("touchend", function(e) { e.stopPropagation(); e.preventDefault(); document.body.removeChild(v); }, { passive: false });
-      btnCerrar.addEventListener("click", function(e) { e.stopPropagation(); document.body.removeChild(v); });
-      v.appendChild(btnCerrar);
-
-      // Pista de uso
-      var hint = document.createElement("div");
-      hint.style.cssText = "position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.45);font-size:.7rem;white-space:nowrap;pointer-events:none;text-align:center;";
-      hint.textContent = "Pellizca para zoom · Arrastra para mover · Doble toque para resetear";
-      v.appendChild(hint);
-
+      v.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px;";
+      var i = document.createElement("img"); i.src=src; i.style.cssText = "max-width:100%;max-height:85%;object-fit:contain;border-radius:10px;";
+      var b = document.createElement("button"); b.className="btn-primary"; b.style.marginTop="20px"; b.innerHTML="CERRAR FOTO"; b.style.width="200px";
+      b.onclick=function(){ document.body.removeChild(v); };
+      v.appendChild(i); v.appendChild(b);
       document.body.appendChild(v);
     }
   </script>
