@@ -4042,25 +4042,40 @@
     function cargarFotos(fecha) {
       var grid = document.getElementById("photoGrid");
       if(!grid) return;
-      grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">Cargando fotos...</div>';
       
-      if (!currentUser) return;
-      var folderRef = storage.ref('fotos/' + currentUser + '/' + fecha);
+      if (!currentUser) {
+        grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">⚠️ Error: Usuario no identificado. Cierra sesión y entra de nuevo.</div>';
+        return;
+      }
+
+      grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">⏳ Buscando fotos en la nube...</div>';
       
-      folderRef.listAll().then(function(res) {
-        grid.innerHTML = "";
-        if (res.items.length === 0) {
-          grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">No hay fotos este día</div>';
-          return;
-        }
-        res.items.forEach(function(itemRef) {
-          itemRef.getDownloadURL().then(function(url) {
-            renderFotoItem(itemRef.fullPath, url, fecha);
+      try {
+        var folderRef = storage.ref('fotos/' + currentUser + '/' + fecha);
+        
+        folderRef.listAll().then(function(res) {
+          grid.innerHTML = "";
+          if (res.items.length === 0) {
+            grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">No hay fotos guardadas para este día (' + fecha.split('-').reverse().join('/') + ')</div>';
+            return;
+          }
+          
+          res.items.forEach(function(itemRef) {
+            itemRef.getDownloadURL().then(function(url) {
+              renderFotoItem(itemRef.fullPath, url, fecha);
+            }).catch(function(e) {
+              console.error("Error obteniendo URL:", e);
+            });
           });
+        }).catch(function(err) {
+          console.error("Error en listAll:", err);
+          var msg = err.message;
+          if (err.code === 'storage/unauthorized') msg = "No tienes permiso para ver estas fotos (Revisa las reglas de Storage)";
+          grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">❌ Error al cargar: ' + msg + '</div>';
         });
-      }).catch(function(err) {
-        grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">No hay fotos guardadas</div>';
-      });
+      } catch (e) {
+        grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">❌ Error de inicialización: ' + e.message + '</div>';
+      }
     }
 
     function renderFotoItem(fullPath, url, fecha) {
