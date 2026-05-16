@@ -2358,11 +2358,11 @@
         document.getElementById('step2').style.display = 'block';
       }).catch(function(err) {
         console.error("Error Firebase:", err);
-        // Si falla la conexión, permitimos pasar al paso 2 de todos modos por si acaso
         pinMode = 'check'; 
         document.getElementById('step1').style.display = 'none';
         document.getElementById('step2').style.display = 'block';
-        toast('⚠️ Aviso: Modo sin conexión');
+        // Mostramos el error real para diagnosticar
+        toast('⚠️ Error: ' + err.message);
       });
     }
 
