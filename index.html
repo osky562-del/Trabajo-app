@@ -3925,11 +3925,12 @@
     }
 
     function loadPrKey() {
-      var key = localStorage.getItem('FTP_PR_KEY') || '';
+      var key = localStorage.getItem('FTP_PR_KEY') || (typeof PR_API_KEY !== 'undefined' ? PR_API_KEY : '');
+      if (key && !localStorage.getItem('FTP_PR_KEY')) localStorage.setItem('FTP_PR_KEY', key);
       var inp = document.getElementById('prApiKey');
       if (inp) inp.value = key;
       var st = document.getElementById('prStatus');
-      if (st) st.textContent = key ? '✅ Clave configurada — usando Plate Recognizer' : '⚠️ Sin clave — se usará Tesseract (menos preciso)';
+      if (st) st.textContent = key ? '✅ Plate Recognizer activo' : '⚠️ Sin clave — se usará Tesseract (menos preciso)';
     }
 
     function preprocesarMatricula(img) {
