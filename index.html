@@ -2639,6 +2639,8 @@
     var diasT = {};        // { 'YYYY-MM-DD': {horaIni,horaFin,hCond,jornMin,kmIni,kmFin,kmRec,obs} }
     var cfg = { name: '', company: '' };
     var diaActual = new Date().toLocaleDateString('en-CA');
+    // Clave OCR integrada (Plate Recognizer) — sobreescribible vía config.js o localStorage
+    var _OCR_KEY = (typeof PR_API_KEY !== 'undefined' && PR_API_KEY) ? PR_API_KEY : '2818919adb6c421e5099bcef658600729e336500';
 
     /* ════════════════════════════════════════════
        LOGIN
@@ -3855,7 +3857,7 @@
     }
 
     function ocrUrl(url) {
-      var apiKey = localStorage.getItem('FTP_PR_KEY') || (typeof PR_API_KEY !== 'undefined' ? PR_API_KEY : '');
+      var apiKey = localStorage.getItem('FTP_PR_KEY') || _OCR_KEY;
       if (apiKey) {
         // Enviamos la URL directamente — el servidor de Plate Recognizer descarga
         // la imagen él mismo, evitando problemas de CORS en el navegador.
@@ -3926,7 +3928,7 @@
     }
 
     function loadPrKey() {
-      var key = localStorage.getItem('FTP_PR_KEY') || (typeof PR_API_KEY !== 'undefined' ? PR_API_KEY : '');
+      var key = localStorage.getItem('FTP_PR_KEY') || _OCR_KEY;
       if (key && !localStorage.getItem('FTP_PR_KEY')) localStorage.setItem('FTP_PR_KEY', key);
       var inp = document.getElementById('prApiKey');
       if (inp) inp.value = key;
