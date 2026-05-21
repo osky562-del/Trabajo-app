@@ -2588,6 +2588,17 @@
         <p style="font-size:.65rem;color:var(--text2);margin-top:6px;">La matrícula y ruta se registran cada día en la jornada.</p>
       </div>
       <div class="panel">
+        <div class="panel-hd">🔍 Reconocimiento de matrículas</div>
+        <p style="font-size:.65rem;color:var(--text2);margin-bottom:8px;">
+          Usa <strong>Plate Recognizer</strong> — API gratuita (2500/mes) específica para matrículas.<br>
+          Regístrate en <strong>platerecognizer.com</strong> → Dashboard → Token.
+        </p>
+        <div><label class="flbl" style="display:block;margin-bottom:4px;">API Key (Token)</label>
+          <input type="text" id="prApiKey" placeholder="Pega aquí tu token..." oninput="savePrKey()" style="font-family:monospace;font-size:.75rem;">
+        </div>
+        <div id="prStatus" style="font-size:.62rem;color:var(--text2);margin-top:6px;"></div>
+      </div>
+      <div class="panel">
         <div class="panel-hd">💾 Copia de seguridad</div>
         <p style="font-size:.65rem;color:var(--text2);margin-bottom:8px;">Guarda todos tus datos (tacógrafo, jornadas, rutas, config) por si algo falla.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;">
@@ -2796,6 +2807,7 @@
         initCal();
         loadUser();
         initBkpTimer();
+        loadPrKey();
         limpiarFotosAntiguas();
       }).catch(function (err) {
         console.error('Error vinculando usuario:', err);
@@ -3854,36 +3866,70 @@
     }
 
     function ocrUrl(url) {
+      var apiKey = localStorage.getItem('FTP_PR_KEY') || '';
       return fetch(url)
         .then(function (r) { return r.blob(); })
         .then(function (blob) {
-          return new Promise(function (resolve) {
-            var objUrl = URL.createObjectURL(blob);
-            var img = new Image();
-            img.onload = function () {
-              URL.revokeObjectURL(objUrl);
-              var canvas = preprocesarMatricula(img);
-              function doOCR() {
-                Tesseract.recognize(canvas, 'eng', {
-                  tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-                  tessedit_pageseg_mode: '7'
-                }).then(function (res) { resolve(limpiarMatricula(res.data.text)); })
-                  .catch(function () { resolve(''); });
-              }
-              if (typeof Tesseract !== 'undefined') {
-                doOCR();
-              } else {
-                var s = document.createElement('script');
-                s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
-                s.onload = doOCR;
-                s.onerror = function () { resolve(''); };
-                document.head.appendChild(s);
-              }
-            };
-            img.onerror = function () { resolve(''); };
-            img.src = objUrl;
-          });
+          if (apiKey) {
+            // ── Plate Recognizer (API específica de matrículas) ──
+            var fd = new FormData();
+            fd.append('upload', blob, 'plate.jpg');
+            fd.append('regions', 'es');
+            return fetch('https://api.platerecognizer.com/v1/plate-reader/', {
+              method: 'POST',
+              headers: { 'Authorization': 'Token ' + apiKey },
+              body: fd
+            }).then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (data.results && data.results.length > 0) {
+                  return limpiarMatricula(data.results[0].plate);
+                }
+                return '';
+              }).catch(function () { return ''; });
+          } else {
+            // ── Fallback: Tesseract (menos preciso) ──
+            return new Promise(function (resolve) {
+              var objUrl = URL.createObjectURL(blob);
+              var img = new Image();
+              img.onload = function () {
+                URL.revokeObjectURL(objUrl);
+                var canvas = preprocesarMatricula(img);
+                function doOCR() {
+                  Tesseract.recognize(canvas, 'eng', {
+                    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+                    tessedit_pageseg_mode: '7'
+                  }).then(function (res) { resolve(limpiarMatricula(res.data.text)); })
+                    .catch(function () { resolve(''); });
+                }
+                if (typeof Tesseract !== 'undefined') { doOCR(); }
+                else {
+                  var s = document.createElement('script');
+                  s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
+                  s.onload = doOCR;
+                  s.onerror = function () { resolve(''); };
+                  document.head.appendChild(s);
+                }
+              };
+              img.onerror = function () { resolve(''); };
+              img.src = objUrl;
+            });
+          }
         }).catch(function () { return ''; });
+    }
+
+    function savePrKey() {
+      var key = document.getElementById('prApiKey').value.trim();
+      localStorage.setItem('FTP_PR_KEY', key);
+      var st = document.getElementById('prStatus');
+      if (st) st.textContent = key ? '✅ Clave guardada' : '⚠️ Sin clave — se usará Tesseract (menos preciso)';
+    }
+
+    function loadPrKey() {
+      var key = localStorage.getItem('FTP_PR_KEY') || '';
+      var inp = document.getElementById('prApiKey');
+      if (inp) inp.value = key;
+      var st = document.getElementById('prStatus');
+      if (st) st.textContent = key ? '✅ Clave configurada — usando Plate Recognizer' : '⚠️ Sin clave — se usará Tesseract (menos preciso)';
     }
 
     function preprocesarMatricula(img) {
