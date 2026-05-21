@@ -2476,13 +2476,13 @@
           <button class="bturno bt-del" onclick="borrarJ()">✕ DEL</button>
         </div>
         <div class="fgrp"><label class="flbl">Ruta</label><select id="selR"></select></div>
+        <button type="button" class="sm-btn" id="btnOcrFotos" onclick="analizarFotosDelDia()" style="width:100%;margin-bottom:8px;">🔍 Leer matrículas de las fotos del día</button>
         <div class="form-grid" style="margin-bottom:9px;">
-          <div><label class="flbl">T1<button type="button" class="cam-btn" id="camBtnT1" onclick="escanearMatricula('fT1','camBtnT1')" title="Foto matrícula">📷</button></label><input type="text" id="fT1" placeholder="1234 ABC"></div>
-          <div><label class="flbl">T2<button type="button" class="cam-btn" id="camBtnT2" onclick="escanearMatricula('fT2','camBtnT2')" title="Foto matrícula">📷</button></label><input type="text" id="fT2" placeholder="1234 ABC"></div>
-          <div><label class="flbl">R1<button type="button" class="cam-btn" id="camBtnR1" onclick="escanearMatricula('fR1','camBtnR1')" title="Foto matrícula">📷</button></label><input type="text" id="fR1" placeholder="R1234 AB"></div>
-          <div><label class="flbl">R2<button type="button" class="cam-btn" id="camBtnR2" onclick="escanearMatricula('fR2','camBtnR2')" title="Foto matrícula">📷</button></label><input type="text" id="fR2" placeholder="R1234 AB"></div>
+          <div><label class="flbl">T1</label><input type="text" id="fT1" placeholder="1234 ABC"></div>
+          <div><label class="flbl">T2</label><input type="text" id="fT2" placeholder="1234 ABC"></div>
+          <div><label class="flbl">R1</label><input type="text" id="fR1" placeholder="1234 ABC"></div>
+          <div><label class="flbl">R2</label><input type="text" id="fR2" placeholder="1234 ABC"></div>
         </div>
-        <input type="file" id="matInput" accept="image/*" capture="environment" style="display:none" onchange="procesarMatricula(this.files[0], this.dataset.campo, this.dataset.btn); this.value='';">
         <div class="fgrp"><label class="flbl">Observaciones</label><textarea id="fObs" rows="2" placeholder="Notas..."></textarea></div>
         <button class="btn-primary" onclick="guardarJ()">☁️ GUARDAR EN LA NUBE</button>
       </div>
@@ -3810,62 +3810,80 @@
     /* ════════════════════════════════════════════
        OCR — RECONOCIMIENTO DE MATRÍCULAS
     ════════════════════════════════════════════ */
-    function escanearMatricula(campo, btnId) {
-      var inp = document.getElementById('matInput');
-      inp.dataset.campo = campo;
-      inp.dataset.btn   = btnId;
-      inp.click();
-    }
+    function analizarFotosDelDia() {
+      var fecha = currF || diaActual;
+      if (!fecha) { toast('⚠️ Selecciona un día primero'); return; }
+      var btn = document.getElementById('btnOcrFotos');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Analizando fotos...'; }
 
-    function procesarMatricula(file, campo, btnId) {
-      if (!file) return;
-      var nombre = campo.replace('f', '');
-      var btn = btnId ? document.getElementById(btnId) : null;
-      if (btn) btn.classList.add('ocr-cargando');
-      toast('🔍 Leyendo matrícula ' + nombre + '...');
+      var folderRef = storage.ref('fotos/' + currentUser + '/' + fecha);
+      folderRef.listAll().then(function (res) {
+        if (!res.items.length) {
+          toast('⚠️ No hay fotos para ese día');
+          if (btn) { btn.disabled = false; btn.textContent = '🔍 Leer matrículas de las fotos del día'; }
+          return;
+        }
+        toast('🔍 Analizando ' + res.items.length + ' foto(s)...');
+        var campos = ['fT1', 'fR1', 'fT2', 'fR2'];
+        var urlPromesas = res.items.map(function (item) { return item.getDownloadURL(); });
 
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        var img = new Image();
-        img.onload = function () {
-          var canvas = preprocesarMatricula(img);
+        Promise.all(urlPromesas).then(function (urls) {
+          var campoIdx = 0, encontradas = 0;
 
-          function doOCR() {
-            Tesseract.recognize(canvas, 'eng', {
-              tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-              tessedit_pageseg_mode: '6'
-            }).then(function (res) {
-              var limpia = limpiarMatricula(res.data.text);
-              if (btn) btn.classList.remove('ocr-cargando');
-              if (limpia) {
-                document.getElementById(campo).value = limpia;
-                toast('✅ ' + nombre + ': ' + limpia);
-              } else {
-                toast('⚠️ No se leyó bien — escríbela tú');
+          function siguiente(i) {
+            if (i >= urls.length || campoIdx >= campos.length) {
+              if (btn) { btn.disabled = false; btn.textContent = '🔍 Leer matrículas de las fotos del día'; }
+              toast(encontradas > 0 ? '✅ ' + encontradas + ' matrícula(s) reconocida(s)' : '⚠️ No se encontraron matrículas');
+              return;
+            }
+            ocrUrl(urls[i]).then(function (placa) {
+              if (placa) {
+                document.getElementById(campos[campoIdx]).value = placa;
+                campoIdx++;
+                encontradas++;
               }
-            }).catch(function () {
-              if (btn) btn.classList.remove('ocr-cargando');
-              toast('⚠️ Error OCR — escríbela manualmente');
+              siguiente(i + 1);
             });
           }
+          siguiente(0);
+        });
+      }).catch(function () {
+        if (btn) { btn.disabled = false; btn.textContent = '🔍 Leer matrículas de las fotos del día'; }
+        toast('⚠️ Error al acceder a las fotos');
+      });
+    }
 
-          if (typeof Tesseract !== 'undefined') {
-            doOCR();
-          } else {
-            toast('⏳ Cargando OCR (solo la primera vez)...');
-            var s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
-            s.onload  = doOCR;
-            s.onerror = function () {
-              if (btn) btn.classList.remove('ocr-cargando');
-              toast('⚠️ Sin conexión para cargar el OCR');
+    function ocrUrl(url) {
+      return fetch(url)
+        .then(function (r) { return r.blob(); })
+        .then(function (blob) {
+          return new Promise(function (resolve) {
+            var objUrl = URL.createObjectURL(blob);
+            var img = new Image();
+            img.onload = function () {
+              URL.revokeObjectURL(objUrl);
+              var canvas = preprocesarMatricula(img);
+              function doOCR() {
+                Tesseract.recognize(canvas, 'eng', {
+                  tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+                  tessedit_pageseg_mode: '6'
+                }).then(function (res) { resolve(limpiarMatricula(res.data.text)); })
+                  .catch(function () { resolve(''); });
+              }
+              if (typeof Tesseract !== 'undefined') {
+                doOCR();
+              } else {
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
+                s.onload = doOCR;
+                s.onerror = function () { resolve(''); };
+                document.head.appendChild(s);
+              }
             };
-            document.head.appendChild(s);
-          }
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
+            img.onerror = function () { resolve(''); };
+            img.src = objUrl;
+          });
+        }).catch(function () { return ''; });
     }
 
     function preprocesarMatricula(img) {
