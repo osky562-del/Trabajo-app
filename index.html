@@ -3830,34 +3830,35 @@
         var urlPromesas = res.items.map(function (item) { return item.getDownloadURL(); });
 
         Promise.all(urlPromesas).then(function (urls) {
-          var encontradas = 0;
-          // Foto 1 → T1 + R1  |  Foto 2 → T2 + R2
-          var grupos = [
-            { t: 'fT1', r: 'fR1' },
-            { t: 'fT2', r: 'fR2' }
-          ];
+          // Recogemos TODAS las placas de TODAS las fotos, clasificamos y asignamos al final
+          var tractoras = [], remolques = [], encontradas = 0;
 
-          function siguiente(i) {
-            if (i >= urls.length || i >= grupos.length) {
+          function procesarFoto(i) {
+            if (i >= urls.length) {
+              // Asignar a campos: tractoras → T1/T2, remolques → R1/R2
+              var asign = [
+                { id: 'fT1', val: tractoras[0] }, { id: 'fT2', val: tractoras[1] },
+                { id: 'fR1', val: remolques[0] }, { id: 'fR2', val: remolques[1] }
+              ];
+              asign.forEach(function (a) {
+                if (a.val) { document.getElementById(a.id).value = a.val; encontradas++; }
+              });
               if (btn) { btn.disabled = false; btn.textContent = '🔍 Leer matrículas de las fotos del día'; }
               toast(encontradas > 0 ? '✅ ' + encontradas + ' matrícula(s) reconocida(s)' : '⚠️ No se encontraron matrículas');
               return;
             }
-            // Retraso entre peticiones para respetar el límite de 1 req/s
             var delay = i === 0 ? 0 : 1300;
             setTimeout(function () {
               ocrUrlMulti(urls[i]).then(function (placas) {
-                // Clasificar: remolque empieza por R+dígito (R8560BCS) o tiene 3 letras finales > 3 chars
-                // Si la API devuelve la roja sin la R inicial (ej. 8560BCS), queda como tractora fallback
-                var remolque = placas.find(function (p) { return /^R\d/.test(p); });
-                var tractora = placas.find(function (p) { return !/^R\d/.test(p); });
-                if (tractora) { document.getElementById(grupos[i].t).value = tractora; encontradas++; }
-                if (remolque) { document.getElementById(grupos[i].r).value = remolque; encontradas++; }
-                siguiente(i + 1);
+                placas.forEach(function (p) {
+                  if (/^R\d/.test(p)) remolques.push(p);
+                  else tractoras.push(p);
+                });
+                procesarFoto(i + 1);
               });
             }, delay);
           }
-          siguiente(0);
+          procesarFoto(0);
         });
       }).catch(function () {
         if (btn) { btn.disabled = false; btn.textContent = '🔍 Leer matrículas de las fotos del día'; }
@@ -3869,10 +3870,10 @@
     function ocrUrlMulti(url) {
       var apiKey = localStorage.getItem('FTP_PR_KEY') || _OCR_KEY;
       if (apiKey) {
-        // threshold_d bajo para captar también placas rojas de remolque (baja confianza)
+        // Sin restricción de región para detectar también la placa roja de remolque
+        // threshold bajo para captar placas con menor confianza
         var fd = new FormData();
         fd.append('upload_url', url);
-        fd.append('regions', 'es');
         fd.append('config', JSON.stringify({ threshold_d: 0.1, threshold_o: 0.1 }));
         function llamarAPI(intentos) {
           return fetch('https://api.platerecognizer.com/v1/plate-reader/', {
