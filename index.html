@@ -5,9 +5,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>FurgoTrayler Pro</title>
+
+ <!-- Icono para iPhone/iOS -->
+  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="icon" type="image/png" href="logo.png">
+  
+  <!-- Configuración de App en iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FT Pro">
+
+
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link
@@ -464,9 +476,24 @@
       color: var(--text2);
       letter-spacing: .5px;
       text-transform: uppercase;
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 5px;
       margin-bottom: 4px;
     }
+    .cam-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-size: .85rem;
+      opacity: .6;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .cam-btn:hover { opacity: 1; }
+    .cam-btn.ocr-cargando { animation: parpadeo .6s infinite alternate; }
+    @keyframes parpadeo { from { opacity: .3 } to { opacity: 1 } }
 
     .fgrp {
       margin-bottom: 9px;
@@ -2021,6 +2048,66 @@
     body.sz-4xl .flbl,
     .sz-4xl .tfield label      { font-size: .85rem; }
 
+    /* ── FOTOS (NUBE STORAGE) ── */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+      min-height: 50px;
+    }
+    .photo-item {
+      position: relative;
+      aspect-ratio: 1/1;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    .photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      cursor: pointer;
+      display: block;
+    }
+    .photo-del {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(255, 82, 82, 0.95);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      font-size: 16px;
+      line-height: 24px;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .empty-msg {
+      text-align: center;
+      color: var(--text2);
+      font-size: 0.85rem;
+      padding: 30px 10px;
+      border: 1px dashed var(--border2);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.02);
+      grid-column: 1 / -1;
+    }
+    .photo-grid .empty-msg {
+      margin: 10px 0;
+    }
+
     /* ── MODO CLARO ──────────────────────────────────── */
     body.light {
       --bg:      #f5f7fa;
@@ -2176,7 +2263,8 @@
   <script>
     firebase.initializeApp(firebaseConfig);
     var db = firebase.database();
-    var auth = firebase.auth();</script>
+    var auth = firebase.auth();
+    var storage = firebase.storage();</script>
 
   <!-- LOGIN -->
   <div id="login-screen">
@@ -2308,7 +2396,7 @@
       <!-- SECCIÓN FOTOS (LOCAL) -->
       <div class="tcard">
         <details id="fotosDetails">
-          <summary style="cursor:pointer;font-weight:600;font-size:1.05em;padding:6px 0;user-select:none;">📸 Fotos de la jornada (Local) ▾</summary>
+          <summary style="cursor:pointer;font-weight:600;font-size:1.05em;padding:6px 0;user-select:none;">📸 Fotos de la jornada (Nube Storage) ▾</summary>
           <div style="margin-top:10px;">
             <input type="file" id="fotoInput" accept="image/*" capture="camera" style="display:none" onchange="procesarFoto(this)">
             <input type="file" id="fotoGaleriaInput" accept="image/*" multiple style="display:none" onchange="procesarFotosMultiple(this)">
@@ -2389,11 +2477,12 @@
         </div>
         <div class="fgrp"><label class="flbl">Ruta</label><select id="selR"></select></div>
         <div class="form-grid" style="margin-bottom:9px;">
-          <div><label class="flbl">T1</label><input type="text" id="fT1"></div>
-          <div><label class="flbl">T2</label><input type="text" id="fT2"></div>
-          <div><label class="flbl">R1</label><input type="text" id="fR1"></div>
-          <div><label class="flbl">R2</label><input type="text" id="fR2"></div>
+          <div><label class="flbl">T1<button type="button" class="cam-btn" id="camBtnT1" onclick="escanearMatricula('fT1','camBtnT1')" title="Foto matrícula">📷</button></label><input type="text" id="fT1" placeholder="1234 ABC"></div>
+          <div><label class="flbl">T2<button type="button" class="cam-btn" id="camBtnT2" onclick="escanearMatricula('fT2','camBtnT2')" title="Foto matrícula">📷</button></label><input type="text" id="fT2" placeholder="1234 ABC"></div>
+          <div><label class="flbl">R1<button type="button" class="cam-btn" id="camBtnR1" onclick="escanearMatricula('fR1','camBtnR1')" title="Foto matrícula">📷</button></label><input type="text" id="fR1" placeholder="R1234 AB"></div>
+          <div><label class="flbl">R2<button type="button" class="cam-btn" id="camBtnR2" onclick="escanearMatricula('fR2','camBtnR2')" title="Foto matrícula">📷</button></label><input type="text" id="fR2" placeholder="R1234 AB"></div>
         </div>
+        <input type="file" id="matInput" accept="image/*" capture="environment" style="display:none" onchange="procesarMatricula(this.files[0], this.dataset.campo, this.dataset.btn); this.value='';">
         <div class="fgrp"><label class="flbl">Observaciones</label><textarea id="fObs" rows="2" placeholder="Notas..."></textarea></div>
         <button class="btn-primary" onclick="guardarJ()">☁️ GUARDAR EN LA NUBE</button>
       </div>
@@ -2707,6 +2796,7 @@
         initCal();
         loadUser();
         initBkpTimer();
+        limpiarFotosAntiguas();
       }).catch(function (err) {
         console.error('Error vinculando usuario:', err);
         toast('⚠️ Error al entrar. Reintenta.');
@@ -2762,6 +2852,11 @@
         if (snap.val()) cfg = snap.val();
         document.getElementById('cfgN').value = cfg.name || '';
         document.getElementById('cfgC').value = cfg.company || '';
+      });
+      // Fotos (marcas en calendario)
+      db.ref('usuarios/' + currentUser + '/fechasFotos').on('value', function(snap) {
+        window.diasF = snap.val() || {};
+        repintarCal();
       });
     }
     function saveCfg() {
@@ -3319,16 +3414,10 @@
         var top = el.querySelector('.fc-daygrid-day-top');
         if (top) { top.style.position = 'relative'; top.appendChild(dot); }
       }
-      if(typeof fdb !== "undefined" && fdb) {
-        var tx = fdb.transaction("fechas", "readonly");
-        var req = tx.objectStore("fechas").get(ds);
-        req.onsuccess = function(e) {
-          if(e.target.result) {
-            var dotF = document.createElement("span"); dotF.className = "camera-dot"; dotF.title = "📸 Fotos locales";
-            var top2 = el.querySelector(".fc-daygrid-day-top");
-            if(top2) { top2.style.position = "relative"; top2.appendChild(dotF); }
-          }
-        };
+      if (window.diasF && window.diasF[ds]) {
+        var dotF = document.createElement("span"); dotF.className = "camera-dot"; dotF.title = "📸 Fotos en la nube";
+        var top2 = el.querySelector(".fc-daygrid-day-top");
+        if (top2) { top2.style.position = "relative"; top2.appendChild(dotF); }
       }
     }
     function showDayForm(f) {
@@ -3719,6 +3808,99 @@
     }
 
     /* ════════════════════════════════════════════
+       OCR — RECONOCIMIENTO DE MATRÍCULAS
+    ════════════════════════════════════════════ */
+    function escanearMatricula(campo, btnId) {
+      var inp = document.getElementById('matInput');
+      inp.dataset.campo = campo;
+      inp.dataset.btn   = btnId;
+      inp.click();
+    }
+
+    function procesarMatricula(file, campo, btnId) {
+      if (!file) return;
+      var nombre = campo.replace('f', '');
+      var btn = btnId ? document.getElementById(btnId) : null;
+      if (btn) btn.classList.add('ocr-cargando');
+      toast('🔍 Leyendo matrícula ' + nombre + '...');
+
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var img = new Image();
+        img.onload = function () {
+          var canvas = preprocesarMatricula(img);
+
+          function doOCR() {
+            Tesseract.recognize(canvas, 'eng', {
+              tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+              tessedit_pageseg_mode: '6'
+            }).then(function (res) {
+              var limpia = limpiarMatricula(res.data.text);
+              if (btn) btn.classList.remove('ocr-cargando');
+              if (limpia) {
+                document.getElementById(campo).value = limpia;
+                toast('✅ ' + nombre + ': ' + limpia);
+              } else {
+                toast('⚠️ No se leyó bien — escríbela tú');
+              }
+            }).catch(function () {
+              if (btn) btn.classList.remove('ocr-cargando');
+              toast('⚠️ Error OCR — escríbela manualmente');
+            });
+          }
+
+          if (typeof Tesseract !== 'undefined') {
+            doOCR();
+          } else {
+            toast('⏳ Cargando OCR (solo la primera vez)...');
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
+            s.onload  = doOCR;
+            s.onerror = function () {
+              if (btn) btn.classList.remove('ocr-cargando');
+              toast('⚠️ Sin conexión para cargar el OCR');
+            };
+            document.head.appendChild(s);
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function preprocesarMatricula(img) {
+      var canvas = document.createElement('canvas');
+      var maxW = 1600;
+      var scale = img.width > maxW ? maxW / img.width : 1;
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      var id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var d  = id.data;
+      for (var i = 0; i < d.length; i += 4) {
+        var g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+        g = Math.min(255, Math.max(0, (g - 128) * 1.6 + 128)); // contraste
+        d[i] = d[i+1] = d[i+2] = g;
+      }
+      ctx.putImageData(id, 0, 0);
+      return canvas;
+    }
+
+    function limpiarMatricula(texto) {
+      var t = texto.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      // Formato español nuevo: 4 dígitos + 3 letras
+      var m = t.match(/(\d{4})([A-Z]{3})/);
+      if (m) return m[1] + ' ' + m[2];
+      // Formato antiguo con provincia
+      var a = t.match(/([A-Z]{1,2}\d{4}[A-Z]{1,2})/);
+      if (a) return a[1];
+      // Mínimo 5 caracteres válidos → devolver tal cual
+      if (t.length >= 5 && t.length <= 10) return t;
+      return '';
+    }
+
+    /* ════════════════════════════════════════════
        EXPORT
     ════════════════════════════════════════════ */
     function xCSV() {
@@ -3904,146 +4086,148 @@
       }
     })();
     /* ════════════════════════════════════════════
-       FOTOS LOCALES (INDEXEDDB)
+       FOTOS NUBE (FIREBASE STORAGE)
     ════════════════════════════════════════════ */
-    var fdb;
-    var fdbReq = indexedDB.open("FurgoFotosDB", 1);
-    fdbReq.onupgradeneeded = function(e) {
-      fdb = e.target.result;
-      if (!fdb.objectStoreNames.contains("fotos")) {
-        fdb.createObjectStore("fotos", { keyPath: "id", autoIncrement: true });
-        fdb.createObjectStore("fechas", { keyPath: "fecha" }); // para puntos del calendario
-      }
-    };
-    fdbReq.onsuccess = function(e) {
-      fdb = e.target.result;
-      limpiarFotosAntiguas();
-      if(typeof diaActual !== "undefined" && diaActual) cargarFotos(diaActual);
-    };
-    fdbReq.onerror = function(e) { console.error("Error IndexedDB", e); };
 
-    // Borra automáticamente fotos con más de 1 mes de antigüedad
+    // Borra automáticamente fotos con más de 3 meses de antigüedad
     function limpiarFotosAntiguas() {
-      if (!fdb) return;
+      if (!currentUser) return;
+      var storageRef = storage.ref('fotos/' + currentUser);
       var corte = new Date();
-      corte.setMonth(corte.getMonth() - 1);
-      var corteStr = corte.toLocaleDateString('en-CA'); // YYYY-MM-DD hace 1 mes exacto
+      corte.setMonth(corte.getMonth() - 3);
+      var corteStr = corte.toLocaleDateString('en-CA'); // YYYY-MM-DD hace 3 meses
 
-      var tx = fdb.transaction(["fotos", "fechas"], "readwrite");
-      var fStore = tx.objectStore("fotos");
-      var dStore = tx.objectStore("fechas");
-
-      fStore.openCursor().onsuccess = function(e) {
-        var c = e.target.result;
-        if (c) {
-          if (c.value.fecha < corteStr) c.delete();
-          c.continue();
-        }
-      };
-      dStore.openCursor().onsuccess = function(e) {
-        var c = e.target.result;
-        if (c) {
-          if (c.key < corteStr) c.delete();
-          c.continue();
-        }
-      };
+      storageRef.listAll().then(function(res) {
+        res.prefixes.forEach(function(folderRef) {
+          // El nombre de la carpeta es la fecha YYYY-MM-DD
+          if (folderRef.name < corteStr) {
+            // Borrar todo el contenido de la carpeta antigua
+            folderRef.listAll().then(function(subRes) {
+              subRes.items.forEach(function(itemRef) {
+                itemRef.delete().catch(function(e) { console.error("Error borrando foto antigua", e); });
+              });
+            });
+          }
+        });
+      }).catch(function(err) {
+        console.warn("Error limpiando fotos antiguas:", err);
+      });
     }
 
     function procesarFoto(input) {
       if(!input.files || !input.files[0]) return;
-      var f = input.files[0];
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var base64 = e.target.result;
-        guardarFotoDB(window.diaActual, base64);
-        input.value = ""; // reset
-      };
-      reader.readAsDataURL(f);
+      var file = input.files[0];
+      subirFotoStorage(window.diaActual, file);
+      input.value = ""; // reset
     }
 
     function procesarFotosMultiple(input) {
       if(!input.files || !input.files.length) return;
       for(var i = 0; i < input.files.length; i++) {
-        (function(file) {
-          var reader = new FileReader();
-          reader.onload = function(e) { guardarFotoDB(window.diaActual, e.target.result); };
-          reader.readAsDataURL(file);
-        })(input.files[i]);
+        subirFotoStorage(window.diaActual, input.files[i]);
       }
       input.value = "";
     }
 
-    function guardarFotoDB(fecha, dataUrl) {
-      var tx = fdb.transaction(["fotos", "fechas"], "readwrite");
-      var fStore = tx.objectStore("fotos");
-      var dStore = tx.objectStore("fechas");
+    function subirFotoStorage(fecha, file) {
+      if (!currentUser) { toast("⚠️ Identifícate primero"); return; }
       
-      fStore.add({ fecha: fecha, img: dataUrl, ts: Date.now() });
-      dStore.put({ fecha: fecha, hasFotos: true });
+      var fileName = Date.now() + "_" + file.name;
+      var path = 'fotos/' + currentUser + '/' + fecha + '/' + fileName;
+      var fileRef = storage.ref(path);
       
-      tx.oncomplete = function() {
+      toast("📤 Subiendo foto...");
+      fileRef.put(file).then(function(snapshot) {
+        toast("✅ Foto guardada en la nube");
         cargarFotos(fecha);
-        toast("📷 Foto guardada localmente");
-        if(typeof buildMesCalendar === "function") buildMesCalendar();
-      };
+        // También marcamos en el calendario que este día tiene fotos
+        db.ref('usuarios/' + currentUser + '/fechasFotos/' + fecha).set(true);
+      }).catch(function(error) {
+        console.error("Error subiendo:", error);
+        toast("❌ Error al subir a la nube");
+      });
     }
 
     function cargarFotos(fecha) {
       var grid = document.getElementById("photoGrid");
       if(!grid) return;
-      grid.innerHTML = "";
-      if(!fdb) return;
-
-      var tx = fdb.transaction("fotos", "readonly");
-      var d = tx.objectStore("fotos");
-      var req = d.openCursor();
-      req.onsuccess = function(e) {
-        var cursor = e.target.result;
-        if(cursor) {
-          if(cursor.value.fecha === fecha) {
-            renderFotoItem(cursor.value.id, cursor.value.img);
-          }
-          cursor.continue();
-        }
-      };
-    }
-
-    function renderFotoItem(id, src) {
-      var d = document.createElement("div"); d.className = "photo-item";
-      var img = document.createElement("img"); img.src = src;
-      img.onclick = function() { verFotoGrande(src); };
-      var btn = document.createElement("button"); btn.className = "photo-del"; btn.innerHTML = "×";
-      btn.onclick = function() { borrarFotoDB(id, window.diaActual); };
-      d.appendChild(img); d.appendChild(btn);
-      document.getElementById("photoGrid").appendChild(d);
-    }
-
-    function borrarFotoDB(id, fecha) {
-      if(!confirm("¿Borrar esta foto del almacenamiento local?")) return;
-      var tx = fdb.transaction(["fotos", "fechas"], "readwrite");
-      var fStore = tx.objectStore("fotos");
-      fStore.delete(id);
       
-      tx.oncomplete = function() {
-        cargarFotos(fecha);
-        // Comprobar si hay más
-        var tx2 = fdb.transaction("fotos", "readonly");
-        var count = 0;
-        var r2 = tx2.objectStore("fotos").openCursor();
-        r2.onsuccess = function(e2) {
-          var c2 = e2.target.result;
-          if(c2) {
-            if(c2.value.fecha === fecha) count++;
-            c2.continue();
-          } else {
-            if(count === 0) {
-              var tx3 = fdb.transaction("fechas", "readwrite");
-              tx3.objectStore("fechas").delete(fecha);
-              tx3.oncomplete = function() { if(typeof buildMesCalendar === "function") buildMesCalendar(); };
-            }
+      if (!currentUser) {
+        grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">⚠️ Error: Usuario no identificado. Cierra sesión y entra de nuevo.</div>';
+        return;
+      }
+
+      grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">⏳ Buscando fotos en la nube...</div>';
+      
+      try {
+        var folderRef = storage.ref('fotos/' + currentUser + '/' + fecha);
+        
+        folderRef.listAll().then(function(res) {
+          grid.innerHTML = "";
+          if (res.items.length === 0) {
+            grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">No hay fotos guardadas para este día (' + fecha.split('-').reverse().join('/') + ')</div>';
+            return;
           }
-        };
-      };
+          
+          res.items.forEach(function(itemRef) {
+            itemRef.getDownloadURL().then(function(url) {
+              renderFotoItem(itemRef.fullPath, url, fecha);
+            }).catch(function(e) {
+              console.error("Error obteniendo URL:", e);
+            });
+          });
+        }).catch(function(err) {
+          console.error("Error en listAll:", err);
+          var msg = err.message;
+          if (err.code === 'storage/unauthorized') msg = "No tienes permiso para ver estas fotos (Revisa las reglas de Storage)";
+          grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">❌ Error al cargar: ' + msg + '</div>';
+        });
+      } catch (e) {
+        grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">❌ Error de inicialización: ' + e.message + '</div>';
+      }
+    }
+
+    function renderFotoItem(fullPath, url, fecha) {
+      var grid = document.getElementById("photoGrid");
+      // Evitar duplicados si se llama varias veces por carga asíncrona
+      if (document.querySelector('[data-path="' + fullPath + '"]')) return;
+
+      var d = document.createElement("div"); 
+      d.className = "photo-item";
+      d.setAttribute("data-path", fullPath);
+      
+      var img = document.createElement("img"); 
+      img.src = url;
+      img.onclick = function() { verFotoGrande(url); };
+      
+      var btn = document.createElement("button"); 
+      btn.className = "photo-del"; 
+      btn.innerHTML = "×";
+      btn.onclick = function() { borrarFotoStorage(fullPath, fecha); };
+      
+      d.appendChild(img); 
+      d.appendChild(btn);
+      grid.appendChild(d);
+    }
+
+    function borrarFotoStorage(fullPath, fecha) {
+      if(!confirm("¿Borrar esta foto de la nube definitivamente?")) return;
+      
+      var fileRef = storage.ref(fullPath);
+      fileRef.delete().then(function() {
+        toast("🗑 Foto eliminada");
+        cargarFotos(fecha);
+        
+        // Si no quedan más fotos, quitar la marca del calendario
+        var folderRef = storage.ref('fotos/' + currentUser + '/' + fecha);
+        folderRef.listAll().then(function(res) {
+          if (res.items.length === 0) {
+            db.ref('usuarios/' + currentUser + '/fechasFotos/' + fecha).remove();
+          }
+        });
+      }).catch(function(err) {
+        toast("❌ Error al borrar");
+      });
     }
 
     function verFotoGrande(src) {
@@ -4117,7 +4301,7 @@
         }
       });
 
-      // Botón cerrar — intercepta touchstart Y touchend para que no lleguen al overlay
+      // Botón cerrar
       var btnCerrar = document.createElement("button");
       btnCerrar.innerHTML = "✕";
       btnCerrar.style.cssText = "position:absolute;top:14px;right:14px;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.22);border:2px solid rgba(255,255,255,0.4);color:#fff;font-size:1.5rem;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center;";
@@ -4134,6 +4318,16 @@
 
       document.body.appendChild(v);
     }
+
+    // Recargar fotos al abrir el desplegable
+    document.addEventListener('DOMContentLoaded', function() {
+      var det = document.getElementById('fotosDetails');
+      if (det) {
+        det.addEventListener('toggle', function() {
+          if (this.open) cargarFotos(window.diaActual);
+        });
+      }
+    });
   </script>
 </body>
 
