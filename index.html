@@ -3855,12 +3855,11 @@
     }
 
     function ocrUrl(url) {
-      var apiKey = localStorage.getItem('FTP_PR_KEY') || '';
+      var apiKey = localStorage.getItem('FTP_PR_KEY') || (typeof PR_API_KEY !== 'undefined' ? PR_API_KEY : '');
       return fetch(url)
         .then(function (r) { return r.blob(); })
         .then(function (blob) {
           if (apiKey) {
-            // ── Plate Recognizer (API específica de matrículas) ──
             var fd = new FormData();
             fd.append('upload', blob, 'plate.jpg');
             fd.append('regions', 'es');
@@ -3868,15 +3867,24 @@
               method: 'POST',
               headers: { 'Authorization': 'Token ' + apiKey },
               body: fd
-            }).then(function (r) { return r.json(); })
-              .then(function (data) {
-                if (data.results && data.results.length > 0) {
-                  return limpiarMatricula(data.results[0].plate);
-                }
-                return '';
-              }).catch(function () { return ''; });
+            }).then(function (r) {
+              if (!r.ok) {
+                r.text().then(function (t) { toast('❌ API ' + r.status + ': ' + t.substring(0, 80)); });
+                return null;
+              }
+              return r.json();
+            }).then(function (data) {
+              if (!data) return '';
+              if (data.detail) { toast('❌ API: ' + data.detail); return ''; }
+              if (data.results && data.results.length > 0) {
+                // Plate Recognizer ya devuelve la matrícula limpia — solo mayúsculas
+                return data.results[0].plate.toUpperCase().replace(/\s/g, '');
+              }
+              toast('📷 Foto procesada — no se detectó matrícula');
+              return '';
+            }).catch(function (e) { toast('❌ Error API: ' + e.message); return ''; });
           } else {
-            // ── Fallback: Tesseract (menos preciso) ──
+            toast('⚠️ Sin clave API — usando Tesseract (menos preciso)');
             return new Promise(function (resolve) {
               var objUrl = URL.createObjectURL(blob);
               var img = new Image();
@@ -3903,7 +3911,7 @@
               img.src = objUrl;
             });
           }
-        }).catch(function () { return ''; });
+        }).catch(function (e) { toast('❌ Error cargando foto: ' + e.message); return ''; });
     }
 
     function savePrKey() {
