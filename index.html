@@ -3856,35 +3856,39 @@
 
     function ocrUrl(url) {
       var apiKey = localStorage.getItem('FTP_PR_KEY') || (typeof PR_API_KEY !== 'undefined' ? PR_API_KEY : '');
-      return fetch(url)
-        .then(function (r) { return r.blob(); })
-        .then(function (blob) {
-          if (apiKey) {
-            var fd = new FormData();
-            fd.append('upload', blob, 'plate.jpg');
-            fd.append('regions', 'es');
-            return fetch('https://api.platerecognizer.com/v1/plate-reader/', {
-              method: 'POST',
-              headers: { 'Authorization': 'Token ' + apiKey },
-              body: fd
-            }).then(function (r) {
-              if (!r.ok) {
-                r.text().then(function (t) { toast('❌ API ' + r.status + ': ' + t.substring(0, 80)); });
-                return null;
-              }
-              return r.json();
-            }).then(function (data) {
-              if (!data) return '';
-              if (data.detail) { toast('❌ API: ' + data.detail); return ''; }
-              if (data.results && data.results.length > 0) {
-                // Plate Recognizer ya devuelve la matrícula limpia — solo mayúsculas
-                return data.results[0].plate.toUpperCase().replace(/\s/g, '');
-              }
-              toast('📷 Foto procesada — no se detectó matrícula');
+      if (apiKey) {
+        // Enviamos la URL directamente — el servidor de Plate Recognizer descarga
+        // la imagen él mismo, evitando problemas de CORS en el navegador.
+        var fd = new FormData();
+        fd.append('upload_url', url);
+        fd.append('regions', 'es');
+        return fetch('https://api.platerecognizer.com/v1/plate-reader/', {
+          method: 'POST',
+          headers: { 'Authorization': 'Token ' + apiKey },
+          body: fd
+        }).then(function (r) {
+          if (!r.ok) {
+            return r.text().then(function (t) {
+              toast('❌ API ' + r.status + ': ' + t.substring(0, 80));
               return '';
-            }).catch(function (e) { toast('❌ Error API: ' + e.message); return ''; });
-          } else {
-            toast('⚠️ Sin clave API — usando Tesseract (menos preciso)');
+            });
+          }
+          return r.json().then(function (data) {
+            if (!data) return '';
+            if (data.detail) { toast('❌ API: ' + data.detail); return ''; }
+            if (data.results && data.results.length > 0) {
+              return data.results[0].plate.toUpperCase().replace(/\s/g, '');
+            }
+            toast('📷 Foto procesada — no se detectó matrícula');
+            return '';
+          });
+        }).catch(function (e) { toast('❌ Error API: ' + e.message); return ''; });
+      } else {
+        // Fallback Tesseract sin clave API (descarga el blob localmente)
+        toast('⚠️ Sin clave API — usando Tesseract (menos preciso)');
+        return fetch(url)
+          .then(function (r) { return r.blob(); })
+          .then(function (blob) {
             return new Promise(function (resolve) {
               var objUrl = URL.createObjectURL(blob);
               var img = new Image();
@@ -3910,8 +3914,8 @@
               img.onerror = function () { resolve(''); };
               img.src = objUrl;
             });
-          }
-        }).catch(function (e) { toast('❌ Error cargando foto: ' + e.message); return ''; });
+          }).catch(function (e) { toast('❌ Error cargando foto: ' + e.message); return ''; });
+      }
     }
 
     function savePrKey() {
