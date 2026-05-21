@@ -3847,9 +3847,10 @@
             var delay = i === 0 ? 0 : 1300;
             setTimeout(function () {
               ocrUrlMulti(urls[i]).then(function (placas) {
-                // Clasificar por formato: remolque empieza por R+dígito (ej. R8560BCS)
-                var tractora = placas.find(function (p) { return !/^R\d/.test(p); });
+                // Clasificar: remolque empieza por R+dígito (R8560BCS) o tiene 3 letras finales > 3 chars
+                // Si la API devuelve la roja sin la R inicial (ej. 8560BCS), queda como tractora fallback
                 var remolque = placas.find(function (p) { return /^R\d/.test(p); });
+                var tractora = placas.find(function (p) { return !/^R\d/.test(p); });
                 if (tractora) { document.getElementById(grupos[i].t).value = tractora; encontradas++; }
                 if (remolque) { document.getElementById(grupos[i].r).value = remolque; encontradas++; }
                 siguiente(i + 1);
@@ -3868,9 +3869,11 @@
     function ocrUrlMulti(url) {
       var apiKey = localStorage.getItem('FTP_PR_KEY') || _OCR_KEY;
       if (apiKey) {
+        // threshold_d bajo para captar también placas rojas de remolque (baja confianza)
         var fd = new FormData();
         fd.append('upload_url', url);
         fd.append('regions', 'es');
+        fd.append('config', JSON.stringify({ threshold_d: 0.1, threshold_o: 0.1 }));
         function llamarAPI(intentos) {
           return fetch('https://api.platerecognizer.com/v1/plate-reader/', {
             method: 'POST',
@@ -3892,9 +3895,12 @@
                 toast('📷 Foto procesada — no se detectó matrícula');
                 return [];
               }
-              return data.results.map(function (item) {
+              var placas = data.results.map(function (item) {
                 return item.plate.toUpperCase().replace(/\s/g, '');
               });
+              // Diagnóstico temporal: muestra todo lo que devuelve la API
+              toast('🔎 API detectó: ' + placas.join(' | '));
+              return placas;
             });
           }).catch(function (e) { toast('❌ Error API: ' + e.message); return []; });
         }
