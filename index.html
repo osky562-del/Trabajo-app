@@ -3816,6 +3816,18 @@
     /* ════════════════════════════════════════════
        OCR — RECONOCIMIENTO DE MATRÍCULAS
     ════════════════════════════════════════════ */
+    // Valida formatos de matrícula española
+    function esMatriculaValida(p) {
+      if (!p) return false;
+      // Remolque: R + 4 dígitos + 2-3 letras (R8560BCS)
+      if (/^R\d{4}[A-Z]{2,3}$/.test(p)) return true;
+      // Tractora moderna: 4 dígitos + 3 letras (1513NHR)
+      if (/^\d{4}[A-Z]{3}$/.test(p)) return true;
+      // Tractora antigua: 1-2 letras + 4 dígitos + 1-2 letras (M1234AB, B12345CD)
+      if (/^[A-Z]{1,2}\d{4}[A-Z]{1,2}$/.test(p)) return true;
+      return false;
+    }
+
     function analizarFotosDelDia() {
       var fecha = currF || diaActual;
       if (!fecha) { toast('⚠️ Selecciona un día primero'); return; }
@@ -3873,11 +3885,12 @@
     function ocrUrlMulti(url) {
       var apiKey = localStorage.getItem('FTP_PR_KEY') || _OCR_KEY;
       if (apiKey) {
-        // Sin restricción de región para detectar también la placa roja de remolque
-        // threshold bajo para captar placas con menor confianza
+        // regions=es para precisión en formato español; umbral medio para equilibrar
+        // detección de placas rojas vs falsos positivos del texto del camión
         var fd = new FormData();
         fd.append('upload_url', url);
-        fd.append('config', JSON.stringify({ threshold_d: 0.1, threshold_o: 0.1 }));
+        fd.append('regions', 'es');
+        fd.append('config', JSON.stringify({ threshold_d: 0.3, threshold_o: 0.3 }));
         function llamarAPI(intentos) {
           return fetch('https://api.platerecognizer.com/v1/plate-reader/', {
             method: 'POST',
@@ -3899,12 +3912,14 @@
                 toast('📷 Foto procesada — no se detectó matrícula');
                 return [];
               }
-              var placas = data.results.map(function (item) {
-                return item.plate.toUpperCase().replace(/\s/g, '');
+              var todas = data.results.map(function (item) {
+                return item.plate.toUpperCase().replace(/[^A-Z0-9]/g, '');
               });
-              // Diagnóstico temporal: muestra todo lo que devuelve la API
-              toast('🔎 API detectó: ' + placas.join(' | '));
-              return placas;
+              // Diagnóstico: muestra TODO lo crudo que devuelve la API
+              toast('🔎 API: ' + todas.join(' | '));
+              // Filtrar solo matrículas con formato español válido
+              var validas = todas.filter(esMatriculaValida);
+              return validas;
             });
           }).catch(function (e) { toast('❌ Error API: ' + e.message); return []; });
         }
