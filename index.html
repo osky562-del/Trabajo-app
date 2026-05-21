@@ -3839,14 +3839,18 @@
               toast(encontradas > 0 ? '✅ ' + encontradas + ' matrícula(s) reconocida(s)' : '⚠️ No se encontraron matrículas');
               return;
             }
-            ocrUrl(urls[i]).then(function (placa) {
-              if (placa) {
-                document.getElementById(campos[campoIdx]).value = placa;
-                campoIdx++;
-                encontradas++;
-              }
-              siguiente(i + 1);
-            });
+            // Retraso entre peticiones para respetar el límite de 1 req/s de la API
+            var delay = i === 0 ? 0 : 1300;
+            setTimeout(function () {
+              ocrUrl(urls[i]).then(function (placa) {
+                if (placa) {
+                  document.getElementById(campos[campoIdx]).value = placa;
+                  campoIdx++;
+                  encontradas++;
+                }
+                siguiente(i + 1);
+              });
+            }, delay);
           }
           siguiente(0);
         });
@@ -3864,27 +3868,35 @@
         var fd = new FormData();
         fd.append('upload_url', url);
         fd.append('regions', 'es');
-        return fetch('https://api.platerecognizer.com/v1/plate-reader/', {
-          method: 'POST',
-          headers: { 'Authorization': 'Token ' + apiKey },
-          body: fd
-        }).then(function (r) {
-          if (!r.ok) {
-            return r.text().then(function (t) {
-              toast('❌ API ' + r.status + ': ' + t.substring(0, 80));
+        function llamarAPI(intentos) {
+          return fetch('https://api.platerecognizer.com/v1/plate-reader/', {
+            method: 'POST',
+            headers: { 'Authorization': 'Token ' + apiKey },
+            body: fd
+          }).then(function (r) {
+            if (r.status === 429 && intentos > 0) {
+              // Rate limit: espera 1,5 s y reintenta
+              return new Promise(function (res) { setTimeout(res, 1500); })
+                .then(function () { return llamarAPI(intentos - 1); });
+            }
+            if (!r.ok) {
+              return r.text().then(function (t) {
+                toast('❌ API ' + r.status + ': ' + t.substring(0, 80));
+                return '';
+              });
+            }
+            return r.json().then(function (data) {
+              if (!data) return '';
+              if (data.detail) { toast('❌ API: ' + data.detail); return ''; }
+              if (data.results && data.results.length > 0) {
+                return data.results[0].plate.toUpperCase().replace(/\s/g, '');
+              }
+              toast('📷 Foto procesada — no se detectó matrícula');
               return '';
             });
-          }
-          return r.json().then(function (data) {
-            if (!data) return '';
-            if (data.detail) { toast('❌ API: ' + data.detail); return ''; }
-            if (data.results && data.results.length > 0) {
-              return data.results[0].plate.toUpperCase().replace(/\s/g, '');
-            }
-            toast('📷 Foto procesada — no se detectó matrícula');
-            return '';
-          });
-        }).catch(function (e) { toast('❌ Error API: ' + e.message); return ''; });
+          }).catch(function (e) { toast('❌ Error API: ' + e.message); return ''; });
+        }
+        return llamarAPI(2);
       } else {
         // Fallback Tesseract sin clave API (descarga el blob localmente)
         toast('⚠️ Sin clave API — usando Tesseract (menos preciso)');
