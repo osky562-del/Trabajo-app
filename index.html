@@ -3848,18 +3848,34 @@
           // Recogemos TODAS las placas de TODAS las fotos, clasificamos y asignamos al final
           var tractoras = [], remolques = [], encontradas = 0;
 
+          function finalizar() {
+            // Asignar a campos: tractoras → T1/T2, remolques → R1/R2
+            var asign = [
+              { id: 'fT1', val: tractoras[0] }, { id: 'fT2', val: tractoras[1] },
+              { id: 'fR1', val: remolques[0] }, { id: 'fR2', val: remolques[1] }
+            ];
+            asign.forEach(function (a) {
+              if (a.val) { document.getElementById(a.id).value = a.val; encontradas++; }
+            });
+            if (btn) { btn.disabled = false; btn.textContent = '🔍 Leer matrículas de las fotos del día'; }
+            toast(encontradas > 0 ? '✅ ' + encontradas + ' matrícula(s) reconocida(s)' : '⚠️ No se encontraron matrículas');
+          }
+
+          function buscarRemolquesEnTesseract(idx) {
+            // Si ya tenemos suficientes remolques o no quedan fotos, terminar
+            var faltan = (tractoras.length > 0 && remolques.length === 0) || (tractoras.length > 1 && remolques.length < 2);
+            if (!faltan || idx >= urls.length) { finalizar(); return; }
+            if (btn) btn.textContent = '⏳ Buscando placas rojas...';
+            ocrPlacaRoja(urls[idx]).then(function (placa) {
+              if (placa && remolques.indexOf(placa) === -1) remolques.push(placa);
+              buscarRemolquesEnTesseract(idx + 1);
+            });
+          }
+
           function procesarFoto(i) {
             if (i >= urls.length) {
-              // Asignar a campos: tractoras → T1/T2, remolques → R1/R2
-              var asign = [
-                { id: 'fT1', val: tractoras[0] }, { id: 'fT2', val: tractoras[1] },
-                { id: 'fR1', val: remolques[0] }, { id: 'fR2', val: remolques[1] }
-              ];
-              asign.forEach(function (a) {
-                if (a.val) { document.getElementById(a.id).value = a.val; encontradas++; }
-              });
-              if (btn) { btn.disabled = false; btn.textContent = '🔍 Leer matrículas de las fotos del día'; }
-              toast(encontradas > 0 ? '✅ ' + encontradas + ' matrícula(s) reconocida(s)' : '⚠️ No se encontraron matrículas');
+              // Fase 2: si la API no encontró remolque, buscar placas rojas con Tesseract local
+              buscarRemolquesEnTesseract(0);
               return;
             }
             var delay = i === 0 ? 0 : 1300;
@@ -3915,9 +3931,7 @@
               var todas = data.results.map(function (item) {
                 return item.plate.toUpperCase().replace(/[^A-Z0-9]/g, '');
               });
-              // Diagnóstico: muestra TODO lo crudo que devuelve la API
-              toast('🔎 API: ' + todas.join(' | '));
-              // Filtrar solo matrículas con formato español válido
+              // Filtrar solo matrículas con formato español válido (evita falsos positivos)
               var validas = todas.filter(esMatriculaValida);
               return validas;
             });
@@ -3959,6 +3973,74 @@
             });
           }).catch(function (e) { toast('❌ Error cargando foto: ' + e.message); return []; });
       }
+    }
+
+    // OCR específico para placas rojas de remolque (texto blanco sobre fondo rojo)
+    // Aísla la zona roja, invierte para que el texto blanco quede negro sobre blanco
+    function ocrPlacaRoja(url) {
+      return fetch(url)
+        .then(function (r) { return r.blob(); })
+        .then(function (blob) {
+          return new Promise(function (resolve) {
+            var objUrl = URL.createObjectURL(blob);
+            var img = new Image();
+            img.onload = function () {
+              URL.revokeObjectURL(objUrl);
+              var canvas = document.createElement('canvas');
+              var scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+              canvas.width = img.width * scale;
+              canvas.height = img.height * scale;
+              var ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              var d = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              var px = d.data;
+              // Para cada píxel: si está en zona rojiza Y es claro → texto (negro)
+              // Cualquier otra cosa → blanco
+              for (var i = 0; i < px.length; i += 4) {
+                var r = px[i], g = px[i + 1], b = px[i + 2];
+                var brillo = (r + g + b) / 3;
+                var esBlancoEnRojo = brillo > 170 && Math.abs(r - g) < 50 && Math.abs(g - b) < 50;
+                // Detectar si los píxeles vecinos son rojos (estamos sobre fondo rojo)
+                // Aproximación: si el píxel mismo tiene tinte rojizo Y es claro, asumimos texto
+                if (esBlancoEnRojo) {
+                  px[i] = 0; px[i + 1] = 0; px[i + 2] = 0;
+                } else if (r > 100 && g < r * 0.65 && b < r * 0.65) {
+                  // Píxel rojo del fondo → blanco
+                  px[i] = 255; px[i + 1] = 255; px[i + 2] = 255;
+                } else {
+                  // Cualquier otra cosa → blanco (descartar)
+                  px[i] = 255; px[i + 1] = 255; px[i + 2] = 255;
+                }
+              }
+              ctx.putImageData(d, 0, 0);
+
+              function doOCR() {
+                Tesseract.recognize(canvas, 'eng', {
+                  tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+                }).then(function (res) {
+                  var texto = res.data.text.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                  // Buscar patrón R + 4 dígitos + 2-3 letras
+                  var m = texto.match(/R\d{4}[A-Z]{2,3}/);
+                  if (m) { resolve(m[0]); return; }
+                  // Fallback: 4 dígitos + 2-3 letras (sin R por si Tesseract la confunde)
+                  var m2 = texto.match(/\d{4}[A-Z]{2,3}/);
+                  if (m2) { resolve('R' + m2[0]); return; }
+                  resolve('');
+                }).catch(function () { resolve(''); });
+              }
+              if (typeof Tesseract !== 'undefined') { doOCR(); }
+              else {
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
+                s.onload = doOCR;
+                s.onerror = function () { resolve(''); };
+                document.head.appendChild(s);
+              }
+            };
+            img.onerror = function () { resolve(''); };
+            img.src = objUrl;
+          });
+        }).catch(function () { return ''; });
     }
 
     function savePrKey() {
