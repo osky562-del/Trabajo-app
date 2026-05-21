@@ -3827,27 +3827,31 @@
           return;
         }
         toast('🔍 Analizando ' + res.items.length + ' foto(s)...');
-        var campos = ['fT1', 'fR1', 'fT2', 'fR2'];
         var urlPromesas = res.items.map(function (item) { return item.getDownloadURL(); });
 
         Promise.all(urlPromesas).then(function (urls) {
-          var campoIdx = 0, encontradas = 0;
+          var encontradas = 0;
+          // Foto 1 → T1 + R1  |  Foto 2 → T2 + R2
+          var grupos = [
+            { t: 'fT1', r: 'fR1' },
+            { t: 'fT2', r: 'fR2' }
+          ];
 
           function siguiente(i) {
-            if (i >= urls.length || campoIdx >= campos.length) {
+            if (i >= urls.length || i >= grupos.length) {
               if (btn) { btn.disabled = false; btn.textContent = '🔍 Leer matrículas de las fotos del día'; }
               toast(encontradas > 0 ? '✅ ' + encontradas + ' matrícula(s) reconocida(s)' : '⚠️ No se encontraron matrículas');
               return;
             }
-            // Retraso entre peticiones para respetar el límite de 1 req/s de la API
+            // Retraso entre peticiones para respetar el límite de 1 req/s
             var delay = i === 0 ? 0 : 1300;
             setTimeout(function () {
-              ocrUrl(urls[i]).then(function (placa) {
-                if (placa) {
-                  document.getElementById(campos[campoIdx]).value = placa;
-                  campoIdx++;
-                  encontradas++;
-                }
+              ocrUrlMulti(urls[i]).then(function (placas) {
+                // Clasificar por formato: remolque empieza por R+dígito (ej. R8560BCS)
+                var tractora = placas.find(function (p) { return !/^R\d/.test(p); });
+                var remolque = placas.find(function (p) { return /^R\d/.test(p); });
+                if (tractora) { document.getElementById(grupos[i].t).value = tractora; encontradas++; }
+                if (remolque) { document.getElementById(grupos[i].r).value = remolque; encontradas++; }
                 siguiente(i + 1);
               });
             }, delay);
@@ -3860,11 +3864,10 @@
       });
     }
 
-    function ocrUrl(url) {
+    // Devuelve ARRAY con todas las matrículas detectadas en la imagen
+    function ocrUrlMulti(url) {
       var apiKey = localStorage.getItem('FTP_PR_KEY') || _OCR_KEY;
       if (apiKey) {
-        // Enviamos la URL directamente — el servidor de Plate Recognizer descarga
-        // la imagen él mismo, evitando problemas de CORS en el navegador.
         var fd = new FormData();
         fd.append('upload_url', url);
         fd.append('regions', 'es');
@@ -3875,30 +3878,29 @@
             body: fd
           }).then(function (r) {
             if (r.status === 429 && intentos > 0) {
-              // Rate limit: espera 1,5 s y reintenta
               return new Promise(function (res) { setTimeout(res, 1500); })
                 .then(function () { return llamarAPI(intentos - 1); });
             }
             if (!r.ok) {
               return r.text().then(function (t) {
                 toast('❌ API ' + r.status + ': ' + t.substring(0, 80));
-                return '';
+                return [];
               });
             }
             return r.json().then(function (data) {
-              if (!data) return '';
-              if (data.detail) { toast('❌ API: ' + data.detail); return ''; }
-              if (data.results && data.results.length > 0) {
-                return data.results[0].plate.toUpperCase().replace(/\s/g, '');
+              if (!data || !data.results || !data.results.length) {
+                toast('📷 Foto procesada — no se detectó matrícula');
+                return [];
               }
-              toast('📷 Foto procesada — no se detectó matrícula');
-              return '';
+              return data.results.map(function (item) {
+                return item.plate.toUpperCase().replace(/\s/g, '');
+              });
             });
-          }).catch(function (e) { toast('❌ Error API: ' + e.message); return ''; });
+          }).catch(function (e) { toast('❌ Error API: ' + e.message); return []; });
         }
         return llamarAPI(2);
       } else {
-        // Fallback Tesseract sin clave API (descarga el blob localmente)
+        // Fallback Tesseract — devuelve array de 1 elemento
         toast('⚠️ Sin clave API — usando Tesseract (menos preciso)');
         return fetch(url)
           .then(function (r) { return r.blob(); })
@@ -3913,22 +3915,24 @@
                   Tesseract.recognize(canvas, 'eng', {
                     tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
                     tessedit_pageseg_mode: '7'
-                  }).then(function (res) { resolve(limpiarMatricula(res.data.text)); })
-                    .catch(function () { resolve(''); });
+                  }).then(function (res) {
+                    var p = limpiarMatricula(res.data.text);
+                    resolve(p ? [p] : []);
+                  }).catch(function () { resolve([]); });
                 }
                 if (typeof Tesseract !== 'undefined') { doOCR(); }
                 else {
                   var s = document.createElement('script');
                   s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
                   s.onload = doOCR;
-                  s.onerror = function () { resolve(''); };
+                  s.onerror = function () { resolve([]); };
                   document.head.appendChild(s);
                 }
               };
-              img.onerror = function () { resolve(''); };
+              img.onerror = function () { resolve([]); };
               img.src = objUrl;
             });
-          }).catch(function (e) { toast('❌ Error cargando foto: ' + e.message); return ''; });
+          }).catch(function (e) { toast('❌ Error cargando foto: ' + e.message); return []; });
       }
     }
 
