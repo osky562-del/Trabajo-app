@@ -2860,10 +2860,11 @@
         document.getElementById('cfgN').value = cfg.name || '';
         document.getElementById('cfgC').value = cfg.company || '';
       });
-      // Fotos (marcas en calendario)
+      // Fotos (marcas en calendario y en historial)
       db.ref('usuarios/' + currentUser + '/fechasFotos').on('value', function(snap) {
         window.diasF = snap.val() || {};
         repintarCal();
+        if (typeof paintHist === 'function') paintHist();
       });
     }
     function saveCfg() {
@@ -3566,11 +3567,16 @@
       orden.forEach(function (key, gi) {
         var g = grupos[key];
         var cnts = { dia: 0, noche: 0, fuera: 0, vacas: 0 };
-        g.items.forEach(function (e) { var t = e.extendedProps.tipo || 'dia'; if (cnts[t] !== undefined) cnts[t]++; });
+        var nFotos = 0;
+        g.items.forEach(function (e) {
+          var t = e.extendedProps.tipo || 'dia'; if (cnts[t] !== undefined) cnts[t]++;
+          if (window.diasF && window.diasF[e.start]) nFotos++;
+        });
         var dots = '';
         ['dia', 'noche', 'fuera', 'vacas'].forEach(function (t) {
           if (cnts[t] > 0) dots += '<span style="display:inline-flex;align-items:center;gap:2px;font-size:.6rem;color:' + cdot[t] + '"><span style="width:6px;height:6px;border-radius:50%;background:' + cdot[t] + ';display:inline-block"></span>' + cnts[t] + '</span>';
         });
+        if (nFotos > 0) dots += '<span style="display:inline-flex;align-items:center;gap:2px;font-size:.6rem;color:var(--brand2);">📷 ' + nFotos + '</span>';
         var isFirst = (gi === 0);
         cont.innerHTML += '<div class="mes-grupo">'
           + '<div class="mes-header' + (isFirst ? ' open' : '') + '" id="mh-' + gi + '" onclick="toggleMes(' + gi + ')">'
@@ -3580,8 +3586,12 @@
           + '<div class="mes-body' + (isFirst ? ' open' : '') + '" id="mb-' + gi + '"><div class="mes-body-inner">'
           + g.items.map(function (e) {
             var p = e.extendedProps, tp = p.tipo || 'dia';
+            var tieneFotos = window.diasF && window.diasF[e.start];
+            var icoFotos = tieneFotos
+              ? '<span style="display:inline-flex;align-items:center;gap:3px;font-size:.6rem;padding:1px 6px;border-radius:8px;background:rgba(0,229,160,.15);color:var(--brand2);border:1px solid rgba(0,229,160,.35);margin-left:6px;" title="Hay fotos guardadas">📷 Fotos</span>'
+              : '';
             return '<div class="card ct-' + tp + '">'
-              + '<div class="cr1"><span class="c-dt">📅 ' + e.start.split('-').reverse().join('/') + '</span><span class="c-tp" style="color:' + cx[tp] + '">' + e.title + '</span></div>'
+              + '<div class="cr1"><span class="c-dt">📅 ' + e.start.split('-').reverse().join('/') + icoFotos + '</span><span class="c-tp" style="color:' + cx[tp] + '">' + e.title + '</span></div>'
               + (p.ruta ? '<div class="c-ru">📍 ' + p.ruta + '</div>' : '')
               + ([p.t1, p.t2, p.r1, p.r2].filter(Boolean).length ? '<div class="c-ti">' + [p.t1, p.t2, p.r1, p.r2].filter(Boolean).join(' · ') + '</div>' : '')
               + (p.obs ? '<div class="c-ob">💬 ' + p.obs + '</div>' : '')
