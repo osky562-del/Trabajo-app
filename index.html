@@ -2613,7 +2613,8 @@
         <div id="bkpAviso" style="display:none;background:rgba(255,213,79,.15);border:1px solid var(--warn);color:var(--warn);padding:8px 10px;border-radius:8px;font-size:.7rem;margin-bottom:8px;cursor:pointer;" onclick="descargarBackup();this.style.display='none'">
           ⚠️ <b>Backup pendiente</b> — Toca aquí para descargarlo ahora
         </div>
-        <div id="bkpStatus" style="font-size:.6rem;color:var(--text2);line-height:1.4;"></div>
+        <div id="bkpStatus" style="font-size:.6rem;color:var(--text2);line-height:1.4;margin-bottom:6px;"></div>
+        <div style="font-size:.6rem;color:var(--text2);line-height:1.3;">💡 La 1ª descarga te pide carpeta. Las siguientes (automáticas) van solas al mismo sitio.<br><a href="#" onclick="event.preventDefault();olvidarCarpetaBackup()" style="color:var(--brand2);">Cambiar carpeta de backup ↻</a></div>
       </div>
       <div class="panel">
         <div class="panel-hd">📐 Normativa CE 561/2006</div>
@@ -2908,6 +2909,57 @@
       updBkpStatus();
     }
 
+    /* ── IndexedDB para guardar el FileSystemHandle del backup ── */
+    function idbBkp(modo) {
+      return new Promise(function (resolve, reject) {
+        var req = indexedDB.open('FurgoBackupDB', 1);
+        req.onupgradeneeded = function () { req.result.createObjectStore('handles'); };
+        req.onsuccess = function () {
+          var tx = req.result.transaction('handles', modo);
+          resolve({ store: tx.objectStore('handles'), db: req.result });
+        };
+        req.onerror = function () { reject(req.error); };
+      });
+    }
+    async function guardarHandleBackup(handle) {
+      try {
+        var ctx = await idbBkp('readwrite');
+        ctx.store.put(handle, 'bkpFile');
+      } catch (e) { /* sin IndexedDB no podemos guardar handle */ }
+    }
+    async function obtenerHandleBackup() {
+      try {
+        var ctx = await idbBkp('readonly');
+        return new Promise(function (resolve) {
+          var r = ctx.store.get('bkpFile');
+          r.onsuccess = function () { resolve(r.result || null); };
+          r.onerror = function () { resolve(null); };
+        });
+      } catch (e) { return null; }
+    }
+    async function tienePermisoEscritura(handle) {
+      if (!handle || !handle.queryPermission) return false;
+      var p = await handle.queryPermission({ mode: 'readwrite' });
+      if (p === 'granted') return true;
+      // 'prompt' → necesita gesto del usuario para pedirlo
+      try {
+        var p2 = await handle.requestPermission({ mode: 'readwrite' });
+        return p2 === 'granted';
+      } catch (e) { return false; }
+    }
+    async function escribirEnHandle(handle, blob) {
+      var writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    }
+    async function olvidarCarpetaBackup() {
+      try {
+        var ctx = await idbBkp('readwrite');
+        ctx.store.delete('bkpFile');
+        toast('🗑️ Carpeta olvidada — la próxima vez te pedirá una nueva');
+      } catch (e) { toast('⚠️ No se pudo borrar'); }
+    }
+
     async function descargarBackup() {
       guardarBackupLocal();
       var bkp = localStorage.getItem('FTP_FULL_BACKUP');
@@ -2919,20 +2971,34 @@
         if (av) av.style.display = 'none';
         updBkpStatus();
       };
+
+      // ¿Ya teníamos una ubicación guardada de una descarga anterior?
+      var handle = await obtenerHandleBackup();
+      if (handle && await tienePermisoEscritura(handle)) {
+        try {
+          await escribirEnHandle(handle, blob);
+          ocultarAviso();
+          toast('💾 Backup guardado (' + handle.name + ')');
+          return;
+        } catch (e) { /* falla → cae a picker */ }
+      }
+
+      // Primera vez (o ubicación guardada inaccesible) → pedir carpeta
       if (window.showSaveFilePicker) {
         try {
-          var handle = await showSaveFilePicker({
+          var nuevo = await showSaveFilePicker({
             suggestedName: nombre,
             types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
           });
-          var writable = await handle.createWritable();
-          await writable.write(blob);
-          await writable.close();
+          await escribirEnHandle(nuevo, blob);
+          await guardarHandleBackup(nuevo);
           ocultarAviso();
-          toast('💾 Backup guardado');
+          toast('💾 Backup guardado — los próximos serán automáticos');
           return;
         } catch (e) { if (e.name === 'AbortError') return; }
       }
+
+      // Navegador sin File System Access API (iOS Safari) → descarga normal
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url; a.download = nombre; a.click();
@@ -3017,16 +3083,30 @@
       updBkpStatus();
     }
 
-    // Intenta descargar el backup AUTOMÁTICAMENTE (sin diálogo de carpeta).
-    // Usa el método <a>.click() que funciona sin gesto del usuario en la
-    // mayoría de navegadores. Si falla, muestra el aviso amarillo como fallback.
-    function autoDescargarBackup() {
+    // Intenta descargar el backup AUTOMÁTICAMENTE.
+    // Si hay un FileSystemHandle guardado de una descarga anterior, escribe
+    // directamente en ese fichero (sin diálogo). Si no, usa <a>.click() que
+    // descarga al folder por defecto. Si todo falla, aviso amarillo.
+    async function autoDescargarBackup() {
       guardarBackupLocal();
+      var bkp = localStorage.getItem('FTP_FULL_BACKUP');
+      var stamp = new Date().toISOString().slice(0, 10);
+      var nombre = 'furgotrayler_backup_' + stamp + '.json';
+      var blob = new Blob([bkp], { type: 'application/json' });
+
+      // Opción 1: handle guardado de descarga anterior → escribir directo
       try {
-        var bkp = localStorage.getItem('FTP_FULL_BACKUP');
-        var stamp = new Date().toISOString().slice(0, 10);
-        var nombre = 'furgotrayler_backup_' + stamp + '.json';
-        var blob = new Blob([bkp], { type: 'application/json' });
+        var handle = await obtenerHandleBackup();
+        if (handle && await tienePermisoEscritura(handle)) {
+          await escribirEnHandle(handle, blob);
+          toast('💾 Auto-backup guardado (' + handle.name + ')');
+          updBkpStatus();
+          return;
+        }
+      } catch (e) { /* falla → intenta descarga normal */ }
+
+      // Opción 2: descarga al folder por defecto del navegador
+      try {
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
@@ -3038,9 +3118,9 @@
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
         }, 1000);
-        toast('💾 Auto-backup descargado: ' + nombre);
+        toast('💾 Auto-backup descargado');
       } catch (e) {
-        // Navegador bloqueó la descarga (típico en iOS Safari) → aviso amarillo
+        // Bloqueado (típico en iOS Safari) → aviso amarillo
         mostrarAvisoBackupPendiente();
       }
       updBkpStatus();
