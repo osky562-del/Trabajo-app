@@ -2607,9 +2607,13 @@
             <option value="6">Cada 6 horas</option>
             <option value="12">Cada 12 horas</option>
             <option value="24">Cada 24 horas</option>
+            <option value="168">Cada semana</option>
           </select>
         </div>
-        <div id="bkpStatus" style="font-size:.6rem;color:var(--text2);"></div>
+        <div id="bkpAviso" style="display:none;background:rgba(255,213,79,.15);border:1px solid var(--warn);color:var(--warn);padding:8px 10px;border-radius:8px;font-size:.7rem;margin-bottom:8px;cursor:pointer;" onclick="descargarBackup();this.style.display='none'">
+          ⚠️ <b>Backup pendiente</b> — Toca aquí para descargarlo ahora
+        </div>
+        <div id="bkpStatus" style="font-size:.6rem;color:var(--text2);line-height:1.4;"></div>
       </div>
       <div class="panel">
         <div class="panel-hd">📐 Normativa CE 561/2006</div>
@@ -2907,24 +2911,33 @@
     async function descargarBackup() {
       guardarBackupLocal();
       var bkp = localStorage.getItem('FTP_FULL_BACKUP');
+      var stamp = new Date().toISOString().slice(0, 10);
+      var nombre = 'furgotrayler_backup_' + stamp + '.json';
       var blob = new Blob([bkp], { type: 'application/json' });
+      var ocultarAviso = function () {
+        var av = document.getElementById('bkpAviso');
+        if (av) av.style.display = 'none';
+        updBkpStatus();
+      };
       if (window.showSaveFilePicker) {
         try {
           var handle = await showSaveFilePicker({
-            suggestedName: 'furgotrayler_backup.json',
+            suggestedName: nombre,
             types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
           });
           var writable = await handle.createWritable();
           await writable.write(blob);
           await writable.close();
+          ocultarAviso();
           toast('💾 Backup guardado');
           return;
         } catch (e) { if (e.name === 'AbortError') return; }
       }
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
-      a.href = url; a.download = 'furgotrayler_backup.json'; a.click();
+      a.href = url; a.download = nombre; a.click();
       URL.revokeObjectURL(url);
+      ocultarAviso();
       toast('💾 Backup descargado');
     }
 
@@ -2964,26 +2977,53 @@
 
     function setBkpInterval(hours) {
       localStorage.setItem('FTP_BACKUP_INTERVAL', hours);
-      initBkpTimer();
       if (parseInt(hours) > 0) {
+        // Guarda copia INMEDIATAMENTE para que el contador empiece desde ahora
+        // (así initBkpTimer no muestra el aviso de "backup pendiente" al activar)
         guardarBackupLocal();
+        initBkpTimer();
         toast('💾 Auto-backup activado — cada ' + hours + 'h');
       } else {
+        initBkpTimer();
         toast('Auto-backup desactivado');
       }
     }
 
     function initBkpTimer() {
-      if (bkpTimer) { clearInterval(bkpTimer); bkpTimer = null; }
+      if (bkpTimer) { clearTimeout(bkpTimer); bkpTimer = null; }
       var hours = parseInt(localStorage.getItem('FTP_BACKUP_INTERVAL')) || 0;
       var sel = document.getElementById('bkpInterval');
       if (sel) sel.value = hours;
-      if (hours > 0) {
-        bkpTimer = setInterval(function () {
-          guardarBackupLocal();
-        }, hours * 3600000);
+      if (hours <= 0) { updBkpStatus(); return; }
+
+      var intervalMs = hours * 3600000;
+      var lastTime = localStorage.getItem('FTP_BACKUP_TIME');
+      var lastMs = lastTime ? new Date(lastTime).getTime() : 0;
+      var ahora = Date.now();
+      var transcurrido = ahora - lastMs;
+
+      // Si nunca se hizo backup o ya ha pasado el intervalo desde el último,
+      // ejecutar ahora y avisar al usuario para que descargue el fichero.
+      if (!lastTime || transcurrido >= intervalMs) {
+        guardarBackupLocal();
+        mostrarAvisoBackupPendiente();
       }
+
+      // Programar el siguiente backup en el tiempo restante (no en cada hours desde 0)
+      var restante = Math.max(60000, intervalMs - (Date.now() - new Date(localStorage.getItem('FTP_BACKUP_TIME')).getTime()));
+      bkpTimer = setTimeout(function bkpTick() {
+        guardarBackupLocal();
+        mostrarAvisoBackupPendiente();
+        bkpTimer = setTimeout(bkpTick, intervalMs);
+      }, restante);
       updBkpStatus();
+    }
+
+    // Muestra un aviso visible y persistente para que el usuario descargue el backup
+    function mostrarAvisoBackupPendiente() {
+      var el = document.getElementById('bkpAviso');
+      if (el) { el.style.display = 'block'; }
+      toast('💾 Toca descargar — tu auto-backup está listo');
     }
 
     function updBkpStatus() {
@@ -2997,7 +3037,18 @@
       } else {
         html += '⚠️ Sin copia de seguridad aún';
       }
-      if (interval > 0) html += ' · Auto: cada ' + interval + 'h';
+      if (interval > 0) {
+        html += ' · Auto: cada ' + interval + 'h';
+        if (lastTime) {
+          var ms = (new Date(lastTime).getTime() + interval * 3600000) - Date.now();
+          if (ms > 0) {
+            var h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+            html += '<br>⏱️ Próxima copia: en ' + (h > 0 ? h + 'h ' : '') + m + 'min';
+          } else {
+            html += '<br>⚠️ Backup pendiente — descárgalo';
+          }
+        }
+      }
       el.innerHTML = html;
     }
 
@@ -4151,6 +4202,7 @@
       if (id === 'cal' && cal) { cal.render(); cal.updateSize(); }
       if (id === 'hist') paintHist();
       if (id === 'stats') updStats();
+      if (id === 'conf') updBkpStatus();
     }
 
     /* ════════════════════════════════════════════
