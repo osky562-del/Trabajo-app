@@ -2937,12 +2937,20 @@
         });
       } catch (e) { return null; }
     }
+    // Solo comprueba (no pide). Para escrituras silenciosas en auto-backup.
     async function tienePermisoEscritura(handle) {
       if (!handle || !handle.queryPermission) return false;
-      var p = await handle.queryPermission({ mode: 'readwrite' });
-      if (p === 'granted') return true;
-      // 'prompt' → necesita gesto del usuario para pedirlo
       try {
+        var p = await handle.queryPermission({ mode: 'readwrite' });
+        return p === 'granted';
+      } catch (e) { return false; }
+    }
+    // Comprueba y, si hace falta, PIDE permiso (sólo válido con gesto del usuario).
+    async function pedirPermisoEscritura(handle) {
+      if (!handle || !handle.queryPermission) return false;
+      try {
+        var p = await handle.queryPermission({ mode: 'readwrite' });
+        if (p === 'granted') return true;
         var p2 = await handle.requestPermission({ mode: 'readwrite' });
         return p2 === 'granted';
       } catch (e) { return false; }
@@ -2963,8 +2971,8 @@
     async function descargarBackup() {
       guardarBackupLocal();
       var bkp = localStorage.getItem('FTP_FULL_BACKUP');
-      var stamp = new Date().toISOString().slice(0, 10);
-      var nombre = 'furgotrayler_backup_' + stamp + '.json';
+      // Nombre FIJO para que cada nuevo backup SOBRESCRIBA el anterior
+      var nombre = 'furgotrayler_backup.json';
       var blob = new Blob([bkp], { type: 'application/json' });
       var ocultarAviso = function () {
         var av = document.getElementById('bkpAviso');
@@ -2972,9 +2980,9 @@
         updBkpStatus();
       };
 
-      // ¿Ya teníamos una ubicación guardada de una descarga anterior?
+      // ¿Ya teníamos una ubicación guardada? (este botón es gesto del usuario → puede pedir permiso)
       var handle = await obtenerHandleBackup();
-      if (handle && await tienePermisoEscritura(handle)) {
+      if (handle && await pedirPermisoEscritura(handle)) {
         try {
           await escribirEnHandle(handle, blob);
           ocultarAviso();
@@ -3083,18 +3091,19 @@
       updBkpStatus();
     }
 
-    // Intenta descargar el backup AUTOMÁTICAMENTE.
-    // Si hay un FileSystemHandle guardado de una descarga anterior, escribe
-    // directamente en ese fichero (sin diálogo). Si no, usa <a>.click() que
-    // descarga al folder por defecto. Si todo falla, aviso amarillo.
+    // Intenta descargar el backup AUTOMÁTICAMENTE al abrir la app.
+    // Si hay un handle guardado Y el permiso YA está concedido (silencioso),
+    // escribe sin diálogo. Si no, muestra el aviso amarillo (un toque del
+    // usuario sí cuenta como gesto válido para conceder permiso sin pedir
+    // carpeta de nuevo).
     async function autoDescargarBackup() {
       guardarBackupLocal();
       var bkp = localStorage.getItem('FTP_FULL_BACKUP');
-      var stamp = new Date().toISOString().slice(0, 10);
-      var nombre = 'furgotrayler_backup_' + stamp + '.json';
+      // Nombre FIJO: cada backup sobrescribe el anterior
+      var nombre = 'furgotrayler_backup.json';
       var blob = new Blob([bkp], { type: 'application/json' });
 
-      // Opción 1: handle guardado de descarga anterior → escribir directo
+      // Opción 1: handle guardado CON permiso ya concedido → escribir silencioso
       try {
         var handle = await obtenerHandleBackup();
         if (handle && await tienePermisoEscritura(handle)) {
@@ -3103,9 +3112,16 @@
           updBkpStatus();
           return;
         }
+        // Hay handle pero falta permiso → aviso para que el usuario lo toque
+        if (handle) {
+          mostrarAvisoBackupPendiente();
+          updBkpStatus();
+          return;
+        }
       } catch (e) { /* falla → intenta descarga normal */ }
 
-      // Opción 2: descarga al folder por defecto del navegador
+      // Opción 2: no hay handle (1ª vez en un navegador sin File System Access)
+      // → descarga al folder por defecto del navegador
       try {
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
@@ -3120,7 +3136,6 @@
         }, 1000);
         toast('💾 Auto-backup descargado');
       } catch (e) {
-        // Bloqueado (típico en iOS Safari) → aviso amarillo
         mostrarAvisoBackupPendiente();
       }
       updBkpStatus();
