@@ -2924,8 +2924,12 @@
     async function guardarHandleBackup(handle) {
       try {
         var ctx = await idbBkp('readwrite');
-        ctx.store.put(handle, 'bkpFile');
-      } catch (e) { /* sin IndexedDB no podemos guardar handle */ }
+        return new Promise(function (resolve) {
+          var r = ctx.store.put(handle, 'bkpFile');
+          r.onsuccess = function () { resolve(true); };
+          r.onerror = function () { console.warn('Error guardando handle', r.error); resolve(false); };
+        });
+      } catch (e) { console.warn('Sin IndexedDB', e); return false; }
     }
     async function obtenerHandleBackup() {
       try {
@@ -3093,17 +3097,16 @@
 
     // Intenta descargar el backup AUTOMÁTICAMENTE al abrir la app.
     // Si hay un handle guardado Y el permiso YA está concedido (silencioso),
-    // escribe sin diálogo. Si no, muestra el aviso amarillo (un toque del
-    // usuario sí cuenta como gesto válido para conceder permiso sin pedir
-    // carpeta de nuevo).
+    // escribe sin diálogo. En cualquier otro caso muestra el aviso amarillo
+    // — NO descargamos al folder por defecto porque eso dispararía el diálogo
+    // "Guardar como" en Chrome/Edge desktop.
     async function autoDescargarBackup() {
       guardarBackupLocal();
       var bkp = localStorage.getItem('FTP_FULL_BACKUP');
-      // Nombre FIJO: cada backup sobrescribe el anterior
       var nombre = 'furgotrayler_backup.json';
       var blob = new Blob([bkp], { type: 'application/json' });
 
-      // Opción 1: handle guardado CON permiso ya concedido → escribir silencioso
+      // Caso 1: handle guardado CON permiso ya concedido → escribir silencioso
       try {
         var handle = await obtenerHandleBackup();
         if (handle && await tienePermisoEscritura(handle)) {
@@ -3112,16 +3115,20 @@
           updBkpStatus();
           return;
         }
-        // Hay handle pero falta permiso → aviso para que el usuario lo toque
-        if (handle) {
-          mostrarAvisoBackupPendiente();
-          updBkpStatus();
-          return;
-        }
-      } catch (e) { /* falla → intenta descarga normal */ }
+      } catch (e) { /* falla → cae al aviso */ }
 
-      // Opción 2: no hay handle (1ª vez en un navegador sin File System Access)
-      // → descarga al folder por defecto del navegador
+      // Caso 2: navegador con File System Access (Chrome/Edge/Opera desktop):
+      //   - Hay handle pero el permiso se ha perdido → aviso amarillo
+      //   - No hay handle aún (1ª vez) → aviso amarillo
+      //   El toque del usuario es gesto válido para mostrar el picker UNA vez.
+      if (window.showSaveFilePicker) {
+        mostrarAvisoBackupPendiente();
+        updBkpStatus();
+        return;
+      }
+
+      // Caso 3: navegadores sin File System Access (iOS Safari, Firefox)
+      //   → descarga normal al folder por defecto, sin diálogo
       try {
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
