@@ -3095,18 +3095,22 @@
       updBkpStatus();
     }
 
-    // Intenta descargar el backup AUTOMÁTICAMENTE al abrir la app.
-    // Si hay un handle guardado Y el permiso YA está concedido (silencioso),
-    // escribe sin diálogo. En cualquier otro caso muestra el aviso amarillo
-    // — NO descargamos al folder por defecto porque eso dispararía el diálogo
-    // "Guardar como" en Chrome/Edge desktop.
+    // Al abrir la app: NUNCA descargamos sin gesto del usuario porque:
+    //   - Chrome/Edge: mostraría el diálogo "Guardar como" si está configurado
+    //   - iOS Safari/PWA: muestra siempre el diálogo "Guardar en Archivos"
+    //     (no hay API para recordar ubicación, ni siquiera con permiso previo)
+    // Lo que SÍ hacemos:
+    //   - Guardar el backup en localStorage (siempre, sin diálogos)
+    //   - Si hay un handle de Chrome/Edge CON permiso vivo → escribir silencioso
+    //   - En cualquier otro caso → aviso amarillo. UN solo toque tuyo
+    //     descarga el fichero.
     async function autoDescargarBackup() {
       guardarBackupLocal();
       var bkp = localStorage.getItem('FTP_FULL_BACKUP');
-      var nombre = 'furgotrayler_backup.json';
       var blob = new Blob([bkp], { type: 'application/json' });
 
-      // Caso 1: handle guardado CON permiso ya concedido → escribir silencioso
+      // Solo si hay handle + permiso ya concedido (típico Chrome/Edge desktop
+      // en la misma sesión sin cerrar el navegador), escribir silencioso
       try {
         var handle = await obtenerHandleBackup();
         if (handle && await tienePermisoEscritura(handle)) {
@@ -3117,34 +3121,8 @@
         }
       } catch (e) { /* falla → cae al aviso */ }
 
-      // Caso 2: navegador con File System Access (Chrome/Edge/Opera desktop):
-      //   - Hay handle pero el permiso se ha perdido → aviso amarillo
-      //   - No hay handle aún (1ª vez) → aviso amarillo
-      //   El toque del usuario es gesto válido para mostrar el picker UNA vez.
-      if (window.showSaveFilePicker) {
-        mostrarAvisoBackupPendiente();
-        updBkpStatus();
-        return;
-      }
-
-      // Caso 3: navegadores sin File System Access (iOS Safari, Firefox)
-      //   → descarga normal al folder por defecto, sin diálogo
-      try {
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = nombre;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(function () {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 1000);
-        toast('💾 Auto-backup descargado');
-      } catch (e) {
-        mostrarAvisoBackupPendiente();
-      }
+      // Cualquier otro caso (iOS PWA, Chrome sin permiso, 1ª vez) → aviso
+      mostrarAvisoBackupPendiente();
       updBkpStatus();
     }
 
