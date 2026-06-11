@@ -2616,6 +2616,13 @@
         <div id="bkpStatus" style="font-size:.6rem;color:var(--text2);line-height:1.4;margin-bottom:6px;"></div>
         <div style="font-size:.6rem;color:var(--text2);line-height:1.3;">💡 La 1ª descarga te pide carpeta. Las siguientes (automáticas) van solas al mismo sitio.<br><a href="#" onclick="event.preventDefault();olvidarCarpetaBackup()" style="color:var(--brand2);">Cambiar carpeta de backup ↻</a></div>
       </div>
+      <div class="panel" id="adminPanel" style="display:none;border-color:rgba(227,6,19,.35);">
+        <div class="panel-hd">🛡️ Administración de usuarios</div>
+        <p style="font-size:.65rem;color:var(--text2);margin-bottom:8px;">Solo tú ves este panel. Añade conductores nuevos o bloquea el acceso a quien quieras.</p>
+        <div class="add-row"><input type="text" id="admNuevo" placeholder="Nombre del nuevo conductor..."><button class="btn-add" onclick="admAddUsuario()">+</button></div>
+        <div id="admLista" style="margin-top:8px;"></div>
+        <div id="admAviso" style="display:none;font-size:.65rem;color:var(--warn);margin-top:8px;">⚠️ Falta actualizar las reglas en Firebase Console para activar este panel.</div>
+      </div>
       <div class="panel">
         <div class="panel-hd">📐 Normativa CE 561/2006</div>
         <div class="lc-grid">
@@ -2686,12 +2693,8 @@
       var n = document.getElementById('uName').value.trim().toUpperCase();
       if (!n) { toast('⚠️ Escribe tu nombre'); return; }
 
-      // Lista Restrictiva de Usuarios Autorizados
-      var allowedUsers = ["BRANA", "BRAÑA", "OSCAR", "PEDRO", "IVAN", "GUSTAVO", "GUSTAVO TERENTE", "CHEMA", "AGUSTIN", "AGUSTÍN", "RIVERA"];
-      if (!allowedUsers.includes(n)) {
-        toast('⚠️ Usuario no autorizado');
-        return;
-      }
+      // Lista de respaldo — solo se usa si la lista en Firebase aún no existe
+      var allowedUsersFallback = ["BRANA", "BRAÑA", "OSCAR", "PEDRO", "IVAN", "GUSTAVO", "GUSTAVO TERENTE", "CHEMA", "AGUSTIN", "AGUSTÍN", "RIVERA"];
 
       pendingUser = n;
       pendingKey = sanitizeKey(n);
@@ -2703,7 +2706,17 @@
       // 1. Autenticar anónimamente con Firebase Auth
       var authPromise = auth.currentUser ? Promise.resolve() : auth.signInAnonymously();
       authPromise.then(function () {
-        // 2. Leer el PIN (las reglas permiten leer pin con solo auth)
+        // 2. Comprobar si el usuario está en la lista de permitidos (gestionada
+        //    por el admin). Si la lectura falla (reglas sin actualizar) → null.
+        return db.ref('usuariosPermitidos').once('value').catch(function () { return null; });
+      }).then(function (lsnap) {
+        var lista = (lsnap && lsnap.val) ? lsnap.val() : null;
+        var permitido = lista ? lista[pendingKey] === true : allowedUsersFallback.includes(n);
+        if (!permitido) {
+          toast('⚠️ Usuario no autorizado');
+          var err = new Error('blocked'); err.handled = true; throw err;
+        }
+        // 3. Leer el PIN (las reglas permiten leer pin con solo auth)
         return db.ref('usuarios/' + pendingKey + '/pin').once('value');
       }).then(function (snap) {
         if (snap.exists()) {
@@ -2718,6 +2731,7 @@
         document.getElementById('step1').style.display = 'none';
         document.getElementById('step2').style.display = 'block';
       }).catch(function (err) {
+        if (err && err.handled) return; // usuario bloqueado — ya se avisó con toast
         console.error('Error auth/login:', err);
         toast('⚠️ Error de conexión. Reintenta.');
       });
@@ -2809,6 +2823,7 @@
         initBkpTimer();
         loadPrKey();
         limpiarFotosAntiguas();
+        initAdminPanel();
       }).catch(function (err) {
         console.error('Error vinculando usuario:', err);
         toast('⚠️ Error al entrar. Reintenta.');
@@ -2819,6 +2834,77 @@
       localStorage.removeItem('FTP_USER');
       localStorage.removeItem('FTP_KEY');
       auth.signOut().finally(function () { location.reload(); });
+    }
+
+    /* ════════════════════════════════════════════
+       ADMINISTRACIÓN DE USUARIOS (solo OSCAR)
+    ════════════════════════════════════════════ */
+    var ADMIN_KEY = 'OSCAR';
+
+    function initAdminPanel() {
+      if (currentUser !== ADMIN_KEY) return;
+      var panel = document.getElementById('adminPanel');
+      if (panel) panel.style.display = 'block';
+      db.ref('usuariosPermitidos').on('value', function (snap) {
+        var lista = snap.val();
+        if (!lista) {
+          // Primera vez: sembrar la lista con los usuarios actuales del código
+          var seed = {};
+          ['BRANA', 'OSCAR', 'PEDRO', 'IVAN', 'GUSTAVO TERENTE', 'CHEMA', 'AGUSTÍN', 'RIVERA']
+            .forEach(function (k) { seed[k] = true; });
+          db.ref('usuariosPermitidos').set(seed);
+          return;
+        }
+        document.getElementById('admAviso').style.display = 'none';
+        pintarAdminLista(lista);
+      }, function (err) {
+        // Sin permiso de lectura → faltan las reglas en Firebase Console
+        console.warn('Admin panel sin acceso:', err);
+        document.getElementById('admAviso').style.display = 'block';
+      });
+    }
+
+    function pintarAdminLista(lista) {
+      var cont = document.getElementById('admLista');
+      if (!cont) return;
+      var keys = Object.keys(lista).sort();
+      cont.innerHTML = keys.map(function (k) {
+        var activo = lista[k] === true;
+        var esAdmin = (k === ADMIN_KEY);
+        return '<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--border);">'
+          + '<span style="flex:1;font-size:.8rem;">' + (esAdmin ? '🛡️ ' : '👤 ') + k + '</span>'
+          + '<span style="font-size:.6rem;font-weight:700;color:' + (activo ? 'var(--ok)' : 'var(--danger)') + ';">' + (activo ? 'PERMITIDO' : 'BLOQUEADO') + '</span>'
+          + (esAdmin ? '' :
+            '<button class="sm-btn" onclick="admToggle(\'' + k + '\',' + (!activo) + ')" style="font-size:.65rem;">' + (activo ? '🚫 Bloquear' : '✅ Permitir') + '</button>'
+            + '<button class="sm-btn" onclick="admBorrar(\'' + k + '\')" style="font-size:.65rem;color:var(--danger);">✕</button>')
+          + '</div>';
+      }).join('');
+    }
+
+    function admAddUsuario() {
+      var inp = document.getElementById('admNuevo');
+      var n = inp.value.trim().toUpperCase();
+      if (!n) { toast('⚠️ Escribe un nombre'); return; }
+      var key = sanitizeKey(n);
+      db.ref('usuariosPermitidos/' + key).set(true).then(function () {
+        inp.value = '';
+        toast('✅ ' + key + ' añadido — ya puede entrar');
+      }).catch(function () { toast('⚠️ No se pudo añadir (¿reglas sin actualizar?)'); });
+    }
+
+    function admToggle(key, permitir) {
+      if (key === ADMIN_KEY) { toast('⚠️ No puedes bloquearte a ti mismo'); return; }
+      db.ref('usuariosPermitidos/' + key).set(permitir).then(function () {
+        toast(permitir ? '✅ ' + key + ' puede entrar de nuevo' : '🚫 ' + key + ' bloqueado');
+      }).catch(function () { toast('⚠️ No se pudo cambiar'); });
+    }
+
+    function admBorrar(key) {
+      if (key === ADMIN_KEY) { toast('⚠️ No puedes borrarte a ti mismo'); return; }
+      if (!confirm('¿Eliminar a ' + key + ' de la lista? No podrá entrar (sus datos NO se borran).')) return;
+      db.ref('usuariosPermitidos/' + key).remove().then(function () {
+        toast('🗑️ ' + key + ' eliminado de la lista');
+      }).catch(function () { toast('⚠️ No se pudo eliminar'); });
     }
 
     // Auto-login: si el usuario ya estaba, saltar al paso del PIN directamente
