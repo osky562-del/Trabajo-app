@@ -877,6 +877,59 @@
       color: var(--cr)
     }
 
+    /* Cuotas semanales (10h conducción / 9h descanso reducido) */
+    .cuota-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 9px;
+    }
+
+    .cuota-lbl {
+      font-size: .64rem;
+      color: var(--text2);
+      line-height: 1.25;
+    }
+
+    .cuota-lbl small {
+      display: block;
+      font-size: .52rem;
+      opacity: .7;
+    }
+
+    .cuota-boxes {
+      display: flex;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .cbox {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 27px;
+      height: 27px;
+      border: 1.5px solid var(--border2);
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: .85rem;
+      color: var(--text3);
+      background: var(--bg3);
+    }
+
+    .cbox.on {
+      border-color: var(--brand2);
+      color: var(--brand2);
+      background: rgba(0, 229, 160, .14);
+    }
+
+    .cbox.exc {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: rgba(255, 82, 82, .16);
+    }
+
     .alert-box {
       display: flex;
       flex-direction: column;
@@ -2441,6 +2494,16 @@
           <div class="res-card g"><div class="rc-lbl">KM semana</div><div class="rc-val g" id="rSK">—</div></div>
           <div class="res-card"><div class="rc-lbl">Días trab.</div><div class="rc-val" id="rSD">—</div></div>
         </div>
+        <div style="border-top:1px solid var(--border);margin-top:11px;padding-top:4px;">
+          <div class="cuota-row">
+            <div class="cuota-lbl">🚚 Conducción 10h <small>máx. 2 por semana</small></div>
+            <div class="cuota-boxes" id="box10"></div>
+          </div>
+          <div class="cuota-row">
+            <div class="cuota-lbl">😴 Descanso reducido 9h <small>máx. 3 por semana</small></div>
+            <div class="cuota-boxes" id="boxRed"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Resumen mes -->
@@ -3544,17 +3607,43 @@
       base.setDate(base.getDate() - ((base.getDay() + 6) % 7));
       return base;
     }
+    // Pinta los recuadros de cuota: 'usados' llenos con ✕ (verde), y si se
+    // supera el 'maximo' permitido, los extra salen en rojo (infracción).
+    function renderCuota(id, usados, maximo) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var html = '';
+      for (var i = 0; i < maximo; i++) {
+        var lleno = i < usados;
+        html += '<span class="cbox' + (lleno ? ' on' : '') + '">' + (lleno ? '✕' : '') + '</span>';
+      }
+      for (var j = maximo; j < usados; j++) {
+        html += '<span class="cbox exc">✕</span>';
+      }
+      el.innerHTML = html;
+    }
     function updSemana() {
       var hoy = new Date();
       var lunes = getLunesSemana(hoy);
-      var semH = 0, semK = 0, semD = 0;
+      var semH = 0, semK = 0, semD = 0, dias10 = 0, diasRedDesc = 0;
       // SEMANAL (límite 56h): semana natural lunes 00:00 → hoy
       for (var dt = new Date(lunes); dt <= hoy; dt.setDate(dt.getDate() + 1)) {
         var d = diasT[dt.toLocaleDateString('en-CA')];
-        if (d) { semH += d.hCond || 0; semK += (d.kmRec || 0) + (d.kmRec2 || 0); semD++; }
+        if (d) {
+          semH += d.hCond || 0; semK += (d.kmRec || 0) + (d.kmRec2 || 0); semD++;
+          // Día de conducción ampliada a 10h (más de 9h): máx. 2 por semana (Art. 6.1)
+          if ((d.hCond || 0) > 9) dias10++;
+          // Día de descanso diario reducido (9h ≤ descanso < 11h): máx. 3 por semana (Art. 8.6)
+          if (d.jornMin) {
+            var descH = 24 - d.jornMin / 60;
+            if (descH >= 9 && descH < 11) diasRedDesc++;
+          }
+        }
       }
       // BISEMANAL (límite 90h): semana anterior completa + semana actual
       var qH = getQuincenalH();
+      renderCuota('box10', dias10, 2);
+      renderCuota('boxRed', diasRedDesc, 3);
       // Rango de la semana natural en curso: lunes → domingo
       var domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
       var optsR = { day: 'numeric', month: 'short' };
