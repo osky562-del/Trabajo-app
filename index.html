@@ -2434,7 +2434,7 @@
         <div class="tcard-title">📊 Semana actual <span id="semanaRango" style="font-weight:400;font-size:.6rem;opacity:.7;"></span></div>
         <div class="pb-group">
           <div><div class="pb-head"><span>Conducción semanal</span><span id="pbSLbl">0h / 56h</span></div><div class="pb-track"><div class="pb-fill l0" id="pbS" style="width:0%"></div></div></div>
-          <div><div class="pb-head"><span>Conducción quincenal</span><span id="pbQLbl">0h / 90h</span></div><div class="pb-track"><div class="pb-fill bl" id="pbQ" style="width:0%"></div></div></div>
+          <div><div class="pb-head"><span>Conducción bisemanal</span><span id="pbQLbl">0h / 90h</span></div><div class="pb-track"><div class="pb-fill bl" id="pbQ" style="width:0%"></div></div></div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;">
           <div class="res-card g"><div class="rc-lbl">H. conducción</div><div class="rc-val g" id="rSH">—</div></div>
@@ -3317,12 +3317,7 @@
           + '</div>';
       }
       document.getElementById('weekStrip').innerHTML = html;
-      // Rango: los 7 días que se muestran (hace 6 días → hoy)
-      var rangoIni = new Date(hoy); rangoIni.setDate(hoy.getDate() - 6);
-      var optsShort = { day: 'numeric', month: 'short' };
-      var rangoTxt = rangoIni.toLocaleDateString('es-ES', optsShort) + ' – ' + hoy.toLocaleDateString('es-ES', optsShort);
-      var lblSem = document.getElementById('semanaRango');
-      if (lblSem) lblSem.textContent = rangoTxt;
+      // El rango de la "Semana actual" (semana natural lunes→domingo) lo fija updSemana
       var hoyS = new Date().toLocaleDateString('en-CA');
       var selDt = new Date(diaActual + 'T12:00:00');
       document.getElementById('dateLbl').textContent = diaActual === hoyS ? 'HOY' : selDt.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
@@ -3537,71 +3532,34 @@
     /* ════════════════════════════════════════════
        TACÓGRAFO — RESÚMENES
     ════════════════════════════════════════════ */
-    function getLunes() {
-      var hoy = new Date();
-      var l = new Date(hoy);
-      l.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
-      return l;
-    }
-    /* Semana tacógrafo: empieza el día en que el conductor retoma la actividad
-       tras su descanso semanal de fin de semana (≥2 días consecutivos sin registro,
-       equivalente al descanso semanal de ≥45h del CE 561/2006).
-       Si sólo hay 1 día de descanso (descanso reducido), también se acepta.
-       Esto permite que la semana empiece en domingo si el conductor trabaja ese día. */
-    function getInicioSemTaco() {
-      var hoy = new Date();
-      hoy.setHours(12, 0, 0, 0);
-
-      function sinActividad(ds) {
-        var d = diasT[ds];
-        return !d || (!d.hCond && !d.jornMin);
-      }
-
-      // Buscar hacia atrás hasta 14 días: 2 días consecutivos sin actividad (descanso completo)
-      for (var i = 1; i <= 13; i++) {
-        var dt1 = new Date(hoy); dt1.setDate(hoy.getDate() - i);
-        var dt2 = new Date(hoy); dt2.setDate(hoy.getDate() - i - 1);
-        var ds1 = dt1.toLocaleDateString('en-CA');
-        var ds2 = dt2.toLocaleDateString('en-CA');
-        if (sinActividad(ds1) && sinActividad(ds2)) {
-          // Encontrado descanso de 2+ días; la semana empieza el día siguiente al último día de descanso
-          var inicio = new Date(dt1); inicio.setDate(dt1.getDate() + 1);
-          return inicio;
-        }
-      }
-
-      // Si no hay 2 días consecutivos, buscar 1 solo día de descanso (descanso reducido)
-      for (var j = 1; j <= 14; j++) {
-        var dt = new Date(hoy); dt.setDate(hoy.getDate() - j);
-        var ds = dt.toLocaleDateString('en-CA');
-        if (sinActividad(ds)) {
-          var inicio2 = new Date(dt); inicio2.setDate(dt.getDate() + 1);
-          return inicio2;
-        }
-      }
-
-      // Fallback: hace 6 días
-      var fb = new Date(hoy); fb.setDate(hoy.getDate() - 6);
-      return fb;
+    /* Lunes 00:00 de la SEMANA NATURAL (lunes 00:00 → domingo 24:00) que
+       contiene la fecha 'ref' (o hoy si no se pasa).
+       Es la definición de "semana" del Art. 4 letra i) del Reglamento (CE)
+       561/2006, sobre la que se calculan los límites de conducción de 56h
+       (semanal) y 90h (dos semanas consecutivas). getDay(): domingo=0..sábado=6.
+       (getDay()+6)%7 retrocede al lunes; el domingo cuenta en su propia semana. */
+    function getLunesSemana(ref) {
+      var base = ref ? new Date(ref) : new Date();
+      base.setHours(0, 0, 0, 0);
+      base.setDate(base.getDate() - ((base.getDay() + 6) % 7));
+      return base;
     }
     function updSemana() {
       var hoy = new Date();
-      var inicio = getInicioSemTaco();
-      var semH = 0, semK = 0, semD = 0, qH = 0;
-      // Semana tacógrafo en curso (desde último descanso semanal)
-      var diff = Math.round((hoy - inicio) / 86400000);
-      for (var i = 0; i <= diff; i++) {
-        var dt = new Date(inicio); dt.setDate(inicio.getDate() + i);
-        if (dt > hoy) break;
+      var lunes = getLunesSemana(hoy);
+      var semH = 0, semK = 0, semD = 0;
+      // SEMANAL (límite 56h): semana natural lunes 00:00 → hoy
+      for (var dt = new Date(lunes); dt <= hoy; dt.setDate(dt.getDate() + 1)) {
         var d = diasT[dt.toLocaleDateString('en-CA')];
         if (d) { semH += d.hCond || 0; semK += (d.kmRec || 0) + (d.kmRec2 || 0); semD++; }
       }
-      // Quincena (últimos 14 días)
-      for (var j = 0; j < 14; j++) {
-        var dt2 = new Date(); dt2.setDate(hoy.getDate() - j);
-        var d2 = diasT[dt2.toLocaleDateString('en-CA')];
-        if (d2) qH += d2.hCond || 0;
-      }
+      // BISEMANAL (límite 90h): semana anterior completa + semana actual
+      var qH = getQuincenalH();
+      // Rango de la semana natural en curso: lunes → domingo
+      var domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+      var optsR = { day: 'numeric', month: 'short' };
+      var lblSem = document.getElementById('semanaRango');
+      if (lblSem) lblSem.textContent = lunes.toLocaleDateString('es-ES', optsR) + ' – ' + domingo.toLocaleDateString('es-ES', optsR);
       document.getElementById('rSH').textContent = hNum(semH);
       document.getElementById('rSK').textContent = semK > 0 ? semK + ' km' : '0';
       document.getElementById('rSD').textContent = semD;
@@ -4047,8 +4005,8 @@
     }
     function updWkGrid() {
       var dn = ['D', 'L', 'M', 'X', 'J', 'V', 'S'], html = '';
-      var inicio = getInicioSemTaco();
-      var hoy = new Date(); hoy.setHours(12,0,0,0);
+      var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+      var inicio = getLunesSemana(hoy); // lunes de la semana natural actual
       var dias = Math.round((hoy - inicio) / 86400000) + 1;
       if (dias < 1) dias = 1;
       if (dias > 7) dias = 7;
@@ -4061,10 +4019,24 @@
       }
       document.getElementById('wkGrid').innerHTML = html;
     }
+    // Conducción de la SEMANA NATURAL actual (lunes 00:00 → hoy). Límite legal 56h.
     function getSemH() {
-      var hoy = new Date(), inicio = getInicioSemTaco(), total = 0;
-      var diff = Math.round((hoy - inicio) / 86400000);
-      for (var i = 0; i <= diff; i++) { var dt = new Date(inicio); dt.setDate(inicio.getDate() + i); if (dt > hoy) break; var d = diasT[dt.toLocaleDateString('en-CA')]; if (d) total += d.hCond || 0; }
+      var hoy = new Date(), lunes = getLunesSemana(hoy), total = 0;
+      for (var dt = new Date(lunes); dt <= hoy; dt.setDate(dt.getDate() + 1)) {
+        var d = diasT[dt.toLocaleDateString('en-CA')];
+        if (d) total += d.hCond || 0;
+      }
+      return total;
+    }
+    // Conducción BISEMANAL: semana natural anterior completa + semana actual.
+    // Límite legal 90h en dos semanas consecutivas (Art. 6.3 CE 561/2006).
+    function getQuincenalH() {
+      var hoy = new Date(), lunesAnt = getLunesSemana(hoy), total = 0;
+      lunesAnt.setDate(lunesAnt.getDate() - 7); // retroceder a la semana anterior
+      for (var dt = new Date(lunesAnt); dt <= hoy; dt.setDate(dt.getDate() + 1)) {
+        var d = diasT[dt.toLocaleDateString('en-CA')];
+        if (d) total += d.hCond || 0;
+      }
       return total;
     }
 
