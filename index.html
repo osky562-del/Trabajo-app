@@ -1068,7 +1068,23 @@
       height: 14px;
       border-radius: 7px;
       margin-bottom: 4px;
-      background: linear-gradient(to right, var(--cb) 0 50%, var(--ok) 50% 100%);
+      background: var(--bg3);
+    }
+
+    .m-target {
+      position: absolute;
+      top: -4px;
+      width: 4px;
+      height: 22px;
+      border-radius: 2px;
+    }
+
+    .m-target.par {
+      background: var(--cb);
+    }
+
+    .m-target.arr {
+      background: var(--ok);
     }
 
     .m-bar-lbls {
@@ -1124,6 +1140,7 @@
       border-radius: 2px;
       box-shadow: 0 0 5px rgba(0, 0, 0, .7);
       transition: left .2s linear;
+      z-index: 2;
     }
 
     .m-hint {
@@ -2921,11 +2938,15 @@
         </div>
         <div id="mMsg" class="m-msg">—</div>
         <div id="mSub" class="m-sub">—</div>
-        <div class="m-bar" id="mBar"><div id="mMark" class="m-mark" style="left:0%"></div></div>
-        <div class="m-bar-lbls"><span>🛑 PARAR</span><span>🚚 ARRANCAR</span></div>
+        <div class="m-bar" id="mBar">
+          <div class="m-target par" style="left:33.33%"></div>
+          <div class="m-target arr" style="left:50%"></div>
+          <div id="mMark" class="m-mark" style="left:0%"></div>
+        </div>
+        <div class="m-bar-lbls"><span>🛑 PARA :20</span><span>🚚 ARRANCA :30</span></div>
         <button id="mSyncBtn" class="m-sync" onclick="sincronizarTaco()">🔄 SINCRONIZAR<small>pulsa justo cuando cambie el minuto en el tacógrafo</small></button>
         <div id="mSyncEstado" class="m-sync-st">—</div>
-        <div class="m-hint">Puedes rodar ~50&nbsp;s seguidos y que cuente como descanso: <b>arranca</b> pasado el :30 y <b>para</b> antes del :30 del minuto siguiente. Sincroniza primero para que vaya clavado al tacógrafo.</div>
+        <div class="m-hint"><b>ARRANCA</b> en el segundo <b>:30</b> y <b>PARA</b> en el <b>:20</b> del minuto siguiente. Ruedas ~50&nbsp;s y sigue contando como descanso. Sincroniza primero con el tacógrafo.</div>
       </div>
     </div>
   </div>
@@ -3971,13 +3992,13 @@
       } catch (e) { /* sin audio */ }
     }
 
-    function beepMinuto() {
+    function beepMinuto(freq, dur) {
       try {
         if (!minutoAudioCtx) return;
         var o = minutoAudioCtx.createOscillator(), g = minutoAudioCtx.createGain();
-        o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.25;
+        o.type = 'square'; o.frequency.value = freq || 880; g.gain.value = 0.25;
         o.connect(g); g.connect(minutoAudioCtx.destination);
-        o.start(); o.stop(minutoAudioCtx.currentTime + 0.18);
+        o.start(); o.stop(minutoAudioCtx.currentTime + (dur || 0.18));
       } catch (e) { /* nada */ }
     }
 
@@ -3986,32 +4007,38 @@
       var segEl = document.getElementById('mSeg');
       if (segEl) segEl.textContent = (s < 10 ? '0' : '') + s;
 
+      // Dos momentos exactos: ARRANCA en el :30, PARA en el :20 del minuto siguiente.
+      var faltaArr = (30 - s + 60) % 60; // segundos hasta el :30
+      var faltaPar = (20 - s + 60) % 60; // segundos hasta el :20
+      var accion, falta;
+      if (faltaArr <= faltaPar) { accion = 'arranca'; falta = faltaArr; }
+      else { accion = 'para'; falta = faltaPar; }
+
       var clock = document.getElementById('mClock'), msg = document.getElementById('mMsg'), sub = document.getElementById('mSub');
-      var fase = s <= 29 ? 'para' : (s >= 31 ? 'arranca' : 'neutral');
-      if (fase === 'para') {
-        if (clock) clock.className = 'm-clock para';
-        if (msg) { msg.className = 'm-msg para'; msg.textContent = '🛑 PARA AHORA'; }
-        if (sub) sub.textContent = 'si vas a empezar pausa o descanso · arrancar en ' + (30 - s) + 's';
-      } else if (fase === 'arranca') {
-        if (clock) clock.className = 'm-clock arranca';
-        if (msg) { msg.className = 'm-msg arranca'; msg.textContent = '🚚 ARRANCA AHORA'; }
-        if (sub) sub.textContent = 'si vas a reanudar la conducción · parar en ' + (60 - s) + 's';
-      } else {
-        if (clock) clock.className = 'm-clock neutral';
-        if (msg) { msg.className = 'm-msg'; msg.textContent = '· :30 ·'; }
-        if (sub) sub.textContent = 'empate — espera 1 segundo';
+      var emoji = accion === 'arranca' ? '🚚' : '🛑';
+      var verbo = accion === 'arranca' ? 'ARRANCA' : 'PARA';
+      if (clock) clock.className = 'm-clock ' + accion;
+      if (msg) {
+        msg.className = 'm-msg ' + accion;
+        msg.textContent = falta === 0 ? (emoji + ' ' + verbo + ' ¡AHORA!') : (emoji + ' ' + verbo + ' en ' + falta + 's');
       }
+      if (sub) sub.textContent = accion === 'arranca'
+        ? 'empieza a conducir en el segundo :30'
+        : 'para el camión en el segundo :20';
+
       var mark = document.getElementById('mMark');
       if (mark) mark.style.left = (s / 60 * 100) + '%';
 
       var est = document.getElementById('mSyncEstado');
       if (est) est.innerHTML = estadoSyncTxt();
 
-      // Aviso (flanco de subida) en :29 (último para parar) y :31 (primero para arrancar)
+      // Aviso por flanco de subida: cuenta atrás (3,2,1) + golpe fuerte en el momento exacto
       if (s !== minutoPrevSec) {
-        if (s === 29 || s === 31) {
-          beepMinuto();
-          if (navigator.vibrate) { try { navigator.vibrate(s === 29 ? [200] : [80, 60, 80]); } catch (e) { } }
+        if (falta === 0) {
+          beepMinuto(880, 0.18);
+          if (navigator.vibrate) { try { navigator.vibrate([200]); } catch (e) { } }
+        } else if (falta <= 3) {
+          beepMinuto(660, 0.05);
         }
         minutoPrevSec = s;
       }
