@@ -930,6 +930,176 @@
       background: rgba(255, 82, 82, .16);
     }
 
+    /* ── Asistente regla del minuto ── */
+    #fabMinuto {
+      position: fixed;
+      right: 16px;
+      bottom: 18px;
+      z-index: 900;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--brand2);
+      color: #04140e;
+      border: none;
+      font-size: 1.5rem;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .m-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, .7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .m-card {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      padding: 20px 18px;
+      width: 100%;
+      max-width: 360px;
+      position: relative;
+      text-align: center;
+    }
+
+    .m-close {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--text2);
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .m-title {
+      font-size: .95rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+
+    .m-toggle {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .m-tg {
+      flex: 1;
+      padding: 9px 6px;
+      border-radius: 9px;
+      border: 1px solid var(--border2);
+      background: var(--bg3);
+      color: var(--text2);
+      font-weight: 700;
+      font-size: .72rem;
+      cursor: pointer;
+    }
+
+    .m-tg.on {
+      background: var(--bg4);
+      color: var(--text);
+      border-color: var(--brand2);
+    }
+
+    .m-clock {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      margin: 4px auto 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 7px solid var(--border2);
+      transition: border-color .15s, background .15s;
+    }
+
+    .m-clock.verde {
+      border-color: var(--ok);
+      background: rgba(105, 240, 174, .12);
+    }
+
+    .m-clock.rojo {
+      border-color: var(--danger);
+      background: rgba(255, 82, 82, .12);
+    }
+
+    .m-seg {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 3.6rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .m-clock.verde .m-seg {
+      color: var(--ok);
+    }
+
+    .m-clock.rojo .m-seg {
+      color: var(--danger);
+    }
+
+    .m-seg-lbl {
+      font-size: .55rem;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-top: 2px;
+    }
+
+    .m-msg {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+      min-height: 1.4em;
+    }
+
+    .m-msg.verde {
+      color: var(--ok);
+    }
+
+    .m-msg.rojo {
+      color: var(--danger);
+    }
+
+    .m-bar {
+      position: relative;
+      height: 14px;
+      border-radius: 7px;
+      margin-bottom: 12px;
+      background: var(--bg3);
+    }
+
+    .m-mark {
+      position: absolute;
+      top: -3px;
+      width: 3px;
+      height: 20px;
+      background: #fff;
+      border-radius: 2px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, .7);
+      transition: left .2s linear;
+    }
+
+    .m-hint {
+      font-size: .62rem;
+      color: var(--text2);
+      line-height: 1.45;
+    }
+
     .alert-box {
       display: flex;
       flex-direction: column;
@@ -2704,6 +2874,28 @@
         Design & Development by <span style="color: var(--brand2);">OSKY</span>
       </div>
     </div>
+
+    <!-- Botón flotante: asistente regla del minuto -->
+    <button id="fabMinuto" onclick="abrirMinuto()" title="Regla del minuto">⏱️</button>
+
+    <!-- Overlay asistente regla del minuto -->
+    <div id="minutoOverlay" class="m-overlay" style="display:none;" onclick="if(event.target===this)cerrarMinuto()">
+      <div class="m-card">
+        <button class="m-close" onclick="cerrarMinuto()">✕</button>
+        <div class="m-title">⏱️ Regla del minuto</div>
+        <div class="m-toggle">
+          <button id="mModoParar" class="m-tg on" onclick="setModoMinuto('parar')">🛑 Voy a PARAR</button>
+          <button id="mModoArrancar" class="m-tg" onclick="setModoMinuto('arrancar')">🚚 Voy a ARRANCAR</button>
+        </div>
+        <div id="mClock" class="m-clock">
+          <div id="mSeg" class="m-seg">00</div>
+          <div class="m-seg-lbl">segundos</div>
+        </div>
+        <div id="mMsg" class="m-msg">—</div>
+        <div class="m-bar" id="mBar"><div id="mMark" class="m-mark" style="left:0%"></div></div>
+        <div class="m-hint" id="mHint">—</div>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -3672,6 +3864,95 @@
       document.getElementById('rMD').textContent = mesD;
     }
     function setPB(id, pct, cls) { var e = document.getElementById(id); e.style.width = pct + '%'; e.className = 'pb-fill ' + cls; }
+
+    /* ════════════════════════════════════════════
+       ASISTENTE REGLA DEL MINUTO
+       El tacógrafo graba minutos enteros: cada minuto natural cuenta como la
+       actividad predominante (la que más segundos dura). Pivote = segundo :30.
+       - PARAR (iniciar pausa): cambiar a descanso ANTES del :30 → el minuto
+         entero cuenta como descanso. Mejor momento: :29.
+       - ARRANCAR (reanudar): empezar a conducir DESPUÉS del :30 → el minuto
+         sigue contando como descanso. Mejor momento: :31.
+    ════════════════════════════════════════════ */
+    var minutoTimer = null, minutoModo = 'parar', minutoAudioCtx = null, minutoLastBeepMin = -1;
+
+    function abrirMinuto() {
+      document.getElementById('minutoOverlay').style.display = 'flex';
+      initMinutoAudio(); // habilitar sonido con el gesto del usuario (iOS)
+      setModoMinuto(minutoModo);
+      if (minutoTimer) clearInterval(minutoTimer);
+      minutoTimer = setInterval(tickMinuto, 200);
+      tickMinuto();
+    }
+
+    function cerrarMinuto() {
+      document.getElementById('minutoOverlay').style.display = 'none';
+      if (minutoTimer) { clearInterval(minutoTimer); minutoTimer = null; }
+    }
+
+    function setModoMinuto(m) {
+      minutoModo = m;
+      document.getElementById('mModoParar').classList.toggle('on', m === 'parar');
+      document.getElementById('mModoArrancar').classList.toggle('on', m === 'arrancar');
+      // Pintar las zonas de la barra (verde = momento bueno)
+      var bar = document.getElementById('mBar');
+      if (bar) {
+        if (m === 'parar') bar.style.background = 'linear-gradient(to right, var(--ok) 0 50%, var(--danger) 50% 100%)';
+        else bar.style.background = 'linear-gradient(to right, var(--danger) 0 51.7%, var(--ok) 51.7% 100%)';
+      }
+      var hint = document.getElementById('mHint');
+      if (hint) hint.innerHTML = (m === 'parar')
+        ? 'Cambia a descanso <b>antes del :30</b> y este minuto entero contará como pausa. El mejor momento es el <b>:29</b>.'
+        : 'Empieza a conducir <b>después del :30</b> y este minuto seguirá contando como descanso. El mejor momento es el <b>:31</b>.';
+      if (minutoAudioCtx && minutoAudioCtx.state === 'suspended') minutoAudioCtx.resume();
+      tickMinuto();
+    }
+
+    function initMinutoAudio() {
+      try {
+        if (!minutoAudioCtx) {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) minutoAudioCtx = new AC();
+        }
+        if (minutoAudioCtx && minutoAudioCtx.state === 'suspended') minutoAudioCtx.resume();
+      } catch (e) { /* sin audio */ }
+    }
+
+    function beepMinuto() {
+      try {
+        if (!minutoAudioCtx) return;
+        var o = minutoAudioCtx.createOscillator(), g = minutoAudioCtx.createGain();
+        o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.25;
+        o.connect(g); g.connect(minutoAudioCtx.destination);
+        o.start(); o.stop(minutoAudioCtx.currentTime + 0.18);
+      } catch (e) { /* nada */ }
+    }
+
+    function tickMinuto() {
+      var ahora = new Date(), s = ahora.getSeconds(), min = ahora.getMinutes();
+      var segEl = document.getElementById('mSeg');
+      if (segEl) segEl.textContent = (s < 10 ? '0' : '') + s;
+
+      var verde, mejorSeg, accion, espera;
+      if (minutoModo === 'parar') { verde = s <= 29; mejorSeg = 29; accion = 'PARA'; espera = '00'; }
+      else { verde = s >= 31; mejorSeg = 31; accion = 'ARRANCA'; espera = '31'; }
+
+      var clock = document.getElementById('mClock'), msg = document.getElementById('mMsg');
+      if (clock) clock.className = 'm-clock ' + (verde ? 'verde' : 'rojo');
+      if (msg) {
+        msg.className = 'm-msg ' + (verde ? 'verde' : 'rojo');
+        msg.textContent = verde ? ('🟢 ' + accion + ' AHORA') : ('🔴 espera al :' + espera);
+      }
+      var mark = document.getElementById('mMark');
+      if (mark) mark.style.left = (s / 60 * 100) + '%';
+
+      // Aviso (pitido + vibración) en el segundo óptimo, una sola vez por minuto
+      if (s === mejorSeg && minutoLastBeepMin !== min) {
+        minutoLastBeepMin = min;
+        beepMinuto();
+        if (navigator.vibrate) { try { navigator.vibrate([120, 60, 120]); } catch (e) { } }
+      }
+    }
 
     /* ════════════════════════════════════════════
        CALENDAR — JORNADAS
