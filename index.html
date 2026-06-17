@@ -1077,7 +1077,42 @@
       font-size: .55rem;
       color: var(--text2);
       font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .m-sync {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 11px 8px;
+      border-radius: 11px;
+      border: 1px solid var(--brand2);
+      background: rgba(0, 229, 160, .12);
+      color: var(--brand2);
+      font-weight: 800;
+      font-size: .82rem;
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
+
+    .m-sync:active {
+      background: rgba(0, 229, 160, .28);
+    }
+
+    .m-sync small {
+      font-weight: 500;
+      font-size: .58rem;
+      color: var(--text2);
+      text-transform: none;
+    }
+
+    .m-sync-st {
+      font-size: .62rem;
+      color: var(--text2);
       margin-bottom: 12px;
+      min-height: 1.2em;
     }
 
     .m-mark {
@@ -2888,7 +2923,9 @@
         <div id="mSub" class="m-sub">—</div>
         <div class="m-bar" id="mBar"><div id="mMark" class="m-mark" style="left:0%"></div></div>
         <div class="m-bar-lbls"><span>🛑 PARAR</span><span>🚚 ARRANCAR</span></div>
-        <div class="m-hint">No toques nada. Cuando vayas a parar o a arrancar, hazlo justo cuando se ponga en <b>verde</b>.</div>
+        <button id="mSyncBtn" class="m-sync" onclick="sincronizarTaco()">🔄 SINCRONIZAR<small>pulsa justo cuando cambie el minuto en el tacógrafo</small></button>
+        <div id="mSyncEstado" class="m-sync-st">—</div>
+        <div class="m-hint">Puedes rodar ~50&nbsp;s seguidos y que cuente como descanso: <b>arranca</b> pasado el :30 y <b>para</b> antes del :30 del minuto siguiente. Sincroniza primero para que vaya clavado al tacógrafo.</div>
       </div>
     </div>
   </div>
@@ -3873,7 +3910,7 @@
        Avisa (pitido + vibración) en el :29 (último para parar) y en el :31
        (primero para arrancar).
     ════════════════════════════════════════════ */
-    var minutoTimer = null, minutoAudioCtx = null, minutoLastBeepKey = -1;
+    var minutoTimer = null, minutoAudioCtx = null, minutoPrevSec = -1;
 
     function abrirMinuto() {
       document.getElementById('minutoOverlay').style.display = 'flex';
@@ -3886,6 +3923,42 @@
     function cerrarMinuto() {
       document.getElementById('minutoOverlay').style.display = 'none';
       if (minutoTimer) { clearInterval(minutoTimer); minutoTimer = null; }
+    }
+
+    // Segundo actual SINCRONIZADO con el tacógrafo. Si el usuario pulsó
+    // "Sincronizar" en el cambio de minuto del tacógrafo, ese instante es el
+    // segundo :00 del tacógrafo; calculamos los segundos desde ahí. Sin
+    // sincronizar, usa la hora del móvil (puede ir desfasada unos segundos).
+    function segundoSync() {
+      var sync = parseInt(localStorage.getItem('FTP_TACHO_SYNC') || '0');
+      if (!sync) return new Date().getSeconds();
+      var sec = Math.floor(((Date.now() - sync) % 60000) / 1000);
+      if (sec < 0) sec += 60;
+      return sec;
+    }
+
+    function sincronizarTaco() {
+      // El instante de la pulsación = segundo :00 del tacógrafo
+      localStorage.setItem('FTP_TACHO_SYNC', String(Date.now()));
+      minutoPrevSec = -1;
+      initMinutoAudio();
+      toast('✅ Reloj sincronizado con el tacógrafo');
+      tickMinuto();
+    }
+
+    function quitarSyncTaco() {
+      localStorage.removeItem('FTP_TACHO_SYNC');
+      minutoPrevSec = -1;
+      toast('Sincronización borrada — se usa la hora del móvil');
+      tickMinuto();
+    }
+
+    function estadoSyncTxt() {
+      var sync = parseInt(localStorage.getItem('FTP_TACHO_SYNC') || '0');
+      if (!sync) return '⚠️ Sin sincronizar · usa la hora del móvil';
+      var secAgo = Math.floor((Date.now() - sync) / 1000);
+      var t = secAgo < 60 ? secAgo + 's' : Math.floor(secAgo / 60) + ' min';
+      return '✅ Sincronizado hace ' + t + ' · <a href="#" onclick="event.preventDefault();quitarSyncTaco()" style="color:var(--text2);">borrar</a>';
     }
 
     function initMinutoAudio() {
@@ -3909,7 +3982,7 @@
     }
 
     function tickMinuto() {
-      var ahora = new Date(), s = ahora.getSeconds(), min = ahora.getMinutes();
+      var s = segundoSync();
       var segEl = document.getElementById('mSeg');
       if (segEl) segEl.textContent = (s < 10 ? '0' : '') + s;
 
@@ -3931,14 +4004,16 @@
       var mark = document.getElementById('mMark');
       if (mark) mark.style.left = (s / 60 * 100) + '%';
 
-      // Aviso en los segundos óptimos: :29 (último para parar) y :31 (primero para arrancar)
-      if ((s === 29 || s === 31)) {
-        var key = min * 100 + s;
-        if (minutoLastBeepKey !== key) {
-          minutoLastBeepKey = key;
+      var est = document.getElementById('mSyncEstado');
+      if (est) est.innerHTML = estadoSyncTxt();
+
+      // Aviso (flanco de subida) en :29 (último para parar) y :31 (primero para arrancar)
+      if (s !== minutoPrevSec) {
+        if (s === 29 || s === 31) {
           beepMinuto();
           if (navigator.vibrate) { try { navigator.vibrate(s === 29 ? [200] : [80, 60, 80]); } catch (e) { } }
         }
+        minutoPrevSec = s;
       }
     }
 
