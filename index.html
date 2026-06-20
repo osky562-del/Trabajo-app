@@ -3883,12 +3883,13 @@
     function updSemana() {
       var hoy = new Date();
       var lunes = getLunesSemana(hoy);
-      var semH = 0, semK = 0, semD = 0, dias10 = 0, diasRedDesc = 0;
-      // SEMANAL (límite 56h): semana natural lunes 00:00 → hoy
+      var semK = 0, semD = 0, dias10 = 0, diasRedDesc = 0;
+      // Km/días/cuotas por TURNO (bajo el día que empieza). La conducción (semH)
+      // va aparte con reparto a medianoche.
       for (var dt = new Date(lunes); dt <= hoy; dt.setDate(dt.getDate() + 1)) {
         var d = diasT[dt.toLocaleDateString('en-CA')];
         if (d) {
-          semH += d.hCond || 0; semK += (d.kmRec || 0) + (d.kmRec2 || 0); semD++;
+          semK += (d.kmRec || 0) + (d.kmRec2 || 0); semD++;
           // Día de conducción ampliada a 10h (más de 9h): máx. 2 por semana (Art. 6.1)
           if ((d.hCond || 0) > 9) dias10++;
           // Día de descanso diario reducido (9h ≤ descanso < 11h): máx. 3 por semana (Art. 8.6)
@@ -3898,7 +3899,9 @@
           }
         }
       }
-      // BISEMANAL (límite 90h): semana anterior completa + semana actual
+      // SEMANAL (56h) y BISEMANAL (90h): conducción por día de calendario,
+      // repartiendo los turnos de noche a medianoche (como el tacógrafo).
+      var semH = getSemH();
       var qH = getQuincenalH();
       renderCuota('box10', dias10, 2);
       renderCuota('boxRed', diasRedDesc, 3);
@@ -4502,12 +4505,45 @@
       }
       document.getElementById('wkGrid').innerHTML = html;
     }
+    // ── Reparto de la conducción a MEDIANOCHE para turnos de noche ──
+    // El tacógrafo cuenta la conducción por día de calendario: lo conducido
+    // antes de las 00:00 va a un día y lo de después al siguiente. La app
+    // guarda un único hCond por turno, así que repartimos esa conducción
+    // proporcional al reloj (horas antes/después de medianoche). Aproximado.
+    function cruzaMedianoche(d) {
+      if (!d || !d.horaIni || !d.horaFin) return false;
+      return tMin(d.horaFin) < tMin(d.horaIni);
+    }
+    function fracDespuesMedianoche(d) {
+      if (!cruzaMedianoche(d)) return 0;
+      var antes = 1440 - tMin(d.horaIni); // minutos desde el inicio hasta las 24:00
+      var despues = tMin(d.horaFin);       // minutos desde las 00:00 hasta el fin
+      var total = antes + despues;
+      return total > 0 ? despues / total : 0;
+    }
+    // Conducción atribuida al DÍA DE CALENDARIO 'ds' (YYYY-MM-DD), repartiendo
+    // los turnos de noche a medianoche.
+    function condDia(ds) {
+      var total = 0;
+      // Turno que EMPIEZA hoy: si cruza medianoche, solo la parte de antes de las 00:00
+      var d = diasT[ds];
+      if (d && d.hCond) {
+        total += cruzaMedianoche(d) ? d.hCond * (1 - fracDespuesMedianoche(d)) : d.hCond;
+      }
+      // Turno que empezó AYER y cruzó: la parte de después de medianoche cae hoy
+      var ayer = new Date(ds + 'T12:00:00'); ayer.setDate(ayer.getDate() - 1);
+      var dA = diasT[ayer.toLocaleDateString('en-CA')];
+      if (dA && dA.hCond && cruzaMedianoche(dA)) {
+        total += dA.hCond * fracDespuesMedianoche(dA);
+      }
+      return total;
+    }
+
     // Conducción de la SEMANA NATURAL actual (lunes 00:00 → hoy). Límite legal 56h.
     function getSemH() {
       var hoy = new Date(), lunes = getLunesSemana(hoy), total = 0;
       for (var dt = new Date(lunes); dt <= hoy; dt.setDate(dt.getDate() + 1)) {
-        var d = diasT[dt.toLocaleDateString('en-CA')];
-        if (d) total += d.hCond || 0;
+        total += condDia(dt.toLocaleDateString('en-CA'));
       }
       return total;
     }
@@ -4517,8 +4553,7 @@
       var hoy = new Date(), lunesAnt = getLunesSemana(hoy), total = 0;
       lunesAnt.setDate(lunesAnt.getDate() - 7); // retroceder a la semana anterior
       for (var dt = new Date(lunesAnt); dt <= hoy; dt.setDate(dt.getDate() + 1)) {
-        var d = diasT[dt.toLocaleDateString('en-CA')];
-        if (d) total += d.hCond || 0;
+        total += condDia(dt.toLocaleDateString('en-CA'));
       }
       return total;
     }
@@ -4543,8 +4578,10 @@
       inicio.setHours(0, 0, 0, 0);
       var horas = 0, diasTrab = 0;
       for (var d2 = new Date(inicio); d2 <= hoy; d2.setDate(d2.getDate() + 1)) {
-        var rec = diasT[d2.toLocaleDateString('en-CA')];
-        if (rec) { horas += rec.hCond || 0; if ((rec.hCond || 0) > 0 || (rec.jornMin || 0) > 0) diasTrab++; }
+        var dsd = d2.toLocaleDateString('en-CA');
+        var rec = diasT[dsd];
+        horas += condDia(dsd); // reparto a medianoche, como el tacógrafo
+        if (rec && ((rec.hCond || 0) > 0 || (rec.jornMin || 0) > 0)) diasTrab++;
       }
       var periodos = Math.round((hoy0 - inicio) / 86400000) + 1; // periodos de 24h transcurridos
       if (periodos < 1) periodos = 1;
