@@ -2705,10 +2705,10 @@
       <div class="tcard">
         <div class="tcard-title">📊 Semana actual <span id="semanaRango" style="font-weight:400;font-size:.6rem;opacity:.7;"></span></div>
         <div class="pb-group">
-          <div><div class="pb-head"><span>≈ Conducción semanal</span><span id="pbSLbl">0h / 56h</span></div><div class="pb-track"><div class="pb-fill l0" id="pbS" style="width:0%"></div></div></div>
-          <div><div class="pb-head"><span>≈ Conducción bisemanal</span><span id="pbQLbl">0h / 90h</span></div><div class="pb-track"><div class="pb-fill bl" id="pbQ" style="width:0%"></div></div></div>
+          <div><div class="pb-head"><span>Conducción semanal</span><span id="pbSLbl">0h / 56h</span></div><div class="pb-track"><div class="pb-fill l0" id="pbS" style="width:0%"></div></div></div>
+          <div><div class="pb-head"><span>Conducción bisemanal</span><span id="pbQLbl">0h / 90h</span></div><div class="pb-track"><div class="pb-fill bl" id="pbQ" style="width:0%"></div></div></div>
         </div>
-        <div style="font-size:.58rem;color:var(--warn);margin:7px 0 9px;line-height:1.35;">⚠️ Valores <b>aproximados</b>: en turnos de noche se reparte la conducción a medianoche estimando. El dato exacto y legal es el del <b>tacógrafo</b>.</div>
+        <div style="font-size:.58rem;color:var(--text2);margin:7px 0 9px;line-height:1.35;">Semana natural (lun-dom). Cada jornada suma <b>entera</b> bajo el día que empiezas, como el tacógrafo. Para lo legal manda siempre el <b>tacógrafo</b>.</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;">
           <div class="res-card g"><div class="rc-lbl">H. conducción</div><div class="rc-val g" id="rSH">—</div></div>
           <div class="res-card g"><div class="rc-lbl">KM semana</div><div class="rc-val g" id="rSK">—</div></div>
@@ -4483,49 +4483,16 @@
       }
       document.getElementById('wkGrid').innerHTML = html;
     }
-    // ── Reparto de la conducción a MEDIANOCHE para turnos de noche ──
-    // El tacógrafo cuenta la conducción por día de calendario: lo conducido
-    // antes de las 00:00 va a un día y lo de después al siguiente. La app
-    // guarda un único hCond por turno, así que estimamos el reparto.
-    // Modelo "conduce primero, pausa después" (típico de turno de noche:
-    // arrancas ~23h, conduces seguido y la pausa de 45min cae de madrugada):
-    // la conducción de antes de medianoche llena todo el reloj previo a las
-    // 00:00, y el resto de la conducción (más la pausa) queda después.
-    function cruzaMedianoche(d) {
-      if (!d || !d.horaIni || !d.horaFin) return false;
-      return tMin(d.horaFin) < tMin(d.horaIni);
-    }
-    function fracDespuesMedianoche(d) {
-      if (!cruzaMedianoche(d)) return 0;
-      var preReloj = 1440 - tMin(d.horaIni);   // minutos de reloj antes de las 00:00
-      var conduce = (d.hCond || 0) * 60;         // minutos de conducción del turno
-      if (conduce <= 0) return 0;
-      var preConduce = Math.min(preReloj, conduce); // conduce desde el arranque; la pausa cae después
-      return (conduce - preConduce) / conduce;       // fracción de conducción tras medianoche
-    }
-    // Conducción atribuida al DÍA DE CALENDARIO 'ds' (YYYY-MM-DD), repartiendo
-    // los turnos de noche a medianoche.
-    function condDia(ds) {
-      var total = 0;
-      // Turno que EMPIEZA hoy: si cruza medianoche, solo la parte de antes de las 00:00
-      var d = diasT[ds];
-      if (d && d.hCond) {
-        total += cruzaMedianoche(d) ? d.hCond * (1 - fracDespuesMedianoche(d)) : d.hCond;
-      }
-      // Turno que empezó AYER y cruzó: la parte de después de medianoche cae hoy
-      var ayer = new Date(ds + 'T12:00:00'); ayer.setDate(ayer.getDate() - 1);
-      var dA = diasT[ayer.toLocaleDateString('en-CA')];
-      if (dA && dA.hCond && cruzaMedianoche(dA)) {
-        total += dA.hCond * fracDespuesMedianoche(dA);
-      }
-      return total;
-    }
-
-    // Conducción de la SEMANA NATURAL actual (lunes 00:00 → hoy). Límite legal 56h.
+    // Conducción de la SEMANA NATURAL actual (lunes → domingo). Límite legal 56h.
+    // El tacógrafo (contador VDO/DTCO) cuenta cada JORNADA entera (un turno de
+    // noche es un solo valor aunque pille dos días) y la suma a la semana natural
+    // bajo el día en que empieza. NO se parte a medianoche. (CE 561/2006 art.4 k/i;
+    // Reglamento Ejec. UE 2016/799). Por eso sumamos hCond entero por turno.
     function getSemH() {
       var hoy = new Date(), lunes = getLunesSemana(hoy), total = 0;
       for (var dt = new Date(lunes); dt <= hoy; dt.setDate(dt.getDate() + 1)) {
-        total += condDia(dt.toLocaleDateString('en-CA'));
+        var d = diasT[dt.toLocaleDateString('en-CA')];
+        if (d) total += d.hCond || 0;
       }
       return total;
     }
@@ -4535,7 +4502,8 @@
       var hoy = new Date(), lunesAnt = getLunesSemana(hoy), total = 0;
       lunesAnt.setDate(lunesAnt.getDate() - 7); // retroceder a la semana anterior
       for (var dt = new Date(lunesAnt); dt <= hoy; dt.setDate(dt.getDate() + 1)) {
-        total += condDia(dt.toLocaleDateString('en-CA'));
+        var d = diasT[dt.toLocaleDateString('en-CA')];
+        if (d) total += d.hCond || 0;
       }
       return total;
     }
