@@ -2725,6 +2725,19 @@
         </div>
       </div>
 
+      <!-- Bloque desde el último descanso semanal (rodante, como el tacógrafo) -->
+      <div class="tcard">
+        <div class="tcard-title">🛏️ Desde tu último descanso <span id="bloqueRango" style="font-weight:400;font-size:.6rem;opacity:.7;"></span></div>
+        <div class="pb-group">
+          <div><div class="pb-head"><span>Periodos de 24h</span><span id="pb6Lbl">0 / 6</span></div><div class="pb-track"><div class="pb-fill l0" id="pb6" style="width:0%"></div></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:7px;">
+          <div class="res-card g"><div class="rc-lbl">Conducción del bloque</div><div class="rc-val g" id="rBloqueH">—</div></div>
+          <div class="res-card"><div class="rc-lbl">Días trabajados</div><div class="rc-val" id="rBloqueD">—</div></div>
+        </div>
+        <div style="font-size:.6rem;color:var(--text2);margin-top:7px;line-height:1.35;">Cuenta desde tu descanso semanal (incluye el domingo) — como tu tacógrafo. El próximo descanso semanal debe <b>empezar</b> antes de cerrar el 6º periodo de 24h (art. 8.6).</div>
+      </div>
+
       <!-- Resumen mes -->
       <div class="tcard">
         <div class="tcard-title">📅 Mes actual</div>
@@ -3902,6 +3915,16 @@
       document.getElementById('pbSLbl').textContent = hNum(semH) + ' / 56h';
       setPB('pbQ', qp, qp < 70 ? 'bl' : qp < 88 ? 'l1' : 'l3');
       document.getElementById('pbQLbl').textContent = hNum(qH) + ' / 90h';
+
+      // Bloque rodante desde el último descanso semanal (como el tacógrafo)
+      var bloque = calcBloqueDescanso();
+      var rBH = document.getElementById('rBloqueH'); if (rBH) rBH.textContent = hNum(bloque.horas);
+      var rBD = document.getElementById('rBloqueD'); if (rBD) rBD.textContent = bloque.dias;
+      var p6 = Math.min(100, bloque.periodos / 6 * 100);
+      setPB('pb6', p6, bloque.periodos < 5 ? 'l0' : bloque.periodos < 6 ? 'l1' : bloque.periodos === 6 ? 'l2' : 'l3');
+      var pb6L = document.getElementById('pb6Lbl'); if (pb6L) pb6L.textContent = bloque.periodos + ' / 6';
+      var bRango = document.getElementById('bloqueRango');
+      if (bRango) bRango.textContent = 'desde ' + bloque.inicio.toLocaleDateString('es-ES', optsR);
     }
     function updMes() {
       var hoy = new Date();
@@ -4498,6 +4521,34 @@
         if (d) total += d.hCond || 0;
       }
       return total;
+    }
+
+    // BLOQUE RODANTE desde el último descanso semanal (como el tacógrafo).
+    // Un día sin actividad (sin conducción ni jornada) se considera descanso
+    // semanal; el bloque empieza el día siguiente. Incluye el domingo si se
+    // trabajó tras el descanso. Regla de los 6 periodos de 24h (art. 8.6).
+    function calcBloqueDescanso() {
+      var hoy = new Date();
+      var hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
+      function trabajado(ds) { var d = diasT[ds]; return !!(d && ((d.hCond || 0) > 0 || (d.jornMin || 0) > 0)); }
+      var inicio = null;
+      for (var i = 1; i <= 13; i++) {
+        var dt = new Date(hoy0); dt.setDate(hoy0.getDate() - i);
+        if (!trabajado(dt.toLocaleDateString('en-CA'))) {
+          inicio = new Date(dt); inicio.setDate(dt.getDate() + 1); // día siguiente al descanso
+          break;
+        }
+      }
+      if (!inicio) { inicio = new Date(hoy0); inicio.setDate(hoy0.getDate() - 6); }
+      inicio.setHours(0, 0, 0, 0);
+      var horas = 0, diasTrab = 0;
+      for (var d2 = new Date(inicio); d2 <= hoy; d2.setDate(d2.getDate() + 1)) {
+        var rec = diasT[d2.toLocaleDateString('en-CA')];
+        if (rec) { horas += rec.hCond || 0; if ((rec.hCond || 0) > 0 || (rec.jornMin || 0) > 0) diasTrab++; }
+      }
+      var periodos = Math.round((hoy0 - inicio) / 86400000) + 1; // periodos de 24h transcurridos
+      if (periodos < 1) periodos = 1;
+      return { inicio: inicio, horas: horas, dias: diasTrab, periodos: periodos };
     }
 
     /* ════════════════════════════════════════════
