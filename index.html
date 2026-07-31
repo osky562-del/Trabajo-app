@@ -4409,11 +4409,16 @@
           + '</div>';
         return;
       }
-      verMatricula(exact ? q : match[0]);
+      renderMatricula(exact ? q : match[0]); // NO tocar el input mientras se escribe
     }
 
+    // Desde un chip de coincidencia: refleja la selección en el input y muestra
     function verMatricula(plate) {
       var inp = document.getElementById('matBuscar'); if (inp) inp.value = plate;
+      renderMatricula(plate);
+    }
+
+    function renderMatricula(plate) {
       var cont = document.getElementById('matResultado'); if (!cont) return;
       var r = recopilarUsosMatricula(plate);
       if (!r.usos.length) { cont.innerHTML = '<div style="color:var(--text2);font-size:.72rem;padding:8px 2px;">Sin registros de ' + plate + '</div>'; return; }
