@@ -1149,6 +1149,76 @@
       line-height: 1.45;
     }
 
+    /* Buscador por matrícula */
+    .mat-chip {
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      background: var(--bg3);
+      color: var(--text);
+      font-size: .72rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mat-head {
+      font-size: .85rem;
+      padding: 6px 2px;
+      color: var(--text);
+    }
+
+    .mat-sum {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 12px;
+      font-size: .62rem;
+      color: var(--text2);
+      padding: 4px 2px 9px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 6px;
+    }
+
+    .mat-row {
+      border-left: 3px solid var(--brand2);
+      background: var(--bg3);
+      border-radius: 8px;
+      padding: 7px 9px;
+      margin-bottom: 6px;
+    }
+
+    .mat-r1 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .76rem;
+      font-weight: 700;
+    }
+
+    .mat-par {
+      font-size: .64rem;
+      font-weight: 600;
+      color: var(--brand2);
+    }
+
+    .mat-ruta {
+      font-size: .64rem;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+
+    .mat-r2 {
+      font-size: .64rem;
+      color: var(--text2);
+      margin-top: 2px;
+    }
+
+    .mat-obs {
+      font-size: .62rem;
+      color: var(--text2);
+      margin-top: 3px;
+      font-style: italic;
+    }
+
     .alert-box {
       display: flex;
       flex-direction: column;
@@ -2853,6 +2923,11 @@
       <!-- Estadísticas matrículas -->
       <details class="panel">
         <summary class="panel-hd">🚛 Estadísticas por matrícula</summary>
+        <div style="margin:10px 0 4px;">
+          <input type="text" id="matBuscar" list="matDatalist" placeholder="🔍 Buscar matrícula (ej. 1513NHR)" oninput="buscarMatricula()" autocomplete="off" style="width:100%;">
+          <datalist id="matDatalist"></datalist>
+        </div>
+        <div id="matResultado" style="margin-bottom:10px;"></div>
         <div id="statsMatResumen" class="stats-grid" style="margin-bottom:10px;margin-top:10px;"></div>
         <div id="statsMatTabla"></div>
       </details>
@@ -4276,7 +4351,103 @@
     ════════════════════════════════════════════ */
     function updStats() { updDonut(); updLimBar(); updWkGrid(); updDietas(); updStatsMonth(); updStatsBarChart(); updStatsGlobal(); updStatsMatriculas(); }
 
+    /* ── Buscador por matrícula ── */
+    function normMat(s) { return (s || '').toString().toUpperCase().replace(/\s+/g, '').trim(); }
+
+    function matriculasUnicas() {
+      var set = {};
+      datos.forEach(function (j) {
+        var p = j.extendedProps || {};
+        [p.t1, p.t2, p.r1, p.r2].forEach(function (x) { var m = normMat(x); if (m) set[m] = true; });
+      });
+      return Object.keys(set).sort();
+    }
+
+    function poblarDatalistMatriculas() {
+      var dl = document.getElementById('matDatalist');
+      if (!dl) return;
+      dl.innerHTML = matriculasUnicas().map(function (m) { return '<option value="' + m + '"></option>'; }).join('');
+    }
+
+    // Recopila todos los días en que se llevó una matrícula, con sus datos
+    function recopilarUsosMatricula(plate) {
+      plate = normMat(plate);
+      var usos = [], rolGlobal = '';
+      datos.forEach(function (j) {
+        var p = j.extendedProps || {};
+        var rol = null, pareja = '';
+        if (normMat(p.t1) === plate) { rol = 'tractora'; pareja = p.r1 || ''; }
+        else if (normMat(p.t2) === plate) { rol = 'tractora'; pareja = p.r2 || ''; }
+        else if (normMat(p.r1) === plate) { rol = 'remolque'; pareja = p.t1 || ''; }
+        else if (normMat(p.r2) === plate) { rol = 'remolque'; pareja = p.t2 || ''; }
+        if (!rol) return;
+        rolGlobal = (rolGlobal && rolGlobal !== rol) ? 'ambos' : rol;
+        var d = diasT[j.start] || {};
+        usos.push({
+          fecha: j.start, tipo: p.tipo || 'dia', ruta: (p.ruta || '').trim(),
+          pareja: normMat(pareja), km: (d.kmRec || 0) + (d.kmRec2 || 0),
+          horas: d.hCond || 0, obs: (p.obs || '').trim()
+        });
+      });
+      usos.sort(function (a, b) { return b.fecha.localeCompare(a.fecha); });
+      return { plate: plate, rol: rolGlobal, usos: usos };
+    }
+
+    function buscarMatricula() {
+      var q = normMat(document.getElementById('matBuscar').value);
+      var cont = document.getElementById('matResultado');
+      if (!cont) return;
+      if (q.length < 2) { cont.innerHTML = ''; return; }
+      var todas = matriculasUnicas();
+      var exact = todas.indexOf(q) !== -1;
+      var match = todas.filter(function (m) { return m.indexOf(q) !== -1; });
+      if (!match.length) { cont.innerHTML = '<div style="color:var(--text2);font-size:.72rem;padding:8px 2px;">Sin resultados para "' + q + '"</div>'; return; }
+      if (!exact && match.length > 1) {
+        cont.innerHTML = '<div style="font-size:.64rem;color:var(--text2);margin-bottom:5px;">' + match.length + ' coincidencias — toca una:</div>'
+          + '<div style="display:flex;flex-wrap:wrap;gap:6px;">'
+          + match.map(function (m) { return '<button class="mat-chip" onclick="verMatricula(\'' + m + '\')">' + m + '</button>'; }).join('')
+          + '</div>';
+        return;
+      }
+      verMatricula(exact ? q : match[0]);
+    }
+
+    function verMatricula(plate) {
+      var inp = document.getElementById('matBuscar'); if (inp) inp.value = plate;
+      var cont = document.getElementById('matResultado'); if (!cont) return;
+      var r = recopilarUsosMatricula(plate);
+      if (!r.usos.length) { cont.innerHTML = '<div style="color:var(--text2);font-size:.72rem;padding:8px 2px;">Sin registros de ' + plate + '</div>'; return; }
+      var totKm = 0, totH = 0;
+      r.usos.forEach(function (u) { totKm += u.km; totH += u.horas; });
+      var primera = r.usos[r.usos.length - 1].fecha, ultima = r.usos[0].fecha;
+      function fdmy(s) { return s.split('-').reverse().join('/'); }
+      var icoRol = r.rol === 'remolque' ? '🛒' : (r.rol === 'ambos' ? '🚚🛒' : '🚚');
+      var rolTxt = r.rol === 'remolque' ? 'Remolque' : (r.rol === 'ambos' ? 'Tractora y remolque' : 'Tractora');
+      var html = '<div class="mat-head">' + icoRol + ' <b>' + plate + '</b> · ' + rolTxt + '</div>';
+      html += '<div class="mat-sum">'
+        + '<span>📅 <b>' + r.usos.length + '</b> días</span>'
+        + '<span>🛣 ' + totKm.toLocaleString('es-ES') + ' km</span>'
+        + '<span>⏱ ' + hNum(totH) + '</span>'
+        + '<span>1ª vez: ' + fdmy(primera) + '</span>'
+        + '<span>Última: ' + fdmy(ultima) + '</span>'
+        + '</div>';
+      html += r.usos.map(function (u) {
+        var cico = u.tipo === 'noche' ? '🌙' : (u.tipo === 'fuera' ? '🏨' : (u.tipo === 'vacas' ? '🌴' : '☀️'));
+        var linea2 = [];
+        if (u.km > 0) linea2.push('🛣 ' + u.km + ' km');
+        if (u.horas > 0) linea2.push('⏱ ' + hNum(u.horas));
+        return '<div class="mat-row">'
+          + '<div class="mat-r1"><span>' + cico + ' ' + fdmy(u.fecha) + '</span>' + (u.pareja ? '<span class="mat-par">↔ ' + u.pareja + '</span>' : '') + '</div>'
+          + (u.ruta ? '<div class="mat-ruta">📍 ' + u.ruta + '</div>' : '')
+          + (linea2.length ? '<div class="mat-r2">' + linea2.join(' · ') + '</div>' : '')
+          + (u.obs ? '<div class="mat-obs">💬 ' + u.obs + '</div>' : '')
+          + '</div>';
+      }).join('');
+      cont.innerHTML = html;
+    }
+
     function updStatsMatriculas() {
+      poblarDatalistMatriculas();
       var elResumen = document.getElementById('statsMatResumen');
       var elTabla   = document.getElementById('statsMatTabla');
       if (!elResumen || !elTabla) return;
