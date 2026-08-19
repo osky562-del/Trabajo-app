@@ -4196,7 +4196,9 @@
 
     function guardarJ() {
       if (!currT) { toast('⚠️ Elige tipo de turno'); return; }
-      var col = { dia: 'rgba(255,215,0,.75)', noche: 'rgba(156,95,255,.75)', fuera: 'rgba(255,107,107,.75)', vacas: 'rgba(46,204,113,.75)' };
+      // OJO: backgroundColor debe tener <=20 caracteres (regla de Firebase).
+      // 'rgba(255,107,107,.75)' eran 21 → FUERA no se guardaba. Usamos .7 (20 chars).
+      var col = { dia: 'rgba(255,215,0,.75)', noche: 'rgba(156,95,255,.75)', fuera: 'rgba(255,107,107,.7)', vacas: 'rgba(46,204,113,.75)' };
       var txt = { dia: '☀️ DÍA', noche: '🌙 NOCHE', fuera: '🏨 FUERA', vacas: '🌴 VACAS' };
       var reg = {
         title: txt[currT], start: currF, backgroundColor: col[currT], borderColor: 'rgba(0,0,0,.2)',
@@ -4207,11 +4209,15 @@
           obs: document.getElementById('fObs').value
         }
       };
-      db.ref('usuarios/' + currentUser + '/viajes/' + currF).set(reg);
-      document.getElementById('dayForm').classList.remove('open');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      toast('✅ Guardado en la nube');
-      setTimeout(function () { if (cal) { cal.render(); setTimeout(repintarCal, 100); } }, 400);
+      db.ref('usuarios/' + currentUser + '/viajes/' + currF).set(reg).then(function () {
+        document.getElementById('dayForm').classList.remove('open');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast('✅ Guardado en la nube');
+        setTimeout(function () { if (cal) { cal.render(); setTimeout(repintarCal, 100); } }, 400);
+      }).catch(function (err) {
+        console.error('Error guardando jornada:', err);
+        toast('❌ No se pudo guardar: ' + (err && err.message ? err.message : 'error'));
+      });
     }
     function limpiarForm() {
       // Solo limpia los campos del formulario, NO toca lo guardado en la nube
