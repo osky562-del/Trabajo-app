@@ -2592,6 +2592,9 @@
     .photo-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
     .photo-del { position: absolute; top: 2px; right: 2px; background: rgba(255, 82, 82, 0.8); color: white; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
     .camera-dot { background: #00ff00; border-radius: 50%; width: 8px; height: 8px; position: absolute; left: 18px; top: 4px; box-shadow: 0 0 8px #00ff00; z-index: 5; pointer-events: none; }
+    .fest-toggle { width: 100%; margin-bottom: 11px; padding: 9px; border-radius: 6px; border: 1px dashed var(--border2); background: var(--bg3); color: var(--text2); font-weight: 700; font-size: .72rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .2s; }
+    .fest-toggle.on { background: linear-gradient(135deg,#ff8c00,#e30613); color: #fff; border: 1px solid rgba(255,255,255,.4); box-shadow: 0 4px 10px rgba(0,0,0,.4); }
+    .fest-dot { position: absolute; right: 4px; top: 3px; font-size: 12px; line-height: 1; z-index: 10; pointer-events: none; }
     .mat-table { width: 100%; border-collapse: collapse; font-size: .7rem; }
     .mat-table th { color: var(--text2); font-size: .58rem; letter-spacing: .5px; text-transform: uppercase; padding: 5px 6px; text-align: left; border-bottom: 1px solid var(--border); }
     .mat-table td { padding: 7px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -2831,6 +2834,7 @@
           <button id="bVacas" class="bturno bt-vacas" onclick="selT('vacas')">🌴 VACAS</button>
           <button class="bturno bt-del" onclick="borrarJ()">✕ DEL</button>
         </div>
+        <button type="button" id="btnFest" class="fest-toggle" onclick="toggleFest()">🎉 Festivo trabajado</button>
         <div class="fgrp"><label class="flbl">Ruta</label><select id="selR"></select></div>
         <button type="button" class="sm-btn" id="btnOcrFotos" onclick="analizarFotosDelDia()" style="width:100%;margin-bottom:4px;">🔍 Leer matrículas de las fotos</button>
         <div style="font-size:11px;color:var(--text2);text-align:center;margin-bottom:8px;line-height:1.3;">💡 Una foto separada de cada matrícula (cerca, llenando el frame)</div>
@@ -3034,7 +3038,7 @@
        ESTADO GLOBAL
     ════════════════════════════════════════════ */
     var cal, currentUser = '', datos = [], misRutas = ['Ruta Local', 'Base-Base'];
-    var currF = null, currT = null;
+    var currF = null, currT = null, currFest = false;
     var tacoRef = null, jornadasRef = null;
     var diasT = {};        // { 'YYYY-MM-DD': {horaIni,horaFin,hCond,jornMin,kmIni,kmFin,kmRec,obs} }
     var cfg = { name: '', company: '' };
@@ -4147,6 +4151,7 @@
       el.classList.remove('dia-c', 'noche-c', 'fuera-c', 'vacas-c');
       var ol = el.querySelector('.day-label'); if (ol) ol.remove();
       var od = el.querySelector('.dot-obs'); if (od) od.remove();
+      var ofe = el.querySelector('.fest-dot'); if (ofe) ofe.remove();
       var item = datos.find(function (d) { return d.start === ds; });
       if (!item || !item.extendedProps) return;
       var p = item.extendedProps, tp = p.tipo;
@@ -4168,6 +4173,11 @@
         var top2 = el.querySelector(".fc-daygrid-day-top");
         if (top2) { top2.style.position = "relative"; top2.appendChild(dotF); }
       }
+      if (p.festivo) {
+        var fdot = document.createElement("span"); fdot.className = "fest-dot"; fdot.textContent = "🎉"; fdot.title = "Festivo trabajado";
+        var top3 = el.querySelector(".fc-daygrid-day-top") || el.querySelector(".fc-daygrid-day-frame") || el;
+        top3.style.position = "relative"; top3.appendChild(fdot);
+      }
     }
     function showDayForm(f) {
       var form = document.getElementById('dayForm'); form.classList.add('open');
@@ -4181,10 +4191,11 @@
         document.getElementById('fR2').value = ex.extendedProps.r2 || '';
         document.getElementById('selR').value = ex.extendedProps.ruta || '';
         document.getElementById('fObs').value = ex.extendedProps.obs || '';
-
+        setFest(ex.extendedProps.festivo);
       } else {
         selT(null);
         ['fT1', 'fT2', 'fR1', 'fR2', 'fObs'].forEach(function (id) { document.getElementById(id).value = ''; });
+        setFest(false);
       }
       setTimeout(function () { form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
     }
@@ -4193,6 +4204,12 @@
       document.querySelectorAll('.bturno').forEach(function (b) { b.classList.remove('selected'); });
       if (t) { var el = document.getElementById('b' + t.charAt(0).toUpperCase() + t.slice(1)); if (el) el.classList.add('selected'); }
     }
+    function setFest(v) {
+      currFest = !!v;
+      var b = document.getElementById('btnFest');
+      if (b) b.classList.toggle('on', currFest);
+    }
+    function toggleFest() { setFest(!currFest); }
 
     function guardarJ() {
       if (!currT) { toast('⚠️ Elige tipo de turno'); return; }
@@ -4209,6 +4226,9 @@
           obs: document.getElementById('fObs').value
         }
       };
+      // Solo añadimos 'festivo' cuando está activo, para no afectar al guardado
+      // normal si las reglas de Firebase aún no incluyen el campo.
+      if (currFest) reg.extendedProps.festivo = true;
       db.ref('usuarios/' + currentUser + '/viajes/' + currF).set(reg).then(function () {
         document.getElementById('dayForm').classList.remove('open');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4314,16 +4334,18 @@
       orden.forEach(function (key, gi) {
         var g = grupos[key];
         var cnts = { dia: 0, noche: 0, fuera: 0, vacas: 0 };
-        var nFotos = 0;
+        var nFotos = 0, nFest = 0;
         g.items.forEach(function (e) {
           var t = e.extendedProps.tipo || 'dia'; if (cnts[t] !== undefined) cnts[t]++;
           if (window.diasF && window.diasF[e.start]) nFotos++;
+          if (e.extendedProps.festivo) nFest++;
         });
         var dots = '';
         ['dia', 'noche', 'fuera', 'vacas'].forEach(function (t) {
           if (cnts[t] > 0) dots += '<span style="display:inline-flex;align-items:center;gap:2px;font-size:.6rem;color:' + cdot[t] + '"><span style="width:6px;height:6px;border-radius:50%;background:' + cdot[t] + ';display:inline-block"></span>' + cnts[t] + '</span>';
         });
         if (nFotos > 0) dots += '<span style="display:inline-flex;align-items:center;gap:2px;font-size:.6rem;color:var(--brand2);">📷 ' + nFotos + '</span>';
+        if (nFest > 0) dots += '<span style="display:inline-flex;align-items:center;gap:2px;font-size:.6rem;color:#ff8c00;">🎉 ' + nFest + '</span>';
         var isFirst = (gi === 0);
         cont.innerHTML += '<div class="mes-grupo">'
           + '<div class="mes-header' + (isFirst ? ' open' : '') + '" id="mh-' + gi + '" onclick="toggleMes(' + gi + ')">'
@@ -4337,8 +4359,11 @@
             var icoFotos = tieneFotos
               ? '<span style="display:inline-flex;align-items:center;gap:3px;font-size:.6rem;padding:1px 6px;border-radius:8px;background:rgba(0,229,160,.15);color:var(--brand2);border:1px solid rgba(0,229,160,.35);margin-left:6px;" title="Hay fotos guardadas">📷 Fotos</span>'
               : '';
+            var icoFest = p.festivo
+              ? '<span style="display:inline-flex;align-items:center;gap:3px;font-size:.6rem;padding:1px 6px;border-radius:8px;background:rgba(255,140,0,.15);color:#ff8c00;border:1px solid rgba(255,140,0,.4);margin-left:6px;" title="Festivo trabajado">🎉 Festivo</span>'
+              : '';
             return '<div class="card ct-' + tp + '">'
-              + '<div class="cr1"><span class="c-dt">📅 ' + e.start.split('-').reverse().join('/') + icoFotos + '</span><span class="c-tp" style="color:' + cx[tp] + '">' + e.title + '</span></div>'
+              + '<div class="cr1"><span class="c-dt">📅 ' + e.start.split('-').reverse().join('/') + icoFotos + icoFest + '</span><span class="c-tp" style="color:' + cx[tp] + '">' + e.title + '</span></div>'
               + (p.ruta ? '<div class="c-ru">📍 ' + p.ruta + '</div>' : '')
               + ([p.t1, p.t2, p.r1, p.r2].filter(Boolean).length ? '<div class="c-ti">' + [p.t1, p.t2, p.r1, p.r2].filter(Boolean).join(' · ') + '</div>' : '')
               + (p.obs ? '<div class="c-ob">💬 ' + p.obs + '</div>' : '')
