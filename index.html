@@ -1317,6 +1317,10 @@
       color: var(--vacas)
     }
 
+    .dst.fest .dst-v {
+      color: #ff8c00
+    }
+
     .dst.km .dst-v {
       color: var(--cd)
     }
@@ -2821,6 +2825,7 @@
           <div class="dst"><span class="dst-i">🌙</span><span class="dst-v" id="cNoche">0</span><span class="dst-l">NOCHE</span></div>
           <div class="dst"><span class="dst-i">🏨</span><span class="dst-v" id="cFuera">0</span><span class="dst-l">FUERA</span></div>
           <div class="dst"><span class="dst-i">🌴</span><span class="dst-v" id="cVacas">0</span><span class="dst-l">VACAS</span></div>
+          <div class="dst fest"><span class="dst-i">🎉</span><span class="dst-v" id="cFest">0</span><span class="dst-l">FESTIVOS</span></div>
           <div class="dst eur"><span class="dst-i">💶</span><span class="dst-v" id="cEuros">0</span><span class="dst-l">EUROS</span></div>
         </div>
       </div>
@@ -4293,10 +4298,12 @@
       var n = lista.filter(function (e) { return e.extendedProps.tipo === 'noche'; }).length;
       var f = lista.filter(function (e) { return e.extendedProps.tipo === 'fuera'; }).length;
       var vc = lista.filter(function (e) { return e.extendedProps.tipo === 'vacas'; }).length;
+      var fest = lista.filter(function (e) { return e.extendedProps.festivo; }).length;
       var dm = lista.filter(function (e) { var fe = new Date(e.start); return fe.getDay() === 0 && (e.extendedProps.tipo === 'dia' || e.extendedProps.tipo === 'noche'); }).length;
 
       document.getElementById('cDia').textContent = d; document.getElementById('cNoche').textContent = n;
       document.getElementById('cFuera').textContent = f; document.getElementById('cVacas').textContent = vc;
+      document.getElementById('cFest').textContent = fest;
       document.getElementById('cEuros').textContent = dm * 50;
       var opt = { day: 'numeric', month: 'short' };
       document.getElementById('prdLbl').textContent = 'Nomina: ' + ini.toLocaleDateString('es', opt) + ' > ' + fin.toLocaleDateString('es', opt);
